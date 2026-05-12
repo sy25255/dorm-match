@@ -1,0 +1,369 @@
+import axios from 'axios'
+import { ElMessage } from 'element-plus'
+import router from '@/router'
+
+const request = axios.create({
+  baseURL: '/api/v1',
+  timeout: 30000,
+})
+
+request.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  const schoolCode = localStorage.getItem('schoolCode')
+  if (schoolCode) {
+    config.headers['X-School-Code'] = schoolCode
+  }
+  return config
+})
+
+let mockData: any = null
+async function loadMockData() {
+  if (!mockData) {
+    const mod = await import('@/mock/data')
+    mockData = mod
+  }
+  return mockData
+}
+
+const isDemoMode = () => localStorage.getItem('token')?.startsWith('demo-token-')
+
+function makeMockResponse(data: any) {
+  return { data: { code: 200, message: '操作成功', data } }
+}
+
+function getDraftFromStorage() {
+  return JSON.parse(localStorage.getItem('demo_survey_draft') || '{}')
+}
+
+async function handleMock(url: string, method: string, bodyData?: any): Promise<any> {
+  const m = await loadMockData()
+
+  // ========== School Validation ==========
+  if (url.includes('/school/validate')) {
+    const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
+    const code = b.code || new URLSearchParams(url.split('?')[1] || '').get('code')
+    const school = m.getSchoolByCode(code)
+    if (school) return makeMockResponse({ valid: true, school })
+    return makeMockResponse({ valid: false, school: null })
+  }
+
+  // ========== Auth ==========
+  if (url.includes('/auth/login')) {
+    const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
+    if (b.studentNo === 'admin' && b.password === 'admin123') {
+      return makeMockResponse({ token: 'demo-admin-token', refreshToken: 'demo-admin-refresh', userId: 99, username: '系统管理员', role: 'ADMIN' })
+    }
+    return makeMockResponse({ token: 'demo-token', refreshToken: 'demo-refresh', userId: 1, username: '张伟（演示）', role: 'STUDENT' })
+  }
+  if (url.includes('/auth/refresh')) return makeMockResponse({ token: 'demo-token-2', refreshToken: 'demo-refresh-2', userId: 1, username: '张伟（演示）', role: 'STUDENT' })
+
+  // ========== Survey ==========
+  if (url === '/survey/questions' || url.includes('/survey/questions')) return makeMockResponse(m.mockQuestions)
+  if (url.includes('/survey/progress')) {
+    const draft = getDraftFromStorage()
+    const answered = Object.keys(draft).length
+    return makeMockResponse({ total: 91, answered, percentage: Math.round(answered * 100 / 91) })
+  }
+  if (url.includes('/survey/draft')) {
+    if (method === 'post' || method === 'put') {
+      if (bodyData?.answers) {
+        const draft: Record<string, string> = getDraftFromStorage()
+        bodyData.answers.forEach((a: any) => { draft[String(a.questionId)] = a.answerValue })
+        localStorage.setItem('demo_survey_draft', JSON.stringify(draft))
+      }
+      return makeMockResponse(null)
+    }
+    const draft = getDraftFromStorage()
+    const items = Object.entries(draft).map(([qid, val]) => ({ questionId: Number(qid), answerValue: val }))
+    return makeMockResponse(items)
+  }
+  if (url.includes('/survey/submit')) {
+    localStorage.setItem('demo_survey_completed', 'true')
+    return makeMockResponse(null)
+  }
+
+  // ========== Match ==========
+  if (url.includes('/match/calculate')) return makeMockResponse(null)
+  if (url.includes('/match/recommendations')) return makeMockResponse(m.mockRecommendations)
+  if (url.includes('/match/search')) return makeMockResponse(m.mockSearchResults)
+  if (url.includes('/match/detail/')) {
+    const id = Number(url.split('/match/detail/')[1])
+    return makeMockResponse(m.getMockMatchDetail(id))
+  }
+
+  // ========== Invite ==========
+  if (url.includes('/invite/send')) {
+    ElMessage.success('邀请已发送')
+    return makeMockResponse({ id: Date.now(), status: 0 })
+  }
+  if (url.includes('/invite/quota')) return makeMockResponse(m.mockQuota)
+  if (url.includes('/invite/pairing/members')) return makeMockResponse(m.mockPairingMembers)
+  if (url.includes('/invite/pairing')) return makeMockResponse(m.mockPairing)
+  if (url.includes('/invite/received')) return makeMockResponse([
+    { id: 101, fromStudentId: 2, toStudentId: 1, message: '你好！我觉得我们很合得来，一起组团吧！', status: 0, createdAt: '2024-08-25T12:00:00', expiresAt: '2024-08-27T12:00:00' },
+    { id: 102, fromStudentId: 4, toStudentId: 1, message: '我也喜欢打篮球，一起呀！', status: 0, createdAt: '2024-08-25T14:00:00', expiresAt: '2024-08-27T14:00:00' },
+  ])
+  if (url.includes('/invite/sent')) return makeMockResponse([])
+  if (url.includes('/invite/') && url.includes('/accept')) {
+    ElMessage.success('配对成功！')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/invite/') && url.includes('/reject')) return makeMockResponse(null)
+  if (url.includes('/invite/') && url.includes('/withdraw')) return makeMockResponse(null)
+
+  // ========== Allocation (student) ==========
+  if (url.includes('/allocation/my')) return makeMockResponse(m.mockAllocation)
+  if (url === '/allocation/objections' || url.includes('/allocation/objections')) return makeMockResponse(m.mockObjections)
+  if (url.includes('/allocation/objection') && method === 'post') {
+    ElMessage.success('异议已提交')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/allocation/confirm')) {
+    ElMessage.success('已确认')
+    return makeMockResponse(null)
+  }
+
+  // ========== Student ==========
+  if (url.match(/\/student\/\d+$/)) {
+    const id = Number(url.split('/student/')[1])
+    const student = m.mockStudents.find((s: any) => s.id === id)
+    return makeMockResponse(student || { id, name: `学生${id}` })
+  }
+  if (url.includes('/student/profile') && method === 'put') {
+    ElMessage.success('个人信息已更新')
+    return makeMockResponse(null)
+  }
+
+  // ========== Admin: Students ==========
+  if (url.includes('/admin/students/import')) {
+    ElMessage.success('学生数据导入成功')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/students/') && url.includes('/toggle')) {
+    ElMessage.success('状态已更新')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/students/') && method === 'put') {
+    ElMessage.success('学生信息已更新')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/students/')) {
+    const id = Number(url.split('/admin/students/')[1])
+    const s = m.mockAllStudents.find((st: any) => st.id === id)
+    return makeMockResponse(s || null)
+  }
+  if (url.includes('/admin/students')) {
+    return makeMockResponse(m.mockAllStudents)
+  }
+
+  // ========== Admin: School Management ==========
+  if (url.includes('/admin/school/config')) {
+    return makeMockResponse(m.mockSchoolConfig)
+  }
+  if (url.includes('/admin/school/colleges') && method === 'post') {
+    ElMessage.success('学院已添加')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/school/colleges/') && method === 'put') {
+    ElMessage.success('学院已更新')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/school/colleges')) {
+    return makeMockResponse(m.mockColleges)
+  }
+  if (url.includes('/admin/school/majors') && method === 'post') {
+    ElMessage.success('专业已添加')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/school/majors/') && method === 'put') {
+    ElMessage.success('专业已更新')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/school/majors')) {
+    const collegeId = new URLSearchParams(url.split('?')[1] || '').get('collegeId')
+    if (collegeId) return makeMockResponse((m.mockMajors[Number(collegeId)] || []))
+    const all = Object.entries(m.mockMajors as Record<number, any[]>).flatMap(([cid, majors]) =>
+      majors.map((maj: any) => ({ ...maj, collegeId: Number(cid) }))
+    )
+    return makeMockResponse(all)
+  }
+  if (url.includes('/admin/school/classes') && method === 'post') {
+    ElMessage.success('班级已添加')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/school/classes/') && method === 'put') {
+    ElMessage.success('班级已更新')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/school/classes')) {
+    const majorId = new URLSearchParams(url.split('?')[1] || '').get('majorId')
+    if (majorId) return makeMockResponse(m.mockClasses.filter((c: any) => c.majorId === Number(majorId)))
+    return makeMockResponse(m.mockClasses)
+  }
+
+  // ========== Student: Search (cascaded) ==========
+  if (url.includes('/school/colleges')) {
+    return makeMockResponse(m.mockColleges)
+  }
+  if (url.includes('/school/majors')) {
+    const collegeId = new URLSearchParams(url.split('?')[1] || '').get('collegeId')
+    if (collegeId) return makeMockResponse((m.mockMajors[Number(collegeId)] || []))
+    const all = Object.entries(m.mockMajors as Record<number, any[]>).flatMap(([cid, majors]) =>
+      majors.map((maj: any) => ({ ...maj, collegeId: Number(cid) }))
+    )
+    return makeMockResponse(all)
+  }
+  if (url.includes('/school/classes')) {
+    const majorId = new URLSearchParams(url.split('?')[1] || '').get('majorId')
+    if (majorId) return makeMockResponse(m.mockClasses.filter((c: any) => c.majorId === Number(majorId)))
+    return makeMockResponse(m.mockClasses)
+  }
+
+  // ========== Admin: Survey ==========
+  if (url.includes('/admin/survey/questions/') && url.includes('/toggle')) {
+    ElMessage.success('题目状态已更新')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/survey/questions/') && method === 'put') {
+    ElMessage.success('题目已更新')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/survey/questions/') && method === 'delete') {
+    ElMessage.success('题目已删除')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/survey/questions') && method === 'post') {
+    ElMessage.success('题目已创建')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/survey/questions')) {
+    return makeMockResponse(m.mockQuestions)
+  }
+
+  // ========== Admin: Dormitory ==========
+  if (url.includes('/admin/dormitory/buildings') && method === 'post') {
+    ElMessage.success('宿舍楼已添加')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/dormitory/buildings/') && method === 'put') {
+    ElMessage.success('宿舍楼已更新')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/dormitory/buildings')) {
+    return makeMockResponse(m.mockDormBuildings)
+  }
+  if (url.includes('/admin/dormitory/rooms') && method === 'post') {
+    ElMessage.success('房间已添加')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/dormitory/rooms/') && method === 'put') {
+    ElMessage.success('房间已更新')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/dormitory/rooms')) {
+    return makeMockResponse(m.mockDormRooms)
+  }
+
+  // ========== Admin: Allocation ==========
+  if (url.includes('/admin/allocation/execute')) {
+    ElMessage.success('批量分配已执行')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/allocation/publish')) {
+    ElMessage.success('预分配结果已发布公示')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/allocation/finalize')) {
+    ElMessage.success('正式分配结果已确认')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/allocation/results')) {
+    return makeMockResponse(m.mockAllocations)
+  }
+
+  // ========== Admin: Objections ==========
+  if (url.includes('/admin/objection/') && method === 'put') {
+    ElMessage.success('申诉已处理')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/objections')) {
+    return makeMockResponse(m.mockAllObjections)
+  }
+
+  // ========== Admin: Statistics ==========
+  if (url.includes('/admin/statistics')) {
+    return makeMockResponse(m.mockStatistics)
+  }
+
+  // ========== Admin: Audit Logs ==========
+  if (url.includes('/admin/audit-logs')) {
+    return makeMockResponse(m.mockAuditLogs)
+  }
+
+  // ========== Admin: Invite Codes ==========
+  if (url.includes('/admin/invite-codes/generate')) {
+    return makeMockResponse({ code: m.generateInviteCode(), createdAt: new Date().toISOString() })
+  }
+  if (url.includes('/admin/invite-codes')) {
+    return makeMockResponse([
+      { id: 1, code: 'INV-A8K3M2', usedBy: null, isUsed: false, createdAt: '2024-08-24T10:00:00' },
+      { id: 2, code: 'INV-P9J4Q1', usedBy: '20240001', isUsed: true, createdAt: '2024-08-24T10:00:00' },
+      { id: 3, code: 'INV-R2L7N5', usedBy: null, isUsed: false, createdAt: '2024-08-24T10:00:00' },
+    ])
+  }
+
+  // ========== Notifications ==========
+  if (url.includes('/notification/') && url.includes('/read') && !url.includes('read-all')) {
+    return makeMockResponse(null)
+  }
+  if (url.includes('/notification/read-all')) {
+    return makeMockResponse(null)
+  }
+  if (url.includes('/notification/unread-count')) {
+    return makeMockResponse({ count: m.mockNotifications.filter((n: any) => n.studentId === 1 && n.isRead === 0).length })
+  }
+  if (url.includes('/notification/list')) {
+    return makeMockResponse(m.mockNotifications.filter((n: any) => n.studentId === 1))
+  }
+
+  return null
+}
+
+request.interceptors.response.use(
+  async (response) => {
+    const data = response.data
+    if (typeof data === 'string' && (data.includes('<!DOCTYPE html>') || data.includes('<html'))) {
+      const url: string = response.config?.url || ''
+      const method = response.config?.method || 'get'
+      const bodyData = response.config?.data
+      const mock = await handleMock(url, method, bodyData)
+      if (mock) return mock
+    }
+    return response
+  },
+  async (error) => {
+    const url: string = error.config?.url || ''
+    const method = error.config?.method || 'get'
+    const bodyData = error.config?.data
+    const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.code === 'ERR_BAD_RESPONSE' || !error.response
+
+    if (isNetworkError || isDemoMode()) {
+      const mock = await handleMock(url, method, bodyData)
+      if (mock) return mock
+    }
+
+    if (error.response?.status === 401) {
+      localStorage.clear()
+      router.push('/login')
+      ElMessage.error('登录已过期，请重新登录')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('权限不足')
+    }
+    return Promise.reject(error)
+  }
+)
+
+export default request

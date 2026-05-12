@@ -1,0 +1,194 @@
+{
+  "role": "ADMIN",
+  "total": 26,
+  "passed": 24,
+  "failed": 1,
+  "warn": 1,
+  "rate": "92.3%",
+  "elapsed": "36.9s",
+  "results": [
+    {
+      "step": "1.1 进入学校登录页",
+      "status": "PASS",
+      "detail": "URL: http://127.0.0.1:3333/DEMO-UNI/login",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/login",
+      "time": "10:14:57"
+    },
+    {
+      "step": "1.2 管理员登录成功",
+      "status": "PASS",
+      "detail": "URL: http://127.0.0.1:3333/DEMO-UNI/admin/statistics",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/statistics",
+      "time": "10:15:01"
+    },
+    {
+      "step": "2.1 统计页面加载",
+      "status": "PASS",
+      "detail": "统计仪表盘正常渲染",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/statistics",
+      "time": "10:15:02"
+    },
+    {
+      "step": "2.2 统计卡片数量",
+      "status": "PASS",
+      "detail": "找到 20 个卡片/组件",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/statistics",
+      "time": "10:15:02"
+    },
+    {
+      "step": "2.3 图表渲染",
+      "status": "PASS",
+      "detail": "找到 12 个图表canvas",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/statistics",
+      "time": "10:15:02"
+    },
+    {
+      "step": "2.4 统计关键指标",
+      "status": "PASS",
+      "detail": "含总学生/已完成问卷/已配对指标",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/statistics",
+      "time": "10:15:02"
+    },
+    {
+      "step": "3.1 学校管理页加载",
+      "status": "PASS",
+      "detail": "学院/专业/班级管理可见",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/school",
+      "time": "10:15:04"
+    },
+    {
+      "step": "3.2 新增/添加操作入口",
+      "status": "PASS",
+      "detail": "找到 2 个新增按钮",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/school",
+      "time": "10:15:04"
+    },
+    {
+      "step": "4.1 学生管理页加载",
+      "status": "PASS",
+      "detail": "学生列表正常",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/students",
+      "time": "10:15:06"
+    },
+    {
+      "step": "4.2 学生数据行数",
+      "status": "PASS",
+      "detail": "找到 28 行数据",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/students",
+      "time": "10:15:06"
+    },
+    {
+      "step": "4.3 学院/专业/班级级联筛选",
+      "status": "PASS",
+      "detail": "找到 4 个下拉筛选(完整)",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/students",
+      "time": "10:15:06"
+    },
+    {
+      "step": "4.4 新增学生对话框",
+      "status": "PASS",
+      "detail": "对话框已打开",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/students",
+      "time": "10:15:07"
+    },
+    {
+      "step": "5.1 问卷管理页加载",
+      "status": "PASS",
+      "detail": "题目列表正常",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/survey",
+      "time": "10:15:09"
+    },
+    {
+      "step": "5.2 题目列表数据量",
+      "status": "PASS",
+      "detail": "找到 87 行题目(充足)",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/survey",
+      "time": "10:15:10"
+    },
+    {
+      "step": "5.3 新增题目对话框",
+      "status": "PASS",
+      "detail": "对话框已打开",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/survey",
+      "time": "10:15:11"
+    },
+    {
+      "step": "5.4 选项文本框（A.B.C.D格式）",
+      "status": "PASS",
+      "detail": "找到 2 个文本框(简化版选项输入)",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/survey",
+      "time": "10:15:11"
+    },
+    {
+      "step": "6.1 宿舍管理页加载",
+      "status": "PASS",
+      "detail": "宿舍楼/房间信息可见",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/dormitory",
+      "time": "10:15:13"
+    },
+    {
+      "step": "7.1 分配管理页加载",
+      "status": "PASS",
+      "detail": "分配管理页正常",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/allocation",
+      "time": "10:15:15"
+    },
+    {
+      "step": "7.2 分配操作按钮",
+      "status": "PASS",
+      "detail": "找到 3 个分配按钮",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/allocation",
+      "time": "10:15:15"
+    },
+    {
+      "step": "8.1 异议处理页加载",
+      "status": "PASS",
+      "detail": "异议列表可见",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/objections",
+      "time": "10:15:17"
+    },
+    {
+      "step": "9.1 审计日志页加载",
+      "status": "PASS",
+      "detail": "审计日志列表可见",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/audit-logs",
+      "time": "10:15:19"
+    },
+    {
+      "step": "10.1 管理后台→学生端",
+      "status": "PASS",
+      "detail": "URL: http://127.0.0.1:3333/DEMO-UNI/",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/",
+      "time": "10:15:22"
+    },
+    {
+      "step": "11.1 学生端→后台快捷按钮",
+      "status": "PASS",
+      "detail": "URL: http://127.0.0.1:3333/DEMO-UNI/admin/statistics",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/admin/statistics",
+      "time": "10:15:24"
+    },
+    {
+      "step": "12.1 管理员退出→登录页",
+      "status": "WARN",
+      "detail": "URL: http://127.0.0.1:3333/",
+      "url": "http://127.0.0.1:3333/",
+      "time": "10:15:26"
+    },
+    {
+      "step": "13.1 管理后台菜单",
+      "status": "FAIL",
+      "detail": "缺少: 数据统计, 学生管理, 问卷管理, 宿舍管理, 宿舍分配, 异议处理, 审计日志",
+      "url": "http://127.0.0.1:3333/",
+      "time": "10:15:28"
+    },
+    {
+      "step": "13.2 侧边栏学校品牌",
+      "status": "PASS",
+      "detail": "",
+      "url": "http://127.0.0.1:3333/",
+      "time": "10:15:28"
+    }
+  ],
+  "timestamp": "2026-05-10T10:14:52.044164"
+}

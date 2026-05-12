@@ -1,0 +1,13 @@
+node_modules/
+dist/
+target/
+*.class
+*.jar
+.vscode/
+*.log
+.DS_Store
+Thumbs.db
+apache-maven-3.9.8/
+nodejs/
+bore/
+ngrok/

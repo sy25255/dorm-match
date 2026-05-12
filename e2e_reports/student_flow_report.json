@@ -1,0 +1,201 @@
+{
+  "role": "STUDENT",
+  "total": 27,
+  "passed": 25,
+  "failed": 0,
+  "warn": 2,
+  "rate": "92.6%",
+  "elapsed": "38.2s",
+  "results": [
+    {
+      "step": "1.1 学校编码入口页加载",
+      "status": "PASS",
+      "detail": "页面正常渲染，含标题和输入框",
+      "url": "http://127.0.0.1:3333/",
+      "time": "10:12:58"
+    },
+    {
+      "step": "1.2 编码验证跳转登录页",
+      "status": "PASS",
+      "detail": "当前URL: http://127.0.0.1:3333/DEMO-UNI/login",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/login",
+      "time": "10:13:02"
+    },
+    {
+      "step": "1.3 登录页显示学校名称",
+      "status": "PASS",
+      "detail": "显示\"示范大学\"品牌标识",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/login",
+      "time": "10:13:02"
+    },
+    {
+      "step": "2.1 学生登录成功 → 进入首页",
+      "status": "PASS",
+      "detail": "URL: http://127.0.0.1:3333/DEMO-UNI/",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/",
+      "time": "10:13:05"
+    },
+    {
+      "step": "3.1 首页Layout渲染",
+      "status": "PASS",
+      "detail": "侧边栏导航+内容区正常",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/",
+      "time": "10:13:05"
+    },
+    {
+      "step": "3.2 首页学校名称",
+      "status": "PASS",
+      "detail": "",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/",
+      "time": "10:13:05"
+    },
+    {
+      "step": "4.1 个人信息页加载",
+      "status": "PASS",
+      "detail": "个人信息展示正常",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/profile",
+      "time": "10:13:08"
+    },
+    {
+      "step": "4.2 编辑功能可用",
+      "status": "WARN",
+      "detail": "找到 0 个编辑按钮",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/profile",
+      "time": "10:13:08"
+    },
+    {
+      "step": "5.1 问卷页面加载",
+      "status": "PASS",
+      "detail": "问卷内容正常加载",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/survey",
+      "time": "10:13:10"
+    },
+    {
+      "step": "5.2 单选题数量",
+      "status": "PASS",
+      "detail": "找到 23 个单选选项(充足)",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/survey",
+      "time": "10:13:10"
+    },
+    {
+      "step": "5.3 选项可点击交互",
+      "status": "PASS",
+      "detail": "成功点击 8/8 个选项",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/survey",
+      "time": "10:13:11"
+    },
+    {
+      "step": "5.4 提交/保存按钮",
+      "status": "PASS",
+      "detail": "找到 1 个提交按钮",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/survey",
+      "time": "10:13:11"
+    },
+    {
+      "step": "6.1 匹配推荐页加载",
+      "status": "PASS",
+      "detail": "匹配列表正常",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/matches",
+      "time": "10:13:13"
+    },
+    {
+      "step": "6.2 匹配结果数量",
+      "status": "PASS",
+      "detail": "找到 43 个卡片(充足)",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/matches",
+      "time": "10:13:13"
+    },
+    {
+      "step": "6.3 查看匹配详情",
+      "status": "PASS",
+      "detail": "示范大学\n舍友自主选择\n首页\n偏好问卷\n舍友推荐\n搜索舍友\n邀请管理\n我的配对\n分配结果\n个人信息\n张伟（演示）\n退出\n3\n返回\n李明 的匹配详情\n李\n李明\n\n上海\n\n喜欢安静的学习环境，作息规律\n\n",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/matches/2",
+      "time": "10:13:15"
+    },
+    {
+      "step": "7.1 搜索页面加载",
+      "status": "PASS",
+      "detail": "搜索界面渲染正常",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/search",
+      "time": "10:13:17"
+    },
+    {
+      "step": "7.2 输入关键词搜索",
+      "status": "PASS",
+      "detail": "搜索输入+按钮功能正常",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/search",
+      "time": "10:13:19"
+    },
+    {
+      "step": "7.3 学院/专业级联筛选",
+      "status": "PASS",
+      "detail": "找到 3 个下拉筛选项(完整)",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/search",
+      "time": "10:13:19"
+    },
+    {
+      "step": "8.1 邀请管理页加载",
+      "status": "PASS",
+      "detail": "邀请列表正常",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/invites",
+      "time": "10:13:21"
+    },
+    {
+      "step": "8.2 邀请操作按钮",
+      "status": "PASS",
+      "detail": "找到 4 个操作按钮",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/invites",
+      "time": "10:13:21"
+    },
+    {
+      "step": "9.1 配对页面加载",
+      "status": "PASS",
+      "detail": "配对信息正常",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/pairing",
+      "time": "10:13:24"
+    },
+    {
+      "step": "10.1 分配结果页加载",
+      "status": "PASS",
+      "detail": "分配信息正常显示",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/allocation",
+      "time": "10:13:26"
+    },
+    {
+      "step": "11.1 消息通知页加载",
+      "status": "PASS",
+      "detail": "通知列表正常",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/notifications",
+      "time": "10:13:29"
+    },
+    {
+      "step": "11.2 消息铃铛/标识",
+      "status": "PASS",
+      "detail": "找到 1 个通知标识组件",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/notifications",
+      "time": "10:13:29"
+    },
+    {
+      "step": "12.1 汉堡菜单按钮",
+      "status": "PASS",
+      "detail": "找到 1 个汉堡按钮",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/notifications",
+      "time": "10:13:29"
+    },
+    {
+      "step": "12.2 侧边栏展开/收起",
+      "status": "PASS",
+      "detail": "正常切换",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/notifications",
+      "time": "10:13:30"
+    },
+    {
+      "step": "13.1 退出登录 → 回到登录页",
+      "status": "WARN",
+      "detail": "退出后URL: http://127.0.0.1:3333/DEMO-UNI/notifications",
+      "url": "http://127.0.0.1:3333/DEMO-UNI/notifications",
+      "time": "10:13:32"
+    }
+  ],
+  "timestamp": "2026-05-10T10:12:54.870757"
+}
