@@ -39,8 +39,8 @@ async function handleLogin() {
   } catch {} finally { loading.value = false }
 }
 
-function demoLogin(name: string) {
-  userStore.demoLogin(loginForm.studentNo || '20240001', name)
+function demoLogin(name: string, studentNo?: string) {
+  userStore.demoLogin(studentNo || loginForm.studentNo || '20240001', name)
   router.push(`/${schoolCode.value}/`)
 }
 
@@ -131,8 +131,12 @@ function backToSchoolEntry() {
       </el-divider>
 
       <div class="demo-btns">
-        <el-button size="default" class="demo-btn" @click="demoLogin('张伟（演示）')">👨 学生 - 张伟</el-button>
-        <el-button size="default" class="demo-btn" @click="demoLogin('王芳（演示）')">👩 学生 - 王芳</el-button>
+        <el-button size="default" class="demo-btn" @click="demoLogin('张伟', '20240001')">👨 张伟 - 计算机</el-button>
+        <el-button size="default" class="demo-btn" @click="demoLogin('赵刚', '20240004')">👨 赵刚 - 通信</el-button>
+      </div>
+      <div class="demo-btns" style="margin-top:8px">
+        <el-button size="default" class="demo-btn" @click="demoLogin('王芳', '20240011')">👩 王芳 - 计算机</el-button>
+        <el-button size="default" class="demo-btn" @click="demoLogin('李娜', '20240012')">👩 李娜 - 软件</el-button>
       </div>
       <div class="demo-btns" style="margin-top:8px">
         <el-button size="default" class="demo-btn admin-btn" @click="demoAdminLogin">🔧 管理员 - 后台管理</el-button>

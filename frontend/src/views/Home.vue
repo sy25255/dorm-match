@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { useUserStore } from '@/store/user'
 import { surveyApi } from '@/api/survey'
-import { matchApi } from '@/api/match'
 import { inviteApi } from '@/api/invite'
+import request from '@/api/request'
 import { onMounted, ref } from 'vue'
 
 const userStore = useUserStore()
 const surveyCompleted = ref(false)
-const matchDone = ref(false)
 const hasPairing = ref(false)
+const hasAllocation = ref(false)
 
 onMounted(async () => {
   try {
@@ -18,6 +18,10 @@ onMounted(async () => {
   try {
     const pairing = await inviteApi.getPairing()
     hasPairing.value = !!pairing.data.data
+  } catch {}
+  try {
+    const res = await request.get('/allocation/my')
+    hasAllocation.value = !!res.data.data
   } catch {}
 })
 </script>
@@ -30,7 +34,7 @@ onMounted(async () => {
     </div>
 
     <el-row :gutter="20">
-      <el-col :span="8">
+      <el-col :span="12">
         <el-card shadow="hover" class="step-card" :class="{ done: surveyCompleted }">
           <el-result icon="success" v-if="surveyCompleted" title="已完成" sub-title="偏好问卷已提交" />
           <template v-else>
@@ -42,23 +46,37 @@ onMounted(async () => {
         </el-card>
       </el-col>
 
-      <el-col :span="8">
+      <el-col :span="12">
+        <el-card shadow="hover" class="step-card" :class="{ done: hasPairing }">
+          <el-result icon="success" v-if="hasPairing" title="已配对" sub-title="您已成功匹配舍友" />
+          <template v-else>
+            <div class="step-num">02</div>
+            <h3>邀请与配对</h3>
+            <p>向心仪的舍友发送邀请，双方确认后完成配对</p>
+            <el-button type="primary" :disabled="!surveyCompleted" @click="$router.push(`/${$route.params.schoolCode}/invites`)">管理邀请</el-button>
+          </template>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" style="margin-top:20px">
+      <el-col :span="12">
         <el-card shadow="hover" class="step-card">
-          <div class="step-num">02</div>
+          <div class="step-num">03</div>
           <h3>查看匹配推荐</h3>
           <p>系统基于问卷结果为你推荐最匹配的舍友</p>
           <el-button type="primary" :disabled="!surveyCompleted" @click="$router.push(`/${$route.params.schoolCode}/matches`)">查看推荐</el-button>
         </el-card>
       </el-col>
 
-      <el-col :span="8">
-        <el-card shadow="hover" class="step-card" :class="{ done: hasPairing }">
-          <el-result icon="success" v-if="hasPairing" title="已配对" sub-title="您已成功匹配舍友" />
+      <el-col :span="12">
+        <el-card shadow="hover" class="step-card" :class="{ done: hasAllocation }">
+          <el-result icon="success" v-if="hasAllocation" title="已分配" sub-title="宿舍分配结果已发布" />
           <template v-else>
-            <div class="step-num">03</div>
-            <h3>邀请与配对</h3>
-            <p>向心仪的舍友发送邀请，双方确认后完成配对</p>
-            <el-button type="primary" :disabled="!surveyCompleted" @click="$router.push(`/${$route.params.schoolCode}/invites`)">管理邀请</el-button>
+            <div class="step-num">04</div>
+            <h3>查看宿舍分配</h3>
+            <p>配对完成后由管理员执行分配，查看你的宿舍和舍友</p>
+            <el-button type="primary" :disabled="!hasPairing" @click="$router.push(`/${$route.params.schoolCode}/allocation`)">查看分配</el-button>
           </template>
         </el-card>
       </el-col>

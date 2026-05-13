@@ -200,9 +200,9 @@ export const mockAllocation = {
   allocationId: 1, roomId: 1, roomNumber: 'M1-101', bedNo: 1,
   allocationType: 'SELF_SELECT', status: 'CONFIRMED', confirmedByStudent: 1,
   roommates: [
-    { studentId: 2, name: '李明', bedNo: 2 },
-    { studentId: 6, name: '刘洋', bedNo: 3 },
-    { studentId: 8, name: '周杰', bedNo: 4 },
+    { studentId: 2, name: '李明', bedNo: 2, allocationType: 'SELF_SELECT' },
+    { studentId: 6, name: '刘洋', bedNo: 3, allocationType: 'ALGORITHM' },
+    { studentId: 8, name: '周杰', bedNo: 4, allocationType: 'ALGORITHM' },
   ]
 }
 
@@ -328,16 +328,16 @@ export const mockDormBuildings = [
 ]
 
 export const mockDormRooms = [
-  { id: 1, buildingId: 1, roomNumber: 'M1-101', floor: 1, capacity: 4, occupied: 3, roomType: 'NORMAL', status: 1 },
-  { id: 2, buildingId: 1, roomNumber: 'M1-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+  { id: 1, buildingId: 1, roomNumber: 'M1-101', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 1 },
+  { id: 2, buildingId: 1, roomNumber: 'M1-102', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 1 },
   { id: 3, buildingId: 1, roomNumber: 'M1-103', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
   { id: 4, buildingId: 1, roomNumber: 'M1-104', floor: 1, capacity: 2, occupied: 0, roomType: 'ACCESSIBLE', status: 0 },
   { id: 5, buildingId: 1, roomNumber: 'M1-201', floor: 2, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
   { id: 6, buildingId: 1, roomNumber: 'M1-202', floor: 2, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
-  { id: 7, buildingId: 2, roomNumber: 'M2-101', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+  { id: 7, buildingId: 2, roomNumber: 'M2-101', floor: 1, capacity: 4, occupied: 1, roomType: 'NORMAL', status: 1 },
   { id: 8, buildingId: 2, roomNumber: 'M2-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
-  { id: 9, buildingId: 3, roomNumber: 'L1-101', floor: 1, capacity: 4, occupied: 2, roomType: 'NORMAL', status: 1 },
-  { id: 10, buildingId: 3, roomNumber: 'L1-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+  { id: 9, buildingId: 3, roomNumber: 'L1-101', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 1 },
+  { id: 10, buildingId: 3, roomNumber: 'L1-102', floor: 1, capacity: 4, occupied: 2, roomType: 'NORMAL', status: 1 },
   { id: 11, buildingId: 3, roomNumber: 'L1-103', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
   { id: 12, buildingId: 4, roomNumber: 'L2-101', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
 ]
@@ -345,9 +345,19 @@ export const mockDormRooms = [
 export const mockAllocations = [
   { id: 1, studentId: 1, studentName: '张伟', roomId: 1, roomNumber: 'M1-101', bedNo: 1, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
   { id: 2, studentId: 2, studentName: '李明', roomId: 1, roomNumber: 'M1-101', bedNo: 2, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 3, studentId: 6, studentName: '刘洋', roomId: 1, roomNumber: 'M1-101', bedNo: 3, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-2024-001' },
-  { id: 4, studentId: 9, studentName: '王芳', roomId: 9, roomNumber: 'L1-101', bedNo: 1, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 5, studentId: 10, studentName: '李娜', roomId: 9, roomNumber: 'L1-101', bedNo: 2, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
+  { id: 3, studentId: 6, studentName: '刘洋', roomId: 1, roomNumber: 'M1-101', bedNo: 3, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
+  { id: 4, studentId: 8, studentName: '周杰', roomId: 1, roomNumber: 'M1-101', bedNo: 4, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
+  { id: 5, studentId: 4, studentName: '赵刚', roomId: 2, roomNumber: 'M1-102', bedNo: 1, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
+  { id: 6, studentId: 5, studentName: '孙磊', roomId: 2, roomNumber: 'M1-102', bedNo: 2, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
+  { id: 7, studentId: 7, studentName: '陈宇', roomId: 2, roomNumber: 'M1-102', bedNo: 3, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
+  { id: 8, studentId: 17, studentName: '马超', roomId: 2, roomNumber: 'M1-102', bedNo: 4, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-2024-001' },
+  { id: 9, studentId: 3, studentName: '王强', roomId: 7, roomNumber: 'M2-101', bedNo: 1, allocationType: 'RANDOM', status: 'PENDING', batchCode: 'BATCH-2024-001' },
+  { id: 10, studentId: 9, studentName: '王芳', roomId: 3, roomNumber: 'L1-101', bedNo: 1, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
+  { id: 11, studentId: 10, studentName: '李娜', roomId: 3, roomNumber: 'L1-101', bedNo: 2, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
+  { id: 12, studentId: 14, studentName: '赵敏', roomId: 3, roomNumber: 'L1-101', bedNo: 3, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
+  { id: 13, studentId: 11, studentName: '张雪', roomId: 3, roomNumber: 'L1-101', bedNo: 4, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-2024-001' },
+  { id: 14, studentId: 16, studentName: '吴桐', roomId: 4, roomNumber: 'L1-102', bedNo: 1, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
+  { id: 15, studentId: 15, studentName: '周雨', roomId: 4, roomNumber: 'L1-102', bedNo: 2, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-2024-001' },
 ]
 
 export const mockAllObjections = [
@@ -376,13 +386,13 @@ export const mockAuditLogs = [
 
 export const mockStatistics = {
   totalStudents: 22,
-  completedSurvey: 10,
-  paired: 6,
-  allocated: 5,
+  completedSurvey: 12,
+  paired: 10,
+  allocated: 15,
   pendingObjections: 2,
-  surveyStatus: { completed: 10, drafting: 3, notStarted: 9 },
-  matchStatus: { paired: 6, inviting: 2, waiting: 14 },
-  allocationByType: { SELF_SELECT: 3, ALGORITHM: 1, RANDOM: 0, MANUAL: 1 },
+  surveyStatus: { completed: 12, drafting: 4, notStarted: 6 },
+  matchStatus: { paired: 10, inviting: 3, waiting: 9 },
+  allocationByType: { SELF_SELECT: 7, ALGORITHM: 7, RANDOM: 1, MANUAL: 0 },
   genderDistribution: { male: 12, female: 10 },
   collegeDistribution: [
     { name: '计算机学院', count: 9 },
