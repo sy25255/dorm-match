@@ -104,7 +104,7 @@ onMounted(loadBuildings)
           </el-table-column>
           <el-table-column label="类型" width="100">
             <template #default="{ row }">
-              <el-tag size="small" :type="row.roomType === 'ACCESSIBLE' ? 'warning' : ''">{{ row.roomType === 'ACCESSIBLE' ? '无障碍' : '普通' }}</el-tag>
+              <el-tag size="small" :type="row.roomType === 'ACCESSIBLE' ? 'warning' : 'info'">{{ row.roomType === 'ACCESSIBLE' ? '无障碍' : '普通' }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column label="状态" width="100">

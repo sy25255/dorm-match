@@ -89,9 +89,9 @@ async function sendInvite(targetId: number) {
         </el-input>
       </div>
       <div class="quick-btns">
-        <el-button size="small" text @click="collegeId=1;majorId=1;setTimeout(handleSearch,100)">快速查找：计算机科学与技术</el-button>
-        <el-button size="small" text @click="collegeId=2;majorId=4;setTimeout(handleSearch,100)">快速查找：通信工程</el-button>
-        <el-button size="small" text @click="collegeId=4;majorId=8;setTimeout(handleSearch,100)">快速查找：英语</el-button>
+        <el-button size="small" text @click="collegeId=1;majorId=1;setTimeout(() => handleSearch(), 100)">快速查找：计算机科学与技术</el-button>
+        <el-button size="small" text @click="collegeId=2;majorId=4;setTimeout(() => handleSearch(), 100)">快速查找：通信工程</el-button>
+        <el-button size="small" text @click="collegeId=4;majorId=8;setTimeout(() => handleSearch(), 100)">快速查找：英语</el-button>
       </div>
     </div>
 
