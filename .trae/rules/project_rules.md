@@ -161,6 +161,9 @@ git push https://$env:GIT_TOKEN@github.com/sy25255/dorm-match.git master
 推送后 GitHub Actions 自动构建部署（约 30 秒），网站生效：
 https://sy25255.github.io/dorm-match/ （用户需 Ctrl+F5 刷新）
 
+**推送完成后，必须告知用户网站地址，格式如下：**
+> 网站已更新：https://sy25255.github.io/dorm-match/ （Ctrl+F5 刷新）
+
 ## 重要规则
 - **不要修改 vite.config.ts 的 `base` 配置**（必须是 `/dorm-match/`）
 - **不要修改 router 的 history 模式**（必须是 `createWebHashHistory`）
