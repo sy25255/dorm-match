@@ -92,6 +92,10 @@ const bioStatus = computed(() => {
 })
 
 onMounted(async () => {
+  if (localStorage.getItem('demo_survey_completed') === 'true') {
+    submitted.value = true
+    return
+  }
   try {
     const res = await surveyApi.getQuestions()
     questions.value = res.data.data || []
@@ -332,9 +336,9 @@ async function handleSubmit() {
     </div>
 
     <div v-if="submitted" class="submitted-box">
-      <el-result icon="success" title="问卷已提交" sub-title="匹配计算已完成，正在跳转...">
+      <el-result icon="success" title="问卷已提交" sub-title="你已完成偏好问卷，系统已根据你的回答生成了智能匹配结果">
         <template #extra>
-          <el-button type="primary" @click="$router.push(`/${$route.params.schoolCode}/matches`)">查看推荐</el-button>
+          <el-button type="primary" @click="$router.push(`/${$route.params.schoolCode}/matches`)">查看匹配推荐</el-button>
         </template>
       </el-result>
     </div>
