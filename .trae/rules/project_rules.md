@@ -144,13 +144,22 @@ server.proxy: { '/api': 'http://localhost:8088' }  // 本地开发代理
 5. ✅ `push-to-github.bat` 不能包含明文 Token（安全风险）
 6. ⚠️ `SchoolEntry.vue` 的 `catch` 块第 33 行显示「无法连接服务器」，实际是 mock 拦截成功后的 fallback 消息。如果用户看到这个，通常是浏览器缓存了旧 JS，按 `Ctrl+F5` 强制刷新即可。
 
-## 修改后部署流程（必须执行）
-1. 修改代码
-2. 双击运行 `d:\Trae\Trae CN\88\push-to-github.bat`
-3. 输入修改说明，回车
-4. 脚本自动 `git add -A && git commit && git push`
-5. GitHub Actions 自动构建部署（约 30 秒）
-6. 打开 https://sy25255.github.io/dorm-match/ 按 `Ctrl+F5` 刷新
+## 修改后部署流程（由 AI 自动执行）
+**AI 每次改完代码后，必须自动执行 git 提交和推送，不要叫用户操作。**
+
+仓库地址: https://github.com/sy25255/dorm-match
+Token: 使用安全的 GIT_TOKEN 环境变量或从 secure 存储中获取
+
+推送命令：
+```bash
+cd "d:\Trae\Trae CN\88"
+git add -A
+git commit -m "描述修改内容"
+git push https://$env:GIT_TOKEN@github.com/sy25255/dorm-match.git master
+```
+
+推送后 GitHub Actions 自动构建部署（约 30 秒），网站生效：
+https://sy25255.github.io/dorm-match/ （用户需 Ctrl+F5 刷新）
 
 ## 重要规则
 - **不要修改 vite.config.ts 的 `base` 配置**（必须是 `/dorm-match/`）
