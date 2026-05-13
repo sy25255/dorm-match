@@ -349,8 +349,9 @@ request.interceptors.response.use(
     const method = error.config?.method || 'get'
     const bodyData = error.config?.data
     const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.code === 'ERR_BAD_RESPONSE' || !error.response
+    const isHtmlError = error.response && typeof error.response.data === 'string' && (error.response.data.includes('<!DOCTYPE html>') || error.response.data.includes('<html'))
 
-    if (isNetworkError || isDemoMode()) {
+    if (isNetworkError || isHtmlError || isDemoMode()) {
       const mock = await handleMock(url, method, bodyData)
       if (mock) return mock
     }
