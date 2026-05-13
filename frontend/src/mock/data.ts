@@ -413,3 +413,89 @@ export const mockStatistics = {
 export function generateInviteCode() {
   return 'INV-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase()
 }
+
+// ============ 用户独立配对/分配数据 ============
+
+const now = new Date()
+const fmt = (d: Date) => d.toISOString().replace('Z', '')
+
+export const pairGroups: { pairId: number; members: number[]; status: number; pairingCode: string }[] = [
+  { pairId: 1, members: [1, 2], status: 1, pairingCode: 'PAIR-240825-A1' },
+  { pairId: 2, members: [4, 5], status: 1, pairingCode: 'PAIR-240825-A2' },
+  { pairId: 3, members: [9, 10], status: 1, pairingCode: 'PAIR-240825-B1' },
+]
+
+export const roomAssignmentMap: { roomId: number; roomNumber: string; members: { studentId: number; bedNo: number; allocationType: 'SELF_SELECT' | 'ALGORITHM' | 'RANDOM' }[]; status: string }[] = [
+  { roomId: 1, roomNumber: 'M1-101', status: 'CONFIRMED', members: [
+    { studentId: 1, bedNo: 1, allocationType: 'SELF_SELECT' },
+    { studentId: 2, bedNo: 2, allocationType: 'SELF_SELECT' },
+    { studentId: 6, bedNo: 3, allocationType: 'ALGORITHM' },
+    { studentId: 8, bedNo: 4, allocationType: 'ALGORITHM' },
+  ]},
+  { roomId: 2, roomNumber: 'M1-102', status: 'CONFIRMED', members: [
+    { studentId: 4, bedNo: 1, allocationType: 'SELF_SELECT' },
+    { studentId: 5, bedNo: 2, allocationType: 'SELF_SELECT' },
+    { studentId: 7, bedNo: 3, allocationType: 'ALGORITHM' },
+    { studentId: 17, bedNo: 4, allocationType: 'ALGORITHM' },
+  ]},
+  { roomId: 9, roomNumber: 'L1-101', status: 'CONFIRMED', members: [
+    { studentId: 9, bedNo: 1, allocationType: 'SELF_SELECT' },
+    { studentId: 10, bedNo: 2, allocationType: 'SELF_SELECT' },
+    { studentId: 14, bedNo: 3, allocationType: 'ALGORITHM' },
+    { studentId: 11, bedNo: 4, allocationType: 'ALGORITHM' },
+  ]},
+]
+
+const nameMap: Record<number, string> = {}
+mockStudents.forEach(s => { nameMap[s.id] = s.name })
+nameMap[17] = '马超'; nameMap[18] = '黄丽'; nameMap[19] = '林涛'; nameMap[20] = '何雪'; nameMap[21] = '罗浩'; nameMap[22] = '谢雨'
+
+export function getUserPair(userId: number) {
+  const group = pairGroups.find(p => p.members.includes(userId))
+  if (!group) return null
+  return { id: group.pairId, pairingCode: group.pairingCode, groupSize: group.members.length, status: group.status, lockedAt: group.status >= 1 ? fmt(new Date(now.getTime() - 86400000)) : null, createdAt: fmt(new Date(now.getTime() - 172800000)) }
+}
+
+export function getUserPairMembers(userId: number) {
+  const group = pairGroups.find(p => p.members.includes(userId))
+  if (!group) return []
+  return group.members.map(id => ({ studentId: id, name: nameMap[id] || `学生${id}`, avatarUrl: '', isInitiator: 0 }))
+}
+
+export function getUserAllocation(userId: number) {
+  const room = roomAssignmentMap.find(r => r.members.some(m => m.studentId === userId))
+  if (!room) return null
+  const mySlot = room.members.find(m => m.studentId === userId)!
+  return {
+    allocationId: room.roomId * 100 + userId,
+    roomId: room.roomId,
+    roomNumber: room.roomNumber,
+    bedNo: mySlot.bedNo,
+    allocationType: mySlot.allocationType,
+    status: room.status,
+    confirmedByStudent: room.status === 'CONFIRMED' ? 1 : 0,
+    roommates: room.members
+      .filter(m => m.studentId !== userId)
+      .map(m => ({ studentId: m.studentId, name: nameMap[m.studentId] || `学生${m.studentId}`, bedNo: m.bedNo, allocationType: m.allocationType })),
+  }
+}
+
+export function getRoomOccupancy(roomId: number): number {
+  const room = roomAssignmentMap.find(r => r.roomId === roomId)
+  return room?.members.length || 0
+}
+
+export function getRoomCapacity(roomId: number): number {
+  const room = mockDormRooms.find(r => r.id === roomId)
+  return room?.capacity || 4
+}
+
+export function isRoomFull(roomId: number): boolean {
+  return getRoomOccupancy(roomId) >= getRoomCapacity(roomId)
+}
+
+export function getUserRecommendations(userId: number) {
+  const myPair = pairGroups.find(p => p.members.includes(userId))
+  const pairedIds = myPair ? myPair.members : [userId]
+  return mockRecommendations.filter(r => !pairedIds.includes(r.studentId) && r.studentId !== userId)
+}

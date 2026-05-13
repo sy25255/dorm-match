@@ -40,6 +40,8 @@ function getDraftFromStorage() {
 
 async function handleMock(url: string, method: string, bodyData?: any): Promise<any> {
   const m = await loadMockData()
+  const userId = Number(localStorage.getItem('userId')) || 1
+  const surveyDone = localStorage.getItem('demo_survey_completed') === 'true'
 
   // ========== School Validation ==========
   if (url.includes('/school/validate')) {
@@ -87,7 +89,7 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
 
   // ========== Match ==========
   if (url.includes('/match/calculate')) return makeMockResponse(null)
-  if (url.includes('/match/recommendations')) return makeMockResponse(m.mockRecommendations)
+  if (url.includes('/match/recommendations')) return makeMockResponse(m.getUserRecommendations(userId))
   if (url.includes('/match/search')) return makeMockResponse(m.mockSearchResults)
   if (url.includes('/match/detail/')) {
     const id = Number(url.split('/match/detail/')[1])
@@ -100,22 +102,56 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     return makeMockResponse({ id: Date.now(), status: 0 })
   }
   if (url.includes('/invite/quota')) return makeMockResponse(m.mockQuota)
-  if (url.includes('/invite/pairing/members')) return makeMockResponse(m.mockPairingMembers)
-  if (url.includes('/invite/pairing')) return makeMockResponse(m.mockPairing)
-  if (url.includes('/invite/received')) return makeMockResponse([
-    { id: 101, fromStudentId: 2, toStudentId: 1, message: '你好！我觉得我们很合得来，一起组团吧！', status: 0, createdAt: '2024-08-25T12:00:00', expiresAt: '2024-08-27T12:00:00' },
-    { id: 102, fromStudentId: 4, toStudentId: 1, message: '我也喜欢打篮球，一起呀！', status: 0, createdAt: '2024-08-25T14:00:00', expiresAt: '2024-08-27T14:00:00' },
-  ])
-  if (url.includes('/invite/sent')) return makeMockResponse([])
+  if (url.includes('/invite/pairing/members')) {
+    if (!surveyDone) return makeMockResponse([])
+    const members = m.getUserPairMembers(userId)
+    return makeMockResponse(members)
+  }
+  if (url.includes('/invite/pairing')) {
+    if (!surveyDone) return makeMockResponse(null)
+    const pair = m.getUserPair(userId)
+    return makeMockResponse(pair)
+  }
+  const nowIso = new Date().toISOString()
+  const laterIso = new Date(Date.now() + 172800000).toISOString()
+  if (url.includes('/invite/received')) {
+    if (!surveyDone) return makeMockResponse([])
+    const pair = m.getUserPair(userId)
+    if (pair && pair.status >= 1) return makeMockResponse([])
+    return makeMockResponse([
+      { id: 101, fromStudentId: 2, toStudentId: userId, message: '你好！我觉得我们很合得来，一起组团吧！', status: 0, createdAt: nowIso, expiresAt: laterIso },
+      { id: 102, fromStudentId: 4, toStudentId: userId, message: '我也喜欢打篮球，一起呀！', status: 0, createdAt: nowIso, expiresAt: laterIso },
+    ])
+  }
+  if (url.includes('/invite/sent')) {
+    if (!surveyDone) return makeMockResponse([])
+    const pair = m.getUserPair(userId)
+    if (pair && pair.status >= 1) return makeMockResponse([])
+    return makeMockResponse([])
+  }
   if (url.includes('/invite/') && url.includes('/accept')) {
+    const inviteId = Number(url.split('/invite/')[1]?.split('/')[0])
+    // Check room capacity
+    const myAlloc = m.getUserAllocation(userId)
+    if (myAlloc) {
+      if (m.isRoomFull(myAlloc.roomId)) {
+        ElMessage.warning('对方宿舍已满员，无法接受邀请')
+        return makeMockResponse(null)
+      }
+    }
     ElMessage.success('配对成功！')
+    localStorage.setItem('demo_survey_completed', 'true')
     return makeMockResponse(null)
   }
   if (url.includes('/invite/') && url.includes('/reject')) return makeMockResponse(null)
   if (url.includes('/invite/') && url.includes('/withdraw')) return makeMockResponse(null)
 
   // ========== Allocation (student) ==========
-  if (url.includes('/allocation/my')) return makeMockResponse(m.mockAllocation)
+  if (url.includes('/allocation/my')) {
+    if (!surveyDone) return makeMockResponse(null)
+    const alloc = m.getUserAllocation(userId)
+    return makeMockResponse(alloc)
+  }
   if (url === '/allocation/objections' || url.includes('/allocation/objections')) return makeMockResponse(m.mockObjections)
   if (url.includes('/allocation/objection') && method === 'post') {
     ElMessage.success('异议已提交')
