@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { surveyApi, type AnswerItem } from '@/api/survey'
 import { matchApi } from '@/api/match'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -91,11 +91,16 @@ const bioStatus = computed(() => {
   return 'ok'
 })
 
-onMounted(async () => {
+function checkCompleted() {
   if (localStorage.getItem('demo_survey_completed') === 'true') {
     submitted.value = true
-    return
   }
+}
+
+watch(() => route.path, checkCompleted, { immediate: true })
+
+onMounted(async () => {
+  if (submitted.value) return
   try {
     const res = await surveyApi.getQuestions()
     questions.value = res.data.data || []
