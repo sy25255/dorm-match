@@ -380,7 +380,7 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
     const schoolCode = localStorage.getItem('schoolCode') || 'DEMO-UNI'
     const school = m.getSchoolByCode(schoolCode)
-    const newFeedback = {
+    const newFeedback: any = {
       id: m.mockFeedbacks.length + 1,
       targetRole: b.targetRole || 'DEVELOPER',
       title: b.title || '',
@@ -390,6 +390,12 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
       submitterRole: localStorage.getItem('role') || 'STUDENT',
       status: 'PENDING',
       createdAt: new Date().toISOString(),
+    }
+    if (b.targetRole === 'ADMIN') {
+      newFeedback.problemType = b.problemType || 'OTHER'
+      newFeedback.collegeName = b.collegeName || ''
+      newFeedback.majorName = b.majorName || ''
+      newFeedback.className = b.className || ''
     }
     m.mockFeedbacks.unshift(newFeedback)
     const targetName = b.targetRole === 'DEVELOPER' ? '系统开发者' : '管理员'

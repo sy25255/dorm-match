@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { feedbackApi } from '@/api/feedback'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import request from '@/api/request'
+
+interface College { id: number; name: string; code: string }
+interface Major { id: number; name: string; code: string; collegeId?: number }
+interface Clazz { id: number; majorId: number; name: string; grade: number }
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -15,29 +20,63 @@ const feedbacks = ref<any[]>([])
 const activeTab = ref<'all' | 'DEVELOPER' | 'ADMIN'>('all')
 const formRef = ref<FormInstance>()
 
+const colleges = ref<College[]>([])
+const majors = ref<Major[]>([])
+const classes = ref<Clazz[]>([])
+
 const schoolCode = computed(() => route.params.schoolCode as string || userStore.schoolCode || '')
 const schoolName = computed(() => userStore.schoolName || localStorage.getItem('schoolName') || '示范大学')
 const currentRole = computed(() => userStore.role || localStorage.getItem('role') || 'STUDENT')
-const currentUsername = computed(() => userStore.username || localStorage.getItem('username') || '未知用户')
-const isDev = computed(() => currentRole.value === 'DEVELOPER')
 
 const form = ref({
   targetRole: 'DEVELOPER' as 'DEVELOPER' | 'ADMIN',
   title: '',
   content: '',
+  problemType: '' as string,
+  collegeId: null as number | null,
+  majorId: null as number | null,
+  classId: null as number | null,
 })
 
-const rules: FormRules = {
+const problemTypes = [
+  { value: 'DORM', label: '宿舍问题', desc: '住宿环境、室友矛盾、调换宿舍等' },
+  { value: 'FACILITY', label: '设施维修', desc: '水电、门窗、空调、网络等报修' },
+  { value: 'ALLOCATION', label: '分配问题', desc: '宿舍分配结果、床位调整等' },
+  { value: 'HYGIENE', label: '卫生问题', desc: '公共区域卫生、垃圾处理等' },
+  { value: 'OTHER', label: '其他问题', desc: '其他需要管理员处理的事项' },
+]
+
+const adminRules: FormRules = {
   targetRole: [{ required: true, message: '请选择反馈对象', trigger: 'change' }],
   title: [
     { required: true, message: '请输入标题', trigger: 'blur' },
     { min: 2, max: 50, message: '标题长度在 2 到 50 个字符', trigger: 'blur' },
   ],
   content: [
-    { required: true, message: '请输入内容', trigger: 'blur' },
+    { required: true, message: '请输入详细描述', trigger: 'blur' },
+    { min: 10, max: 1000, message: '内容长度在 10 到 1000 个字符', trigger: 'blur' },
+  ],
+  problemType: [{ required: true, message: '请选择问题类型', trigger: 'change' }],
+  collegeId: [{ required: true, message: '请选择学院', trigger: 'change' }],
+  majorId: [{ required: true, message: '请选择专业', trigger: 'change' }],
+  classId: [{ required: true, message: '请选择班级', trigger: 'change' }],
+}
+
+const devRules: FormRules = {
+  targetRole: [{ required: true, message: '请选择反馈对象', trigger: 'change' }],
+  title: [
+    { required: true, message: '请输入标题', trigger: 'blur' },
+    { min: 2, max: 50, message: '标题长度在 2 到 50 个字符', trigger: 'blur' },
+  ],
+  content: [
+    { required: true, message: '请输入详细描述', trigger: 'blur' },
     { min: 10, max: 1000, message: '内容长度在 10 到 1000 个字符', trigger: 'blur' },
   ],
 }
+
+const currentRules = computed(() => form.value.targetRole === 'ADMIN' ? adminRules : devRules)
+
+const isAdminForm = computed(() => form.value.targetRole === 'ADMIN')
 
 const filteredFeedbacks = computed(() => {
   if (activeTab.value === 'all') return feedbacks.value
@@ -51,9 +90,13 @@ const statusMap: Record<string, { text: string; type: string }> = {
   DECLINED: { text: '已回绝', type: 'danger' },
 }
 
+const problemTypeMap: Record<string, string> = {
+  DORM: '宿舍问题', FACILITY: '设施维修', ALLOCATION: '分配问题', HYGIENE: '卫生问题', OTHER: '其他问题',
+}
+
 const targetMap: Record<string, { text: string; type: string; icon: string; desc: string }> = {
-  DEVELOPER: { text: '给系统开发者', type: '', icon: '👑', desc: '发给系统开发者，适用于功能建议、Bug反馈、系统优化等' },
-  ADMIN: { text: '给管理员', type: 'warning', icon: '🔧', desc: '发给学校管理员，适用于宿舍管理、分配问题、学校事务等' },
+  DEVELOPER: { text: '给系统开发者', type: '', icon: '👑', desc: '功能建议 · Bug反馈 · 系统优化' },
+  ADMIN: { text: '给管理员', type: 'warning', icon: '🔧', desc: '宿舍管理 · 设施报修 · 分配问题' },
 }
 
 async function loadFeedbacks() {
@@ -68,11 +111,53 @@ async function loadFeedbacks() {
   }
 }
 
+async function loadColleges() {
+  try { const res = await request.get('/school/colleges'); colleges.value = res.data.data || [] } catch {}
+}
+
+watch(() => form.value.collegeId, async (cid) => {
+  form.value.majorId = null
+  form.value.classId = null
+  if (!cid) { majors.value = []; classes.value = []; return }
+  try { const res = await request.get('/school/majors', { params: { collegeId: cid } }); majors.value = res.data.data || [] } catch {}
+})
+
+watch(() => form.value.majorId, async (mid) => {
+  form.value.classId = null
+  if (!mid) { classes.value = []; return }
+  try { const res = await request.get('/school/classes', { params: { majorId: mid } }); classes.value = res.data.data || [] } catch {}
+})
+
+watch(() => form.value.targetRole, () => {
+  if (formRef.value) {
+    formRef.value.clearValidate()
+  }
+})
+
+function getCollegeNameById(id: number | null) {
+  if (!id) return ''
+  return colleges.value.find(c => c.id === id)?.name || String(id)
+}
+
+function getMajorNameById(id: number | null) {
+  if (!id) return ''
+  return majors.value.find(m => m.id === id)?.name || String(id)
+}
+
+function getClassNameById(id: number | null) {
+  if (!id) return ''
+  return classes.value.find(c => c.id === id)?.name || String(id)
+}
+
 function openDialog() {
   form.value = {
     targetRole: 'DEVELOPER',
     title: '',
     content: '',
+    problemType: '',
+    collegeId: null,
+    majorId: null,
+    classId: null,
   }
   showDialog.value = true
 }
@@ -83,11 +168,18 @@ async function submitFeedback() {
     if (!valid) return
     submitting.value = true
     try {
-      await feedbackApi.submit({
+      const payload: any = {
         targetRole: form.value.targetRole,
         title: form.value.title,
         content: form.value.content,
-      })
+      }
+      if (form.value.targetRole === 'ADMIN') {
+        payload.problemType = form.value.problemType
+        payload.collegeName = getCollegeNameById(form.value.collegeId)
+        payload.majorName = getMajorNameById(form.value.majorId)
+        payload.className = getClassNameById(form.value.classId)
+      }
+      await feedbackApi.submit(payload)
       const targetName = form.value.targetRole === 'DEVELOPER' ? '系统开发者' : '管理员'
       ElMessage.success(`已向${targetName}提交，感谢您的反馈！`)
       showDialog.value = false
@@ -100,7 +192,7 @@ async function submitFeedback() {
   })
 }
 
-onMounted(loadFeedbacks)
+onMounted(() => { loadFeedbacks(); loadColleges() })
 </script>
 
 <template>
@@ -138,6 +230,9 @@ onMounted(loadFeedbacks)
               >
                 {{ targetMap[item.targetRole]?.icon }} {{ targetMap[item.targetRole]?.text || item.targetRole }}
               </el-tag>
+              <el-tag v-if="item.problemType" size="small" type="danger" effect="plain">
+                {{ problemTypeMap[item.problemType] || item.problemType }}
+              </el-tag>
               <el-tag
                 :type="statusMap[item.status]?.type as any || 'info'"
                 size="small"
@@ -149,6 +244,14 @@ onMounted(loadFeedbacks)
             <span class="card-time">{{ item.createdAt?.slice(0, 10) }}</span>
           </div>
           <h3 class="card-title">{{ item.title }}</h3>
+          <div v-if="item.collegeName" class="card-location">
+            <el-icon :size="14"><School /></el-icon>
+            <span>{{ item.collegeName }}</span>
+            <el-icon :size="12" style="margin:0 2px"><ArrowRight /></el-icon>
+            <span>{{ item.majorName }}</span>
+            <el-icon :size="12" style="margin:0 2px"><ArrowRight /></el-icon>
+            <span>{{ item.className }}</span>
+          </div>
           <p class="card-content">{{ item.content }}</p>
           <div class="card-footer">
             <div class="submitter-info">
@@ -161,13 +264,8 @@ onMounted(loadFeedbacks)
                 {{ item.schoolName }}
               </el-tag>
             </div>
-            <span v-if="item.reply" class="reply-text">
-              <el-icon :size="14"><ChatLineSquare /></el-icon>
-              回复：{{ item.reply }}
-            </span>
           </div>
 
-          <!-- 回复区域 -->
           <div v-if="item.reply" class="reply-section">
             <div class="reply-header">
               <el-icon :size="14"><ChatLineSquare /></el-icon>
@@ -184,11 +282,11 @@ onMounted(loadFeedbacks)
     <el-dialog
       v-model="showDialog"
       title="提交反馈"
-      width="580px"
+      width="620px"
       destroy-on-close
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" label-position="top">
+      <el-form ref="formRef" :model="form" :rules="currentRules" label-position="top">
         <el-form-item label="反馈给谁" prop="targetRole">
           <div class="target-select">
             <div
@@ -200,7 +298,7 @@ onMounted(loadFeedbacks)
                 <span class="target-icon">👑</span>
                 <span class="target-name">系统开发者</span>
               </div>
-              <p class="target-desc">功能建议 · Bug反馈 · 系统优化 · 新增需求</p>
+              <p class="target-desc">功能建议 · Bug反馈 · 系统优化</p>
               <div class="target-check" v-if="form.targetRole === 'DEVELOPER'">
                 <el-icon color="#722ed1"><CircleCheckFilled /></el-icon>
               </div>
@@ -214,7 +312,7 @@ onMounted(loadFeedbacks)
                 <span class="target-icon">🔧</span>
                 <span class="target-name">学校管理员</span>
               </div>
-              <p class="target-desc">宿舍管理 · 分配问题 · 学校事务 · 日常反馈</p>
+              <p class="target-desc">宿舍管理 · 设施报修 · 分配问题</p>
               <div class="target-check" v-if="form.targetRole === 'ADMIN'">
                 <el-icon color="#d48806"><CircleCheckFilled /></el-icon>
               </div>
@@ -222,34 +320,104 @@ onMounted(loadFeedbacks)
           </div>
         </el-form-item>
 
-        <el-form-item label="所属学校">
-          <el-input :model-value="schoolName" disabled>
-            <template #prefix>
-              <el-icon><School /></el-icon>
+        <!-- ====== 给管理员的表单（结构化） ====== -->
+        <template v-if="isAdminForm">
+          <el-alert type="warning" :closable="false" style="margin-bottom:16px">
+            <template #title>
+              请仔细填写以下信息，以便管理员快速定位和处理你的问题。
             </template>
-          </el-input>
-          <div class="form-hint">反馈将自动关联到当前学校，便于追溯来源。</div>
-        </el-form-item>
+          </el-alert>
 
-        <el-form-item label="标题" prop="title">
-          <el-input
-            v-model="form.title"
-            :placeholder="form.targetRole === 'DEVELOPER' ? '简要描述你的功能建议或Bug' : '简要描述需要管理员处理的问题'"
-            maxlength="50"
-            show-word-limit
-          />
-        </el-form-item>
+          <el-form-item label="问题类型" prop="problemType">
+            <el-select v-model="form.problemType" placeholder="请选择问题类型" style="width:100%">
+              <el-option v-for="pt in problemTypes" :key="pt.value" :label="pt.label" :value="pt.value">
+                <div class="problem-option">
+                  <span>{{ pt.label }}</span>
+                  <span class="problem-option-desc">{{ pt.desc }}</span>
+                </div>
+              </el-option>
+            </el-select>
+          </el-form-item>
 
-        <el-form-item label="详细内容" prop="content">
-          <el-input
-            v-model="form.content"
-            type="textarea"
-            :rows="5"
-            :placeholder="form.targetRole === 'DEVELOPER' ? '详细描述：期望的功能、复现步骤、改进方案等...' : '详细描述：遇到的问题、期望的处理方式、相关背景等...'"
-            maxlength="1000"
-            show-word-limit
-          />
-        </el-form-item>
+          <el-row :gutter="12">
+            <el-col :span="8">
+              <el-form-item label="学院" prop="collegeId">
+                <el-select v-model="form.collegeId" placeholder="选择学院" style="width:100%">
+                  <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="专业" prop="majorId">
+                <el-select v-model="form.majorId" placeholder="选择专业" style="width:100%" :disabled="!form.collegeId">
+                  <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="班级" prop="classId">
+                <el-select v-model="form.classId" placeholder="选择班级" style="width:100%" :disabled="!form.majorId">
+                  <el-option v-for="c in classes" :key="c.id" :label="c.name" :value="c.id" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-form-item label="所属学校">
+            <el-input :model-value="schoolName" disabled>
+              <template #prefix><el-icon><School /></el-icon></template>
+            </el-input>
+          </el-form-item>
+
+          <el-form-item label="问题概述" prop="title">
+            <el-input
+              v-model="form.title"
+              placeholder="一句话概括你要反馈的问题，如：M1栋3楼热水供应不足"
+              maxlength="50"
+              show-word-limit
+            />
+          </el-form-item>
+
+          <el-form-item label="详细描述" prop="content">
+            <el-input
+              v-model="form.content"
+              type="textarea"
+              :rows="5"
+              placeholder="请详细描述：问题发生的具体时间、地点、影响范围、期望的处理方式等..."
+              maxlength="1000"
+              show-word-limit
+            />
+          </el-form-item>
+        </template>
+
+        <!-- ====== 给开发者的表单（简洁） ====== -->
+        <template v-else>
+          <el-form-item label="所属学校">
+            <el-input :model-value="schoolName" disabled>
+              <template #prefix><el-icon><School /></el-icon></template>
+            </el-input>
+          </el-form-item>
+
+          <el-form-item label="标题" prop="title">
+            <el-input
+              v-model="form.title"
+              placeholder="简要描述你的功能建议或Bug"
+              maxlength="50"
+              show-word-limit
+            />
+          </el-form-item>
+
+          <el-form-item label="详细内容" prop="content">
+            <el-input
+              v-model="form.content"
+              type="textarea"
+              :rows="5"
+              placeholder="详细描述：期望的功能、复现步骤、改进方案等..."
+              maxlength="1000"
+              show-word-limit
+            />
+          </el-form-item>
+        </template>
       </el-form>
 
       <template #footer>
@@ -315,6 +483,7 @@ onMounted(loadFeedbacks)
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .target-tag {
@@ -331,6 +500,18 @@ onMounted(loadFeedbacks)
   font-weight: 600;
   color: #303133;
   margin-bottom: 8px;
+}
+
+.card-location {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #909399;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  background: #f5f7fa;
+  border-radius: 6px;
 }
 
 .card-content {
@@ -389,14 +570,6 @@ onMounted(loadFeedbacks)
   color: #4e5969;
   line-height: 1.6;
   margin: 0;
-}
-
-.reply-text {
-  font-size: 13px;
-  color: #67c23a;
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 /* 目标选择卡片 */
@@ -461,6 +634,17 @@ onMounted(loadFeedbacks)
   top: 10px;
   right: 10px;
   font-size: 20px;
+}
+
+/* 问题类型选项 */
+.problem-option {
+  display: flex;
+  flex-direction: column;
+}
+
+.problem-option-desc {
+  font-size: 11px;
+  color: #c0c4cc;
 }
 
 .form-hint {

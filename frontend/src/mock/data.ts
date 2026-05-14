@@ -547,7 +547,7 @@ export function getMockStudentSurvey(studentId: number) {
 }
 
 // ========== 建议反馈 Mock 数据 ==========
-export const mockFeedbacks: { id: number; targetRole: 'DEVELOPER' | 'ADMIN'; title: string; content: string; schoolName: string; submitterName: string; submitterRole: string; status: 'PENDING' | 'REVIEWING' | 'ADOPTED' | 'DECLINED'; createdAt: string; reply?: string; replierRole?: 'DEVELOPER' | 'ADMIN' }[] = [
+export const mockFeedbacks: { id: number; targetRole: 'DEVELOPER' | 'ADMIN'; title: string; content: string; schoolName: string; submitterName: string; submitterRole: string; status: 'PENDING' | 'REVIEWING' | 'ADOPTED' | 'DECLINED'; createdAt: string; reply?: string; replierRole?: 'DEVELOPER' | 'ADMIN'; problemType?: string; collegeName?: string; majorName?: string; className?: string }[] = [
   {
     id: 1,
     targetRole: 'DEVELOPER',
@@ -571,6 +571,10 @@ export const mockFeedbacks: { id: number; targetRole: 'DEVELOPER' | 'ADMIN'; tit
     submitterRole: 'STUDENT',
     status: 'PENDING',
     createdAt: '2024-08-22T09:15:00',
+    problemType: 'FACILITY',
+    collegeName: '计算机学院',
+    majorName: '计算机科学与技术',
+    className: '计科2402班',
   },
   {
     id: 3,
@@ -593,6 +597,10 @@ export const mockFeedbacks: { id: number; targetRole: 'DEVELOPER' | 'ADMIN'; tit
     submitterRole: 'STUDENT',
     status: 'REVIEWING',
     createdAt: '2024-08-26T10:20:00',
+    problemType: 'DORM',
+    collegeName: '理学院',
+    majorName: '数学',
+    className: '数学2401班',
   },
   {
     id: 5,
@@ -632,6 +640,10 @@ export const mockFeedbacks: { id: number; targetRole: 'DEVELOPER' | 'ADMIN'; tit
     createdAt: '2024-08-21T15:00:00',
     reply: '已报修后勤部门，门禁系统将于本周内更换新设备。',
     replierRole: 'ADMIN',
+    problemType: 'FACILITY',
+    collegeName: '计算机学院',
+    majorName: '计算机科学与技术',
+    className: '计科2401班',
   },
   {
     id: 8,
