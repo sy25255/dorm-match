@@ -12,35 +12,36 @@ const loading = ref(false)
 const submitting = ref(false)
 const showDialog = ref(false)
 const feedbacks = ref<any[]>([])
-const activeTab = ref<'all' | 'STUDENT' | 'ADMIN'>('all')
+const activeTab = ref<'all' | 'DEVELOPER' | 'ADMIN'>('all')
 const formRef = ref<FormInstance>()
 
 const schoolCode = computed(() => route.params.schoolCode as string || userStore.schoolCode || '')
 const schoolName = computed(() => userStore.schoolName || localStorage.getItem('schoolName') || '示范大学')
 const currentRole = computed(() => userStore.role || localStorage.getItem('role') || 'STUDENT')
 const currentUsername = computed(() => userStore.username || localStorage.getItem('username') || '未知用户')
+const isDev = computed(() => currentRole.value === 'DEVELOPER')
 
 const form = ref({
-  category: currentRole.value === 'ADMIN' ? 'ADMIN' : 'STUDENT',
+  targetRole: 'DEVELOPER' as 'DEVELOPER' | 'ADMIN',
   title: '',
   content: '',
 })
 
 const rules: FormRules = {
-  category: [{ required: true, message: '请选择建议类别', trigger: 'change' }],
+  targetRole: [{ required: true, message: '请选择反馈对象', trigger: 'change' }],
   title: [
-    { required: true, message: '请输入建议标题', trigger: 'blur' },
+    { required: true, message: '请输入标题', trigger: 'blur' },
     { min: 2, max: 50, message: '标题长度在 2 到 50 个字符', trigger: 'blur' },
   ],
   content: [
-    { required: true, message: '请输入建议内容', trigger: 'blur' },
+    { required: true, message: '请输入内容', trigger: 'blur' },
     { min: 10, max: 1000, message: '内容长度在 10 到 1000 个字符', trigger: 'blur' },
   ],
 }
 
 const filteredFeedbacks = computed(() => {
   if (activeTab.value === 'all') return feedbacks.value
-  return feedbacks.value.filter((f: any) => f.category === activeTab.value)
+  return feedbacks.value.filter((f: any) => f.targetRole === activeTab.value)
 })
 
 const statusMap: Record<string, { text: string; type: string }> = {
@@ -50,9 +51,9 @@ const statusMap: Record<string, { text: string; type: string }> = {
   DECLINED: { text: '已回绝', type: 'danger' },
 }
 
-const categoryMap: Record<string, { text: string; type: string }> = {
-  ADMIN: { text: '管理员建议', type: '' },
-  STUDENT: { text: '学生建议', type: 'success' },
+const targetMap: Record<string, { text: string; type: string; icon: string; desc: string }> = {
+  DEVELOPER: { text: '给系统开发者', type: '', icon: '👑', desc: '发给系统开发者，适用于功能建议、Bug反馈、系统优化等' },
+  ADMIN: { text: '给管理员', type: 'warning', icon: '🔧', desc: '发给学校管理员，适用于宿舍管理、分配问题、学校事务等' },
 }
 
 async function loadFeedbacks() {
@@ -69,7 +70,7 @@ async function loadFeedbacks() {
 
 function openDialog() {
   form.value = {
-    category: currentRole.value === 'ADMIN' ? 'ADMIN' : 'STUDENT',
+    targetRole: 'DEVELOPER',
     title: '',
     content: '',
   }
@@ -83,11 +84,12 @@ async function submitFeedback() {
     submitting.value = true
     try {
       await feedbackApi.submit({
-        category: form.value.category,
+        targetRole: form.value.targetRole,
         title: form.value.title,
         content: form.value.content,
       })
-      ElMessage.success('建议提交成功，感谢您的反馈！')
+      const targetName = form.value.targetRole === 'DEVELOPER' ? '系统开发者' : '管理员'
+      ElMessage.success(`已向${targetName}提交，感谢您的反馈！`)
       showDialog.value = false
       await loadFeedbacks()
     } catch {
@@ -105,17 +107,21 @@ onMounted(loadFeedbacks)
   <div class="page-container">
     <div class="page-header">
       <h1>建议反馈</h1>
-      <p class="page-desc">欢迎提出对系统的改进意见和创新想法，我们会认真对待每一条建议。</p>
+      <p class="page-desc">选择反馈对象，你的消息将准确传达给对应的人处理。</p>
     </div>
 
     <div class="toolbar">
       <el-radio-group v-model="activeTab" size="default">
-        <el-radio-button value="all">全部建议</el-radio-button>
-        <el-radio-button value="STUDENT">学生建议</el-radio-button>
-        <el-radio-button value="ADMIN">管理员建议</el-radio-button>
+        <el-radio-button value="all">全部</el-radio-button>
+        <el-radio-button value="DEVELOPER">
+          <span style="display:flex;align-items:center;gap:4px">👑 给开发者</span>
+        </el-radio-button>
+        <el-radio-button value="ADMIN">
+          <span style="display:flex;align-items:center;gap:4px">🔧 给管理员</span>
+        </el-radio-button>
       </el-radio-group>
       <el-button type="primary" @click="openDialog">
-        <el-icon><EditPen /></el-icon> 提交建议
+        <el-icon><EditPen /></el-icon> 提交反馈
       </el-button>
     </div>
 
@@ -125,11 +131,12 @@ onMounted(loadFeedbacks)
           <div class="card-header">
             <div class="card-meta">
               <el-tag
-                :type="categoryMap[item.category]?.type as any || 'info'"
+                :type="targetMap[item.targetRole]?.type as any || 'info'"
                 size="small"
                 effect="dark"
+                class="target-tag"
               >
-                {{ categoryMap[item.category]?.text || item.category }}
+                {{ targetMap[item.targetRole]?.icon }} {{ targetMap[item.targetRole]?.text || item.targetRole }}
               </el-tag>
               <el-tag
                 :type="statusMap[item.status]?.type as any || 'info'"
@@ -145,7 +152,9 @@ onMounted(loadFeedbacks)
           <p class="card-content">{{ item.content }}</p>
           <div class="card-footer">
             <div class="submitter-info">
-              <el-icon :size="14"><User /></el-icon>
+              <el-tag size="small" type="info" effect="plain" class="role-tag">
+                {{ item.submitterRole === 'DEVELOPER' ? '👑 开发者' : item.submitterRole === 'ADMIN' ? '🔧 管理员' : '👤 学生' }}
+              </el-tag>
               <span>{{ item.submitterName }}</span>
               <el-tag size="small" type="info" effect="plain" class="school-tag">
                 <el-icon :size="12"><School /></el-icon>
@@ -157,27 +166,59 @@ onMounted(loadFeedbacks)
               回复：{{ item.reply }}
             </span>
           </div>
+
+          <!-- 回复区域 -->
+          <div v-if="item.reply" class="reply-section">
+            <div class="reply-header">
+              <el-icon :size="14"><ChatLineSquare /></el-icon>
+              <span class="reply-from">{{ item.replierRole === 'DEVELOPER' ? '系统开发者' : '管理员' }} 回复：</span>
+            </div>
+            <p class="reply-content">{{ item.reply }}</p>
+          </div>
         </div>
       </template>
-      <el-empty v-else description="暂无建议，快来提交第一条吧！" />
+      <el-empty v-else description="暂无反馈，快来提交第一条吧！" />
     </div>
 
+    <!-- 提交弹窗 -->
     <el-dialog
       v-model="showDialog"
-      title="提交建议"
+      title="提交反馈"
       width="580px"
       destroy-on-close
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px" label-position="top">
-        <el-form-item label="建议类别" prop="category">
-          <el-radio-group v-model="form.category">
-            <el-radio value="STUDENT">学生建议</el-radio>
-            <el-radio value="ADMIN">管理员建议</el-radio>
-          </el-radio-group>
-          <div class="form-hint">
-            管理员建议：针对系统管理、问卷设计、匹配算法等管理层面的意见；
-            学生建议：针对使用体验、功能需求、界面优化等学生端的意见。
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" label-position="top">
+        <el-form-item label="反馈给谁" prop="targetRole">
+          <div class="target-select">
+            <div
+              class="target-card"
+              :class="{ selected: form.targetRole === 'DEVELOPER' }"
+              @click="form.targetRole = 'DEVELOPER'"
+            >
+              <div class="target-card-header">
+                <span class="target-icon">👑</span>
+                <span class="target-name">系统开发者</span>
+              </div>
+              <p class="target-desc">功能建议 · Bug反馈 · 系统优化 · 新增需求</p>
+              <div class="target-check" v-if="form.targetRole === 'DEVELOPER'">
+                <el-icon color="#722ed1"><CircleCheckFilled /></el-icon>
+              </div>
+            </div>
+            <div
+              class="target-card"
+              :class="{ selected: form.targetRole === 'ADMIN' }"
+              @click="form.targetRole = 'ADMIN'"
+            >
+              <div class="target-card-header">
+                <span class="target-icon">🔧</span>
+                <span class="target-name">学校管理员</span>
+              </div>
+              <p class="target-desc">宿舍管理 · 分配问题 · 学校事务 · 日常反馈</p>
+              <div class="target-check" v-if="form.targetRole === 'ADMIN'">
+                <el-icon color="#d48806"><CircleCheckFilled /></el-icon>
+              </div>
+            </div>
           </div>
         </el-form-item>
 
@@ -187,24 +228,24 @@ onMounted(loadFeedbacks)
               <el-icon><School /></el-icon>
             </template>
           </el-input>
-          <div class="form-hint">建议将自动关联到当前学校，便于追溯来源。</div>
+          <div class="form-hint">反馈将自动关联到当前学校，便于追溯来源。</div>
         </el-form-item>
 
-        <el-form-item label="建议标题" prop="title">
+        <el-form-item label="标题" prop="title">
           <el-input
             v-model="form.title"
-            placeholder="请用一句简短的话概括你的建议"
+            :placeholder="form.targetRole === 'DEVELOPER' ? '简要描述你的功能建议或Bug' : '简要描述需要管理员处理的问题'"
             maxlength="50"
             show-word-limit
           />
         </el-form-item>
 
-        <el-form-item label="建议内容" prop="content">
+        <el-form-item label="详细内容" prop="content">
           <el-input
             v-model="form.content"
             type="textarea"
             :rows="5"
-            placeholder="请详细描述你的建议或想法，包括遇到的问题、期望的改进方案等..."
+            :placeholder="form.targetRole === 'DEVELOPER' ? '详细描述：期望的功能、复现步骤、改进方案等...' : '详细描述：遇到的问题、期望的处理方式、相关背景等...'"
             maxlength="1000"
             show-word-limit
           />
@@ -214,7 +255,7 @@ onMounted(loadFeedbacks)
       <template #footer>
         <el-button @click="showDialog = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="submitFeedback">
-          提交建议
+          提交反馈
         </el-button>
       </template>
     </el-dialog>
@@ -276,6 +317,10 @@ onMounted(loadFeedbacks)
   align-items: center;
 }
 
+.target-tag {
+  font-weight: 600;
+}
+
 .card-time {
   font-size: 13px;
   color: #c0c4cc;
@@ -299,6 +344,8 @@ onMounted(loadFeedbacks)
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   padding-top: 12px;
   border-top: 1px solid #f0f0f0;
 }
@@ -306,13 +353,42 @@ onMounted(loadFeedbacks)
 .submitter-info {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 13px;
   color: #909399;
 }
 
+.role-tag {
+  flex-shrink: 0;
+}
+
 .school-tag {
   margin-left: 4px;
+}
+
+.reply-section {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: #f0f9eb;
+  border-radius: 8px;
+  border-left: 3px solid #67c23a;
+}
+
+.reply-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #67c23a;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.reply-content {
+  font-size: 13px;
+  color: #4e5969;
+  line-height: 1.6;
+  margin: 0;
 }
 
 .reply-text {
@@ -321,6 +397,70 @@ onMounted(loadFeedbacks)
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* 目标选择卡片 */
+.target-select {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.target-card {
+  flex: 1;
+  border: 2px solid #e5e6eb;
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.target-card:hover {
+  border-color: #c0c4cc;
+}
+
+.target-card.selected {
+  border-color: #722ed1;
+  background: #f9f0ff;
+}
+
+.target-card:last-child.selected {
+  border-color: #d48806;
+  background: #fffbe6;
+}
+
+.target-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.target-icon {
+  font-size: 24px;
+}
+
+.target-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.target-desc {
+  font-size: 12px;
+  color: #909399;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.target-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 20px;
 }
 
 .form-hint {

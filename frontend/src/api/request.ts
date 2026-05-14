@@ -382,7 +382,7 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     const school = m.getSchoolByCode(schoolCode)
     const newFeedback = {
       id: m.mockFeedbacks.length + 1,
-      category: b.category || 'STUDENT',
+      targetRole: b.targetRole || 'DEVELOPER',
       title: b.title || '',
       content: b.content || '',
       schoolName: school?.name || localStorage.getItem('schoolName') || '示范大学',
@@ -392,7 +392,8 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
       createdAt: new Date().toISOString(),
     }
     m.mockFeedbacks.unshift(newFeedback)
-    ElMessage.success('建议提交成功，感谢您的反馈！')
+    const targetName = b.targetRole === 'DEVELOPER' ? '系统开发者' : '管理员'
+    ElMessage.success(`已向${targetName}提交，感谢您的反馈！`)
     return makeMockResponse(newFeedback)
   }
 
