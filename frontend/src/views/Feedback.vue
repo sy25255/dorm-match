@@ -16,6 +16,7 @@ const userStore = useUserStore()
 const loading = ref(false)
 const submitting = ref(false)
 const showDialog = ref(false)
+const viewDetail = ref<any>(null)
 const feedbacks = ref<any[]>([])
 const activeTab = ref<'all' | 'DEVELOPER' | 'ADMIN'>('all')
 const formRef = ref<FormInstance>()
@@ -219,7 +220,7 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
 
     <div v-loading="loading" class="feedback-list">
       <template v-if="filteredFeedbacks.length">
-        <div v-for="item in filteredFeedbacks" :key="item.id" class="feedback-card">
+        <div v-for="item in filteredFeedbacks" :key="item.id" class="feedback-card" @click="viewDetail = item">
           <div class="card-header">
             <div class="card-meta">
               <el-tag
@@ -264,6 +265,9 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
                 {{ item.schoolName }}
               </el-tag>
             </div>
+            <el-button type="primary" link size="small">
+              查看详情 <el-icon><ArrowRight /></el-icon>
+            </el-button>
           </div>
 
           <div v-if="item.reply" class="reply-section">
@@ -277,6 +281,55 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
       </template>
       <el-empty v-else description="暂无反馈，快来提交第一条吧！" />
     </div>
+
+    <!-- 查看反馈详情弹窗 -->
+    <el-dialog
+      v-model="!!viewDetail"
+      :title="viewDetail?.title || '反馈详情'"
+      width="600px"
+      destroy-on-close
+      @closed="viewDetail = null"
+    >
+      <template v-if="viewDetail">
+        <el-descriptions :column="2" border size="small" style="margin-bottom:16px">
+          <el-descriptions-item label="反馈对象">
+            <el-tag :type="targetMap[viewDetail.targetRole]?.type as any || 'info'" size="small" effect="dark">
+              {{ targetMap[viewDetail.targetRole]?.icon }} {{ targetMap[viewDetail.targetRole]?.text }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="statusMap[viewDetail.status]?.type as any || 'info'" size="small">
+              {{ statusMap[viewDetail.status]?.text }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item v-if="viewDetail.problemType" label="问题类型">
+            <el-tag size="small" type="danger">{{ problemTypeMap[viewDetail.problemType] }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="提交时间">{{ viewDetail.createdAt?.slice(0, 10) }}</el-descriptions-item>
+          <el-descriptions-item v-if="viewDetail.collegeName" label="所属" :span="2">
+            {{ viewDetail.collegeName }} / {{ viewDetail.majorName }} / {{ viewDetail.className }}
+          </el-descriptions-item>
+          <el-descriptions-item label="提交者" :span="2">
+            {{ viewDetail.submitterName }}（{{ viewDetail.schoolName }}）
+          </el-descriptions-item>
+          <el-descriptions-item label="详细内容" :span="2">
+            <div style="white-space:pre-wrap;line-height:1.8;color:#303133">{{ viewDetail.content }}</div>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <div v-if="viewDetail.reply" class="detail-reply">
+          <div class="detail-reply-header">
+            <el-icon :size="16" color="#67c23a"><CircleCheckFilled /></el-icon>
+            <span>{{ viewDetail.replierRole === 'DEVELOPER' ? '系统开发者' : '管理员' }} 已回复</span>
+          </div>
+          <p class="detail-reply-text">{{ viewDetail.reply }}</p>
+        </div>
+        <div v-else class="detail-no-reply">
+          <el-icon :size="16" color="#909399"><Clock /></el-icon>
+          <span>暂未收到回复，请耐心等待</span>
+        </div>
+      </template>
+    </el-dialog>
 
     <!-- 提交弹窗 -->
     <el-dialog
@@ -465,11 +518,13 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
   border-radius: 8px;
   padding: 20px 24px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, transform 0.15s;
+  cursor: pointer;
 }
 
 .feedback-card:hover {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .card-header {
@@ -652,5 +707,43 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
   color: #c0c4cc;
   margin-top: 4px;
   line-height: 1.5;
+}
+
+.detail-reply {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f0f9eb;
+  border-radius: 8px;
+  border-left: 3px solid #67c23a;
+}
+
+.detail-reply-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #67c23a;
+  margin-bottom: 10px;
+}
+
+.detail-reply-text {
+  font-size: 14px;
+  color: #4e5969;
+  line-height: 1.8;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.detail-no-reply {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #909399;
 }
 </style>

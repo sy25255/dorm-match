@@ -372,6 +372,17 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
       fb.status = b.status || 'ADOPTED'
       fb.reply = b.reply || ''
       fb.replierRole = 'ADMIN'
+      const statusLabel = b.status === 'ADOPTED' ? '已采纳' : '已回绝'
+      m.mockNotifications.unshift({
+        id: m.mockNotifications.length + 1,
+        studentId: 1,
+        title: '反馈已处理',
+        content: `你提交的「${fb.title}」已被管理员标记为"${statusLabel}"。${b.reply ? '回复：' + b.reply.substring(0, 50) + '...' : ''}`,
+        type: 'FEEDBACK',
+        relatedId: fb.id,
+        isRead: 0,
+        createdAt: new Date().toISOString(),
+      })
     }
     ElMessage.success('反馈已处理')
     return makeMockResponse(null)
