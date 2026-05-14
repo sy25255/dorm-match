@@ -1,0 +1,204 @@
+{
+  "test_time": "2026-05-14 14:29:32",
+  "student_flow": {
+    "S01_学校入口页加载": {
+      "status": "PASS",
+      "detail": "入口页正确加载:True",
+      "duration_ms": 4053
+    },
+    "S02_输入DEMO-UNI": {
+      "status": "PASS",
+      "detail": "学校编码已输入",
+      "duration_ms": 48
+    },
+    "S03_点击进入": {
+      "status": "PASS",
+      "detail": "已点击进入按钮",
+      "duration_ms": 3033
+    },
+    "S04_跳转登录页": {
+      "status": "PASS",
+      "detail": "在登录页:True URL:http://localhost:5173/dorm-match/#/DEMO-UNI/login",
+      "duration_ms": 0
+    },
+    "S05_张伟演示登录": {
+      "status": "PASS",
+      "detail": "已点击张伟登录",
+      "duration_ms": 3043
+    },
+    "S06_登录后首页": {
+      "status": "PASS",
+      "detail": "在首页:True URL:http://localhost:5173/dorm-match/#/DEMO-UNI/",
+      "duration_ms": 0
+    },
+    "S07_首页Home": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1508
+    },
+    "S08_偏好问卷": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1505
+    },
+    "S09_舍友匹配": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1513
+    },
+    "S10_搜索舍友": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1508
+    },
+    "S11_邀请管理": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1516
+    },
+    "S12_我的配对": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1740
+    },
+    "S13_宿舍分配": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1813
+    },
+    "S14_个人信息": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1849
+    },
+    "S15_消息中心": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1515
+    },
+    "S16_建议反馈": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1511
+    }
+  },
+  "admin_flow": {
+    "A01_管理员入口页": {
+      "status": "PASS",
+      "detail": "入口页:True",
+      "duration_ms": 3013
+    },
+    "A02_输入编码": {
+      "status": "PASS",
+      "detail": "DEMO-UNI已输入",
+      "duration_ms": 24
+    },
+    "A03_点击进入": {
+      "status": "PASS",
+      "detail": "已进入",
+      "duration_ms": 3036
+    },
+    "A04_登录页加载": {
+      "status": "FAIL",
+      "detail": "在登录页:False",
+      "duration_ms": 0
+    },
+    "A05_管理员登录": {
+      "status": "FAIL",
+      "detail": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"button\").filter(has_text",
+      "duration_ms": 30008
+    },
+    "A06_数据统计": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1511
+    },
+    "A07_学校管理": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1509
+    },
+    "A08_学生管理": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1518
+    },
+    "A09_问卷管理": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1509
+    },
+    "A10_宿舍管理": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1510
+    },
+    "A11_分配管理": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1516
+    },
+    "A12_异议处理": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1516
+    },
+    "A13_反馈管理": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1510
+    },
+    "A14_审计日志": {
+      "status": "PASS",
+      "detail": "页面正常加载",
+      "duration_ms": 1504
+    }
+  },
+  "interaction_flow": {
+    "I01_学生登录": {
+      "status": "FAIL",
+      "detail": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"button\").filter(has_text",
+      "duration_ms": 0
+    },
+    "I02_反馈表单": {
+      "status": "FAIL",
+      "detail": "文本框:False 标题框:False",
+      "duration_ms": 0
+    },
+    "I03_选择管理员目标": {
+      "status": "PASS",
+      "detail": "已选择给管理员",
+      "duration_ms": 0
+    },
+    "I04_提交反馈": {
+      "status": "PASS",
+      "detail": "反馈已提交",
+      "duration_ms": 0
+    },
+    "I05_管理员登录": {
+      "status": "FAIL",
+      "detail": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"button\").filter(has_text",
+      "duration_ms": 0
+    },
+    "I06_管理员反馈列表": {
+      "status": "PASS",
+      "detail": "反馈条目:0 内容可见:True",
+      "duration_ms": 0
+    },
+    "I07_处理反馈": {
+      "status": "WARN",
+      "detail": "未找到处理按钮",
+      "duration_ms": 0
+    },
+    "I08_学生重新登录": {
+      "status": "FAIL",
+      "detail": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"button\").filter(has_text",
+      "duration_ms": 0
+    },
+    "I09_学生通知列表": {
+      "status": "PASS",
+      "detail": "通知条目:1 内容可见:True",
+      "duration_ms": 0
+    }
+  }
+}
