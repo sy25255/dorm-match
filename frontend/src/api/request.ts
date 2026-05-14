@@ -373,8 +373,31 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
   }
 
   // ========== Feedback ==========
+  if (url.includes('/admin/feedback/') && url.includes('/reply')) {
+    const id = Number(url.split('/admin/feedback/')[1]?.split('/')[0])
+    const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
+    const fb = m.mockFeedbacks.find((f: any) => f.id === id)
+    if (fb) {
+      fb.status = b.status || 'ADOPTED'
+      fb.reply = b.reply || ''
+      fb.replierRole = 'ADMIN'
+    }
+    ElMessage.success('反馈已处理')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/feedback/list')) {
+    const currentSchool = localStorage.getItem('schoolName') || '示范大学'
+    const adminFeedbacks = m.mockFeedbacks
+      .filter((f: any) => f.schoolName === currentSchool)
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    return makeMockResponse(adminFeedbacks)
+  }
   if (url.includes('/feedback/list')) {
-    return makeMockResponse(m.mockFeedbacks)
+    const currentSchool = localStorage.getItem('schoolName') || '示范大学'
+    const sameSchoolFeedbacks = m.mockFeedbacks
+      .filter((f: any) => f.schoolName === currentSchool)
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    return makeMockResponse(sameSchoolFeedbacks)
   }
   if (url.includes('/feedback/submit')) {
     const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
