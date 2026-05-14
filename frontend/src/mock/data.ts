@@ -414,6 +414,134 @@ export function generateInviteCode() {
   return 'INV-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase()
 }
 
+// ========== 学生问卷答案 Mock ==========
+// 敏感/隐私维度：PSYCHOLOGY（心理特质/价值观判断）、ATTENTION（注意力检测）、TRAP（验证题）
+export const SENSITIVE_DIMENSIONS = ['PSYCHOLOGY', 'ATTENTION', 'TRAP']
+
+const mockStudentAnswersMap: Record<number, Record<number, string>> = {
+  // 李明 (ID=2) - 作息规律、安静、卫生好
+  2: {
+    1:'3',2:'3',3:'2',4:'4',5:'4',84:'1',
+    6:'2',7:'1',8:'1',9:'2',10:'1',11:'1',85:'1',87:'A',
+    12:'A',13:'A',14:'B',15:'2',16:'1',
+    17:'C,F',18:'F',19:'D',20:'B,D',21:'A,E',22:'2',86:'C,E,F',99:'D',
+    25:'3',26:'B',28:'3',29:'A',88:'B',27:'B',
+    30:'C',31:'A',32:'2',33:'C',
+    34:'C',35:'2',36:'A',37:'1',38:'2',39:'A',40:'1',42:'1',43:'C',
+    47:'B',48:'A',56:'计划考研，目标计算机专业研究生',57:'B',
+  },
+  // 王强 (ID=3) - 抽烟、打呼噜严重、重度游戏玩家
+  3: {
+    1:'5',2:'5',3:'D',4:'1',5:'1',84:'D',
+    6:'D',7:'5',8:'5',9:'4',10:'D',11:'D',85:'5',87:'D',
+    12:'D',13:'D',14:'A',15:'4',16:'5',
+    17:'A,G',18:'C',19:'A',20:'C',21:'C',22:'E',86:'A,D',99:'A',
+    25:'4',26:'D',28:'E',29:'E',88:'D',27:'D',
+    30:'E',31:'D',32:'1',33:'A',
+    34:'A',35:'1',36:'C',37:'D',38:'1',39:'D',40:'E',42:'E',43:'A',
+    47:'A',48:'C',56:'暂无明确规划',57:'C',
+  },
+  // 赵刚 (ID=4) - 开朗、运动型、轻微打呼噜
+  4: {
+    1:'2',2:'1',3:'A',4:'4',5:'2',84:'B',
+    6:'2',7:'3',8:'2',9:'3',10:'B',11:'2',85:'2',87:'B',
+    12:'B',13:'B',14:'C',15:'2',16:'2',
+    17:'A,B,C',18:'A',19:'C',20:'E',21:'A,B',22:'A',86:'B,C,D',99:'C',
+    25:'2',26:'B',28:'2',29:'A',88:'A',27:'A',
+    30:'C',31:'B',32:'2',33:'B',
+    34:'B',35:'2',36:'B',37:'2',38:'1',39:'A',40:'2',42:'3',43:'A',
+    47:'B',48:'B',56:'打算考公或进国企',57:'B',
+  },
+  // 孙磊 (ID=5) - 内向、喜欢独处、阅读
+  5: {
+    1:'3',2:'2',3:'B',4:'4',5:'3',84:'C',
+    6:'1',7:'2',8:'3',9:'3',10:'A',11:'1',85:'1',87:'C',
+    12:'B',13:'A',14:'B',15:'E',16:'1',
+    17:'G',18:'D',19:'D',20:'A,B',21:'E',22:'E',86:'E',99:'D',
+    25:'5',26:'D',28:'E',29:'D',88:'D',27:'D',
+    30:'B',31:'A',32:'C',33:'C',
+    34:'C',35:'D',36:'B',37:'2',38:'D',39:'B',40:'3',42:'1',43:'C',
+    47:'B',48:'A',56:'计划考研或出国深造',57:'A',
+  },
+  // 刘洋 (ID=6) - 音乐爱好者、弹吉他
+  6: {
+    1:'4',2:'3',3:'C',4:'3',5:'3',84:'B',
+    6:'2',7:'3',8:'3',9:'3',10:'B',11:'2',85:'2',87:'B',
+    12:'C',13:'B',14:'D',15:'2',16:'3',
+    17:'F,G',18:'E',19:'C',20:'A,C',21:'A,B,C',22:'3',86:'F,H',99:'B',
+    25:'2',26:'B',28:'3',29:'B',88:'B',27:'C',
+    30:'C',31:'B',32:'2',33:'C',
+    34:'B',35:'2',36:'B',37:'3',38:'2',39:'B',40:'2',42:'3',43:'B',
+    47:'B',48:'A',56:'打算毕业后做音乐相关创业',57:'B',
+  },
+  // 陈宇 (ID=7) - 洁癖、整洁
+  7: {
+    1:'3',2:'2',3:'A',4:'5',5:'5',84:'1',
+    6:'1',7:'1',8:'1',9:'1',10:'1',11:'1',85:'1',87:'A',
+    12:'B',13:'A',14:'B',15:'3',16:'1',
+    17:'G',18:'D',19:'D',20:'A,B',21:'E',22:'4',86:'B',99:'D',
+    25:'4',26:'D',28:'D',29:'A',88:'C',27:'C',
+    30:'B',31:'A',32:'D',33:'C',
+    34:'C',35:'D',36:'A',37:'1',38:'C',39:'A',40:'1',42:'1',43:'C',
+    47:'B',48:'A',56:'计划考研，目标985院校数学系',57:'B',
+  },
+}
+
+function getQuestionText(q: any): string {
+  if (!q) return ''
+  return q.questionText
+}
+
+function getAnswerText(q: any, answerValue: string): string {
+  if (!q || !q.optionsJson) return answerValue
+  try {
+    const options = JSON.parse(q.optionsJson)
+    if (Array.isArray(options)) {
+      const values = answerValue.split(',')
+      const matched = values.map(v => {
+        const opt = options.find((o: any) => o.value === v || o.value === v.trim())
+        return opt ? (opt.label ? `${opt.label}. ${opt.text}` : opt.text) : v
+      })
+      return matched.join('、')
+    }
+  } catch {}
+  return answerValue
+}
+
+export function getMockStudentSurvey(studentId: number) {
+  const answers = mockStudentAnswersMap[studentId]
+  if (!answers) return null
+  const sections: Record<string, { key: string; title: string; desc: string; color: string; questions: any[] }> = {}
+  const answeredQuestionIds = new Set(Object.keys(answers).map(Number))
+  
+  mockSurveySections.forEach(sec => {
+    const sectionQuestions = sec.questionIds
+      .map(qid => mockQuestions.find(q => q.id === qid))
+      .filter(q => q && !SENSITIVE_DIMENSIONS.includes(q.dimension) && !q.isAttentionCheck && answeredQuestionIds.has(q.id))
+      .map(q => ({
+        ...q,
+        answerValue: answers[q!.id] || '',
+        answerText: getAnswerText(q!, answers[q!.id] || ''),
+      }))
+    if (sectionQuestions.length > 0) {
+      sections[sec.key] = {
+        key: sec.key,
+        title: sec.title,
+        desc: sec.desc,
+        color: sec.color,
+        questions: sectionQuestions,
+      }
+    }
+  })
+  
+  const student = mockStudents.find(s => s.id === studentId)
+  return {
+    studentId,
+    studentName: student?.name || '',
+    sections: Object.values(sections),
+  }
+}
+
 // ============ 用户独立配对/分配数据 ============
 
 const now = new Date()

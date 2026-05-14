@@ -95,6 +95,10 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     const id = Number(url.split('/match/detail/')[1])
     return makeMockResponse(m.getMockMatchDetail(id))
   }
+  if (url.includes('/match/survey/')) {
+    const id = Number(url.split('/match/survey/')[1])
+    return makeMockResponse(m.getMockStudentSurvey(id))
+  }
 
   // ========== Invite ==========
   if (url.includes('/invite/send')) {

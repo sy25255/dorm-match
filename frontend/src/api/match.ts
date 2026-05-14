@@ -10,6 +10,9 @@ export const matchApi = {
   getDetail(targetId: number) {
     return request.get(`/match/detail/${targetId}`)
   },
+  getStudentSurvey(targetId: number) {
+    return request.get(`/match/survey/${targetId}`)
+  },
   search(params: { keyword?: string; collegeId?: number; majorId?: number; hobby?: string }) {
     return request.get('/match/search', { params })
   },
