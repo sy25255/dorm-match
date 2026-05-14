@@ -327,15 +327,6 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     return makeMockResponse(m.mockAllocations)
   }
 
-  // ========== Admin: Objections ==========
-  if (url.includes('/admin/objection/') && method === 'put') {
-    ElMessage.success('申诉已处理')
-    return makeMockResponse(null)
-  }
-  if (url.includes('/admin/objections')) {
-    return makeMockResponse(m.mockAllObjections)
-  }
-
   // ========== Admin: Statistics ==========
   if (url.includes('/admin/statistics')) {
     return makeMockResponse(m.mockStatistics)

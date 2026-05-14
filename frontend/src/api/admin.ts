@@ -68,12 +68,7 @@ export const adminApi = {
     return request.post('/admin/allocation/finalize', null, { params: { batchCode } })
   },
 
-  getObjections() {
-    return request.get('/admin/objections')
-  },
-  reviewObjection(objectionId: number, comment: string, status: string) {
-    return request.put(`/admin/objection/${objectionId}`, null, { params: { comment, status } })
-  },
+
 
   getStatistics() {
     return request.get('/admin/statistics')
