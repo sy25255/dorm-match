@@ -30,6 +30,7 @@ const router = createRouter({
         { path: 'allocation', name: 'Allocation', component: () => import('@/views/Allocation.vue'), meta: { title: '宿舍分配结果' } },
         { path: 'profile', name: 'Profile', component: () => import('@/views/Profile.vue'), meta: { title: '个人信息' } },
         { path: 'notifications', name: 'Notifications', component: () => import('@/views/Notifications.vue'), meta: { title: '消息中心' } },
+        { path: 'feedback', name: 'Feedback', component: () => import('@/views/Feedback.vue'), meta: { title: '建议反馈' } },
       ],
     },
     {

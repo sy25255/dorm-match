@@ -65,6 +65,7 @@ onMounted(loadUnread)
         <el-menu-item :index="`${basePath}/pairing`"><el-icon><UserFilled /></el-icon><span>我的配对</span></el-menu-item>
         <el-menu-item :index="`${basePath}/allocation`"><el-icon><OfficeBuilding /></el-icon><span>分配结果</span></el-menu-item>
         <el-menu-item :index="`${basePath}/profile`"><el-icon><Setting /></el-icon><span>个人信息</span></el-menu-item>
+        <el-menu-item :index="`${basePath}/feedback`"><el-icon><ChatLineSquare /></el-icon><span>建议反馈</span></el-menu-item>
       </el-menu>
 
       <div class="user-info">

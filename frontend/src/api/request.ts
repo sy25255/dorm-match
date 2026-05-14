@@ -369,6 +369,30 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     return makeMockResponse(m.mockNotifications.filter((n: any) => n.studentId === 1))
   }
 
+  // ========== Feedback ==========
+  if (url.includes('/feedback/list')) {
+    return makeMockResponse(m.mockFeedbacks)
+  }
+  if (url.includes('/feedback/submit')) {
+    const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
+    const schoolCode = localStorage.getItem('schoolCode') || 'DEMO-UNI'
+    const school = m.getSchoolByCode(schoolCode)
+    const newFeedback = {
+      id: m.mockFeedbacks.length + 1,
+      category: b.category || 'STUDENT',
+      title: b.title || '',
+      content: b.content || '',
+      schoolName: school?.name || localStorage.getItem('schoolName') || '示范大学',
+      submitterName: localStorage.getItem('username') || '匿名用户',
+      submitterRole: localStorage.getItem('role') || 'STUDENT',
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+    }
+    m.mockFeedbacks.unshift(newFeedback)
+    ElMessage.success('建议提交成功，感谢您的反馈！')
+    return makeMockResponse(newFeedback)
+  }
+
   return null
 }
 

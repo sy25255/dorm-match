@@ -546,6 +546,79 @@ export function getMockStudentSurvey(studentId: number) {
   }
 }
 
+// ========== 建议反馈 Mock 数据 ==========
+export const mockFeedbacks: { id: number; category: 'ADMIN' | 'STUDENT'; title: string; content: string; schoolName: string; submitterName: string; submitterRole: string; status: 'PENDING' | 'REVIEWING' | 'ADOPTED' | 'DECLINED'; createdAt: string; reply?: string }[] = [
+  {
+    id: 1,
+    category: 'STUDENT',
+    title: '希望能增加宿舍楼实景照片功能',
+    content: '建议在分配结果页面增加宿舍楼的实景照片，让新生能提前了解宿舍环境，包括房间大小、公共区域等。这样能减少入学后的焦虑感。',
+    schoolName: '示范大学',
+    submitterName: '张伟',
+    submitterRole: 'STUDENT',
+    status: 'ADOPTED',
+    createdAt: '2024-08-20T14:30:00',
+    reply: '感谢建议！我们已在分配结果页面增加了宿舍楼信息展示模块，后续会进一步完善实景照片功能。',
+  },
+  {
+    id: 2,
+    category: 'ADMIN',
+    title: '问卷匹配算法需要增加地域因素权重',
+    content: '作为学校管理员，我发现目前的匹配算法未考虑学生生源地因素。建议增加地域偏好维度，让来自相似文化背景的学生有更高匹配度，减少因地域差异导致的宿舍矛盾。',
+    schoolName: '示范大学',
+    submitterName: '系统管理员',
+    submitterRole: 'ADMIN',
+    status: 'REVIEWING',
+    createdAt: '2024-08-22T09:15:00',
+  },
+  {
+    id: 3,
+    category: 'STUDENT',
+    title: '邀请功能希望增加附言模板',
+    content: '发送邀请时每次都手动输入比较麻烦，建议提供一些常用附言模板，比如"你好，我们作息很接近，要不要组个队？"之类的，可以方便快速发送。',
+    schoolName: '示范大学',
+    submitterName: '李明',
+    submitterRole: 'STUDENT',
+    status: 'PENDING',
+    createdAt: '2024-08-25T16:45:00',
+  },
+  {
+    id: 4,
+    category: 'ADMIN',
+    title: '后台建议增加批量操作功能',
+    content: '当前后台管理对学生、宿舍等数据的操作都是逐条进行，效率较低。建议增加批量导入/导出、批量禁用/启用、批量分配等功能，方便大规模学校使用。',
+    schoolName: '测试学院',
+    submitterName: '测试管理员',
+    submitterRole: 'ADMIN',
+    status: 'PENDING',
+    createdAt: '2024-08-26T10:20:00',
+  },
+  {
+    id: 5,
+    category: 'STUDENT',
+    title: '匹配详情页建议增加聊天功能',
+    content: '目前在匹配详情页面只能看到匹配分数，但无法直接与对方交流。建议增加一个简单的留言或聊天功能，让学生可以互相了解后再决定是否组队。',
+    schoolName: '示范大学',
+    submitterName: '赵刚',
+    submitterRole: 'STUDENT',
+    status: 'DECLINED',
+    createdAt: '2024-08-23T11:00:00',
+    reply: '经过评估，实时聊天功能会增加系统复杂度和服务器成本。我们推荐通过现有的邀请机制进行初步沟通，后续可以考虑增加留言板功能。',
+  },
+  {
+    id: 6,
+    category: 'ADMIN',
+    title: '数据统计页面需要增加导出报表功能',
+    content: '后台数据统计目前只能在线查看，无法导出报表用于学校汇报。建议增加PDF或Excel导出功能，包含分配情况、匹配统计、异议处理等数据汇总。',
+    schoolName: '示范大学',
+    submitterName: '系统管理员',
+    submitterRole: 'ADMIN',
+    status: 'ADOPTED',
+    createdAt: '2024-08-19T08:00:00',
+    reply: '已将该功能加入开发计划，预计下个版本上线报表导出功能。',
+  },
+]
+
 // ============ 用户独立配对/分配数据 ============
 
 const now = new Date()
