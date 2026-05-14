@@ -43,11 +43,14 @@ const statusMap: Record<string, { text: string; type: 'warning' | 'info' | 'succ
 }
 
 async function loadData() {
+  console.log('[AdminObjections] 加载异议列表 - 筛选状态:', statusFilter.value || '全部')
   loading.value = true
   try {
     const res = await request.get('/admin/objections')
     objections.value = res.data.data || []
+    console.log('[AdminObjections] 异议列表加载成功 - 共', objections.value.length, '条, 筛选后', filteredList.value.length, '条')
   } catch (e: any) {
+    console.error('[AdminObjections] 加载异议列表失败:', e?.message || e)
     ElMessage.error(e?.message || '加载失败')
   } finally {
     loading.value = false
@@ -55,6 +58,7 @@ async function loadData() {
 }
 
 function showDetail(item: Objection) {
+  console.log('[AdminObjections] 打开异议详情:', { id: item.id, studentName: item.studentName, status: item.status })
   currentItem.value = item
   replyForm.value = {
     status: item.status === 'PENDING' ? 'REVIEWING' : item.status,
@@ -64,7 +68,15 @@ function showDetail(item: Objection) {
 }
 
 async function submitReply() {
-  if (!currentItem.value) return
+  if (!currentItem.value) {
+    console.warn('[AdminObjections] submitReply 被调用但 currentItem 为空')
+    return
+  }
+  console.log('[AdminObjections] 提交异议处理:', {
+    id: currentItem.value.id,
+    newStatus: replyForm.value.status,
+    comment: replyForm.value.comment.substring(0, 50),
+  })
   submitting.value = true
   try {
     await request.put(`/admin/objections/${currentItem.value.id}`, {
@@ -73,9 +85,11 @@ async function submitReply() {
     })
     currentItem.value.status = replyForm.value.status as any
     currentItem.value.reviewComment = replyForm.value.comment
+    console.log('[AdminObjections] 异议处理保存成功')
     ElMessage.success('异议处理已更新')
     detailVisible.value = false
   } catch (e: any) {
+    console.error('[AdminObjections] 异议处理保存失败:', e?.message || e)
     ElMessage.error(e?.message || '操作失败')
   } finally {
     submitting.value = false

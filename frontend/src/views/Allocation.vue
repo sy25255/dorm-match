@@ -7,11 +7,14 @@ const allocation = ref<any>(null)
 const loading = ref(false)
 
 onMounted(async () => {
+  console.log('[Allocation] 页面加载 - 开始获取分配结果')
   loading.value = true
   try {
     const res = await allocationApi.getMyAllocation()
     allocation.value = res.data.data
+    console.log('[Allocation] 分配结果获取成功:', allocation.value ? { roomNumber: allocation.value.roomNumber, status: allocation.value.status } : '无分配')
   } catch {
+    console.error('[Allocation] 获取分配结果失败')
     ElMessage.error('加载分配结果失败')
   } finally {
     loading.value = false
@@ -19,16 +22,20 @@ onMounted(async () => {
 })
 
 async function confirmAllocation() {
+  console.log('[Allocation] 用户点击"确认无异议"')
   try {
     await allocationApi.confirm()
+    console.log('[Allocation] 确认分配结果成功')
     ElMessage.success('已确认分配结果')
     allocation.value.confirmedByStudent = 1
   } catch {
+    console.error('[Allocation] 确认分配结果失败')
     ElMessage.error('确认失败，请重试')
   }
 }
 
 async function submitObjection() {
+  console.log('[Allocation] 用户点击"提交异议"')
   try {
     const { value: reason } = await ElMessageBox.prompt('请输入申诉理由', '提交异议', {
       confirmButtonText: '提交',
@@ -37,10 +44,16 @@ async function submitObjection() {
       inputPlaceholder: '请详细描述您的申诉理由...',
     })
     if (reason) {
+      console.log('[Allocation] 提交异议 - 理由:', reason.substring(0, 80))
       await allocationApi.submitObjection(reason)
+      console.log('[Allocation] 异议提交成功')
       ElMessage.success('异议已提交，请等待处理')
+    } else {
+      console.log('[Allocation] 用户取消异议（未输入理由）')
     }
-  } catch {}
+  } catch {
+    console.log('[Allocation] 用户取消异议（关闭弹窗）')
+  }
 }
 </script>
 

@@ -38,7 +38,7 @@ export const allocationApi = {
     return request.put('/allocation/confirm')
   },
   submitObjection(reason: string, attachmentUrls?: string) {
-    return request.post('/allocation/objection', null, { params: { reason, attachmentUrls } })
+    return request.post('/allocation/objection', { reason, attachmentUrls })
   },
   getMyObjections() {
     return request.get('/allocation/objections')

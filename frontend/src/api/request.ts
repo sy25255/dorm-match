@@ -155,19 +155,47 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
 
   // ========== Allocation (student) ==========
   if (url.includes('/allocation/my')) {
-    if (!surveyDone) return makeMockResponse(null)
+    if (!surveyDone) {
+      console.log('[Mock] GET /allocation/my - 问卷未完成，返回 null')
+      return makeMockResponse(null)
+    }
     const alloc = m.getUserAllocation(userId)
+    console.log('[Mock] GET /allocation/my - 用户分配结果:', alloc ? { roomNumber: alloc.roomNumber, status: alloc.status } : '无分配')
     return makeMockResponse(alloc)
   }
-  if (url === '/allocation/objections' || url.includes('/allocation/objections')) return makeMockResponse(m.mockObjections)
+  if (url === '/allocation/objections' || url.includes('/allocation/objections')) {
+    console.log('[Mock] GET /allocation/objections - 学生查看我的异议列表')
+    return makeMockResponse(m.mockObjections)
+  }
   if (url.includes('/allocation/objection/') && method === 'get') {
     const id = Number(url.split('/allocation/objection/')[1])
+    console.log('[Mock] GET /allocation/objection/:id - 获取异议详情:', id)
     const obj = m.mockAllObjections.find((o: any) => o.id === id)
+    console.log('[Mock] 异议详情查询结果:', obj ? { id: obj.id, status: obj.status } : '未找到')
     return makeMockResponse(obj || null)
   }
   if (url.includes('/allocation/objection') && method === 'post') {
-    ElMessage.success('异议已提交')
-    return makeMockResponse(null)
+    const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
+    const reason = b.reason || b
+    console.log('[Mock] POST /allocation/objection - 收到学生异议:', { userId, reason: typeof reason === 'string' ? reason.substring(0, 80) : reason })
+    
+    const studentName = localStorage.getItem('username') || `学生${userId}`
+    const myAlloc = m.getUserAllocation(userId)
+    const newObj = {
+      id: m.mockAllObjections.length + 1,
+      allocationId: myAlloc?.id || 1,
+      studentId: userId,
+      studentName,
+      reason: typeof reason === 'string' ? reason : String(reason || ''),
+      status: 'PENDING',
+      currentHandler: null,
+      reviewComment: '',
+      createdAt: new Date().toISOString(),
+    }
+    m.mockAllObjections.unshift(newObj)
+    console.log('[Mock] 异议已写入 mockAllObjections:', { id: newObj.id, status: newObj.status, total: m.mockAllObjections.length })
+    ElMessage.success('异议已提交，管理员将尽快处理')
+    return makeMockResponse(newObj)
   }
   if (url.includes('/allocation/confirm')) {
     ElMessage.success('已确认')
@@ -352,10 +380,22 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
 
   // ========== Admin: Objections ==========
   if (url.includes('/admin/objections/') && method === 'put') {
+    const id = Number(url.split('/admin/objections/')[1])
+    const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
+    console.log('[Mock] PUT /admin/objections/:id - 管理员处理异议:', { id, newStatus: b.status, reviewComment: (b.reviewComment || '').substring(0, 50) })
+    const obj = m.mockAllObjections.find((o: any) => o.id === id)
+    if (obj) {
+      obj.status = b.status || 'RESOLVED'
+      obj.reviewComment = b.reviewComment || ''
+      obj.currentHandler = userId
+      if (b.status === 'RESOLVED') obj.resolvedAt = new Date().toISOString()
+      console.log('[Mock] 异议状态已更新:', { id, status: obj.status, handler: userId })
+    }
     ElMessage.success('异议已处理')
     return makeMockResponse(null)
   }
   if (url.includes('/admin/objections')) {
+    console.log('[Mock] GET /admin/objections - 管理员查看异议列表, 共', m.mockAllObjections.length, '条')
     return makeMockResponse(m.mockAllObjections)
   }
 
