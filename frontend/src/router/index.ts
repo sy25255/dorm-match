@@ -98,7 +98,7 @@ router.beforeEach((to, _from, next) => {
       next(`/${storedCode}/login`)
       return
     }
-    if (userStore.role !== 'ADMIN') {
+    if (userStore.role !== 'ADMIN' && userStore.role !== 'DEVELOPER') {
       next(`/${storedCode}/`)
       return
     }

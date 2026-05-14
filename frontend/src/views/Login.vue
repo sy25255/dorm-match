@@ -57,6 +57,11 @@ function demoAdminLogin() {
   router.push(`/${schoolCode.value}/admin`)
 }
 
+function demoDevLogin() {
+  userStore.demoDevLogin()
+  router.push(`/${schoolCode.value}/`)
+}
+
 async function handleRegister() {
   if (!registerForm.inviteCode) { ElMessage.warning('请输入学校发放的邀请码'); return }
   if (registerForm.password !== registerForm.confirmPassword) { ElMessage.warning('两次密码不一致'); return }
@@ -141,6 +146,9 @@ function backToSchoolEntry() {
       <div class="demo-btns" style="margin-top:8px">
         <el-button size="default" class="demo-btn admin-btn" @click="demoAdminLogin">🔧 管理员 - 后台管理</el-button>
       </div>
+      <div class="demo-btns" style="margin-top:8px">
+        <el-button size="default" class="demo-btn dev-btn" @click="demoDevLogin">👑 系统开发者</el-button>
+      </div>
 
       <div class="switch-school" @click="backToSchoolEntry">
         <el-icon :size="14"><ArrowLeft /></el-icon>
@@ -177,6 +185,8 @@ function backToSchoolEntry() {
 .demo-btn:hover { border-color: #667eea; color: #667eea; background: #f5f3ff; }
 .admin-btn { border-color: #ffd666; color: #d48806; }
 .admin-btn:hover { border-color: #faad14; color: #d48806; background: #fffbe6; }
+.dev-btn { border-color: #b37feb; color: #722ed1; }
+.dev-btn:hover { border-color: #9254de; color: #531dab; background: #f9f0ff; }
 .switch-school { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; font-size: 13px; color: #a0aec0; cursor: pointer; }
 .switch-school:hover { color: #667eea; }
 </style>

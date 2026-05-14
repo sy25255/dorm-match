@@ -55,6 +55,9 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
   // ========== Auth ==========
   if (url.includes('/auth/login')) {
     const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
+    if (b.studentNo === 'developer' && b.password === 'dev@dorm#2024') {
+      return makeMockResponse({ token: 'demo-dev-token', refreshToken: 'demo-dev-refresh', userId: 0, username: '系统开发者', role: 'DEVELOPER' })
+    }
     if (b.studentNo === 'admin' && b.password === 'admin123') {
       return makeMockResponse({ token: 'demo-admin-token', refreshToken: 'demo-admin-refresh', userId: 99, username: '系统管理员', role: 'ADMIN' })
     }

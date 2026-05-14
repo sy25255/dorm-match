@@ -49,6 +49,19 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('role', 'STUDENT')
   }
 
+  function demoDevLogin() {
+    token.value = 'demo-dev-token'
+    refreshToken.value = 'demo-dev-refresh'
+    userId.value = 0
+    username.value = '系统开发者'
+    role.value = 'DEVELOPER'
+    localStorage.setItem('token', 'demo-dev-token')
+    localStorage.setItem('refreshToken', 'demo-dev-refresh')
+    localStorage.setItem('userId', '0')
+    localStorage.setItem('username', '系统开发者')
+    localStorage.setItem('role', 'DEVELOPER')
+  }
+
   function logout() {
     token.value = ''
     refreshToken.value = ''
@@ -60,5 +73,5 @@ export const useUserStore = defineStore('user', () => {
     localStorage.clear()
   }
 
-  return { token, refreshToken, userId, username, role, schoolCode, schoolName, isLoggedIn, setSchoolInfo, login, demoLogin, logout }
+  return { token, refreshToken, userId, username, role, schoolCode, schoolName, isLoggedIn, setSchoolInfo, login, demoLogin, demoDevLogin, logout }
 })

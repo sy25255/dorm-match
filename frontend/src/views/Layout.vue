@@ -80,10 +80,13 @@ onMounted(loadUnread)
           <el-icon :size="22"><Expand v-if="!menuOpen" /><Fold v-else /></el-icon>
         </el-button>
         <div style="flex:1" />
-        <el-button v-if="userStore.role === 'ADMIN'" class="admin-entry" size="small" @click="router.push(`${basePath}/admin`)">
+        <el-button v-if="userStore.role === 'ADMIN' || userStore.role === 'DEVELOPER'" class="admin-entry" size="small" @click="router.push(`${basePath}/admin`)">
           <el-icon :size="16"><Setting /></el-icon>
           <span style="margin-left:4px">后台管理</span>
         </el-button>
+        <el-tag v-if="userStore.role === 'DEVELOPER'" type="warning" size="small" effect="dark" class="dev-badge">
+          👑 开发者
+        </el-tag>
         <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="notification-bell">
           <el-button text circle @click="router.push(`${basePath}/notifications`)">
             <el-icon :size="22"><Bell /></el-icon>
@@ -185,6 +188,7 @@ onMounted(loadUnread)
 .hamburger { display: flex; }
 .admin-entry { border: 1px solid #d9d9d9; color: #666; margin-right: 8px; }
 .admin-entry:hover { border-color: #667eea; color: #667eea; }
+.dev-badge { margin-right: 8px; }
 .notification-bell { margin-right: 8px; }
 
 .main-content { background: #f5f7fa; flex: 1; padding: 20px; }
