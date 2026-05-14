@@ -9,25 +9,34 @@ const userStore = useUserStore()
 const surveyCompleted = ref(false)
 const hasPairing = ref(false)
 const hasAllocation = ref(false)
+const loading = ref(true)
 
 onMounted(async () => {
   try {
     const progress = await surveyApi.getProgress()
     surveyCompleted.value = progress.data.data?.percentage === 100
-  } catch {}
+  } catch {
+    console.error('加载问卷进度失败')
+  }
   try {
     const pairing = await inviteApi.getPairing()
     hasPairing.value = !!pairing.data.data
-  } catch {}
+  } catch {
+    console.error('加载配对信息失败')
+  }
   try {
     const res = await request.get('/allocation/my')
     hasAllocation.value = !!res.data.data
-  } catch {}
+  } catch {
+    console.error('加载分配信息失败')
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
 <template>
-  <div class="page-container">
+  <div class="page-container" v-loading="loading">
     <div class="page-header">
       <h1>欢迎回来，{{ userStore.username }}</h1>
       <p>完成以下步骤，找到与你最合拍的舍友</p>

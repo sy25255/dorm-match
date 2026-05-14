@@ -373,6 +373,13 @@ export const mockNotifications = [
   { id: 3, studentId: 1, title: '分配结果已发布', content: '你的宿舍分配结果为M1-101，请登录查看并确认', type: 'ALLOCATION', relatedId: 1, isRead: 0, createdAt: '2024-08-27T08:00:00' },
   { id: 4, studentId: 1, title: '问卷完成提醒', content: '你还有未完成的问卷，请在截止日期前完成填写', type: 'SYSTEM', relatedId: 0, isRead: 1, createdAt: '2024-08-24T10:00:00' },
   { id: 5, studentId: 1, title: '配对锁定成功', content: '你和李明的舍友配对已正式锁定', type: 'PAIRING', relatedId: 1, isRead: 1, createdAt: '2024-08-25T13:00:00' },
+  { id: 6, studentId: 2, title: '邀请已发送', content: '你向张伟发送了舍友邀请，等待对方回复', type: 'INVITE', relatedId: 101, isRead: 0, createdAt: '2024-08-25T12:00:00' },
+  { id: 7, studentId: 2, title: '配对成功', content: '你和张伟的舍友配对已建立', type: 'PAIRING', relatedId: 1, isRead: 0, createdAt: '2024-08-25T12:30:00' },
+  { id: 8, studentId: 3, title: '系统通知', content: '考试周即将来临，请合理安排学习时间', type: 'SYSTEM', relatedId: 0, isRead: 0, createdAt: '2024-08-26T10:00:00' },
+  { id: 9, studentId: 4, title: '新邀请', content: '王芳向你发送了舍友邀请', type: 'INVITE', relatedId: 102, isRead: 0, createdAt: '2024-08-25T14:00:00' },
+  { id: 10, studentId: 5, title: '分配结果已发布', content: '你的宿舍分配结果为M1-102，请登录查看', type: 'ALLOCATION', relatedId: 2, isRead: 0, createdAt: '2024-08-27T08:00:00' },
+  { id: 11, studentId: 6, title: '问卷完成提醒', content: '请尽快完成偏好问卷，截止日期为8月31日', type: 'SYSTEM', relatedId: 0, isRead: 0, createdAt: '2024-08-24T10:00:00' },
+  { id: 12, studentId: 7, title: '邀请被接受', content: '赵刚接受了你的舍友邀请，配对成功！', type: 'PAIRING', relatedId: 2, isRead: 0, createdAt: '2024-08-25T15:00:00' },
 ]
 
 export const mockAuditLogs = [
@@ -485,6 +492,17 @@ const mockStudentAnswersMap: Record<number, Record<number, string>> = {
     30:'B',31:'A',32:'D',33:'C',
     34:'C',35:'D',36:'A',37:'1',38:'C',39:'A',40:'1',42:'1',43:'C',
     47:'B',48:'A',56:'计划考研，目标985院校数学系',57:'B',
+  },
+  // 张伟 (ID=1) - 默认演示学生，作息规律、喜欢运动、外向
+  1: {
+    1:'3',2:'2',3:'2',4:'4',5:'3',84:'B',
+    6:'2',7:'2',8:'2',9:'3',10:'A',11:'2',85:'2',87:'B',
+    12:'B',13:'B',14:'C',15:'2',16:'2',
+    17:'A,C',18:'A',19:'C',20:'E',21:'A,B',22:'A',86:'火锅,烧烤,面食',99:'C',
+    25:'2',26:'B',28:'2',29:'A',88:'A',27:'A',
+    30:'C',31:'B',32:'2',33:'B',
+    34:'B',35:'2',36:'B',37:'2',38:'1',39:'A',40:'2',42:'3',43:'A',
+    47:'B',48:'A',56:'计划考研计算机专业',57:'B',
   },
 }
 

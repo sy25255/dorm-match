@@ -34,7 +34,9 @@ async function loadProfile() {
       form.hometown = data.hometown || ''
       form.className = data.className || ''
     }
-  } catch {} finally {
+  } catch {
+    ElMessage.warning('个人信息加载失败，请刷新重试')
+  } finally {
     loading.value = false
   }
 }
@@ -48,8 +50,11 @@ async function saveProfile() {
       className: form.className,
       visibilitySettings,
     })
+    localStorage.setItem('demo_visibility_settings', JSON.stringify(visibilitySettings))
     ElMessage.success('个人信息已更新')
-  } catch {} finally {
+  } catch {
+    ElMessage.error('保存失败，请重试')
+  } finally {
     saving.value = false
   }
 }

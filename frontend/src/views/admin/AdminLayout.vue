@@ -64,6 +64,10 @@ function goToStudent() {
           <el-icon><ChatLineSquare /></el-icon>
           <span>反馈管理</span>
         </el-menu-item>
+        <el-menu-item :index="`${adminBase}/objections`">
+          <el-icon><WarningFilled /></el-icon>
+          <span>异议处理</span>
+        </el-menu-item>
         <el-menu-item :index="`${adminBase}/audit-logs`">
           <el-icon><List /></el-icon>
           <span>审计日志</span>

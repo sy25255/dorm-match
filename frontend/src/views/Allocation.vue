@@ -11,7 +11,9 @@ onMounted(async () => {
   try {
     const res = await allocationApi.getMyAllocation()
     allocation.value = res.data.data
-  } catch {} finally {
+  } catch {
+    ElMessage.error('加载分配结果失败')
+  } finally {
     loading.value = false
   }
 })
@@ -21,7 +23,9 @@ async function confirmAllocation() {
     await allocationApi.confirm()
     ElMessage.success('已确认分配结果')
     allocation.value.confirmedByStudent = 1
-  } catch {}
+  } catch {
+    ElMessage.error('确认失败，请重试')
+  }
 }
 
 async function submitObjection() {

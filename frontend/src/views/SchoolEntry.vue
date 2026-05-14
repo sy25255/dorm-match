@@ -30,7 +30,7 @@ async function enterSchool() {
       errorMsg.value = '学校编码无效，请检查后重试'
     }
   } catch {
-    errorMsg.value = '无法连接服务器，请稍后重试'
+    errorMsg.value = '学校编码无效，请检查后重试'
   } finally {
     loading.value = false
   }

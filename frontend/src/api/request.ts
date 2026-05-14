@@ -160,6 +160,11 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     return makeMockResponse(alloc)
   }
   if (url === '/allocation/objections' || url.includes('/allocation/objections')) return makeMockResponse(m.mockObjections)
+  if (url.includes('/allocation/objection/') && method === 'get') {
+    const id = Number(url.split('/allocation/objection/')[1])
+    const obj = m.mockAllObjections.find((o: any) => o.id === id)
+    return makeMockResponse(obj || null)
+  }
   if (url.includes('/allocation/objection') && method === 'post') {
     ElMessage.success('异议已提交')
     return makeMockResponse(null)
@@ -198,12 +203,20 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     const s = m.mockAllStudents.find((st: any) => st.id === id)
     return makeMockResponse(s || null)
   }
+  if (url.includes('/admin/students') && method === 'post') {
+    ElMessage.success('学生已添加')
+    return makeMockResponse(null)
+  }
   if (url.includes('/admin/students')) {
     return makeMockResponse(m.mockAllStudents)
   }
 
   // ========== Admin: School Management ==========
   if (url.includes('/admin/school/config')) {
+    if (method === 'put') {
+      ElMessage.success('学校配置已更新')
+      return makeMockResponse(null)
+    }
     return makeMockResponse(m.mockSchoolConfig)
   }
   if (url.includes('/admin/school/colleges') && method === 'post') {
@@ -337,6 +350,15 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     return makeMockResponse(m.mockAuditLogs)
   }
 
+  // ========== Admin: Objections ==========
+  if (url.includes('/admin/objections/') && method === 'put') {
+    ElMessage.success('异议已处理')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/objections')) {
+    return makeMockResponse(m.mockAllObjections)
+  }
+
   // ========== Admin: Invite Codes ==========
   if (url.includes('/admin/invite-codes/generate')) {
     return makeMockResponse({ code: m.generateInviteCode(), createdAt: new Date().toISOString() })
@@ -357,10 +379,10 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     return makeMockResponse(null)
   }
   if (url.includes('/notification/unread-count')) {
-    return makeMockResponse({ count: m.mockNotifications.filter((n: any) => n.studentId === 1 && n.isRead === 0).length })
+    return makeMockResponse({ count: m.mockNotifications.filter((n: any) => n.studentId === userId && n.isRead === 0).length })
   }
   if (url.includes('/notification/list')) {
-    return makeMockResponse(m.mockNotifications.filter((n: any) => n.studentId === 1))
+    return makeMockResponse(m.mockNotifications.filter((n: any) => n.studentId === userId))
   }
 
   // ========== Feedback ==========
@@ -375,7 +397,7 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
       const statusLabel = b.status === 'ADOPTED' ? '已采纳' : '已回绝'
       m.mockNotifications.unshift({
         id: m.mockNotifications.length + 1,
-        studentId: 1,
+        studentId: userId,
         title: '反馈已处理',
         content: `你提交的「${fb.title}」已被管理员标记为"${statusLabel}"。${b.reply ? '回复：' + b.reply.substring(0, 50) + '...' : ''}`,
         type: 'FEEDBACK',

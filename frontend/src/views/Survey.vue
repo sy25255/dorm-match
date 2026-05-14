@@ -1,12 +1,40 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import { surveyApi, type AnswerItem } from '@/api/survey'
 import { matchApi } from '@/api/match'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
+
+const hasAnswers = computed(() => Object.keys(answers.value).length > 0)
+
+function handleBeforeUnload(e: BeforeUnloadEvent) {
+  if (!submitted.value && hasAnswers.value) {
+    e.preventDefault()
+  }
+}
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+})
+
+onBeforeRouteLeave((_to, _from, next) => {
+  if (!submitted.value && hasAnswers.value) {
+    ElMessageBox.confirm('你有未提交的问卷内容，离开将丢失当前节的修改（已保存的草稿不会丢失）。确定离开吗？', '提示', {
+      confirmButtonText: '确定离开',
+      cancelButtonText: '继续填写',
+      type: 'warning',
+    }).then(() => {
+      next()
+    }).catch(() => {
+      next(false)
+    })
+  } else {
+    next()
+  }
+})
 
 interface Question {
   id: number
@@ -100,6 +128,7 @@ function checkCompleted() {
 watch(() => route.path, checkCompleted, { immediate: true })
 
 onMounted(async () => {
+  window.addEventListener('beforeunload', handleBeforeUnload)
   if (submitted.value) return
   try {
     const res = await surveyApi.getQuestions()
