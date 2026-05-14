@@ -176,6 +176,7 @@ export const mockStudents = [
   { id: 14, name: '赵敏', studentNo: '20240016', gender: 0, collegeName: '外语学院', majorName: '英语', hometown: '深圳', avatarUrl: '', bio: '热爱运动健身，每天跑步', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 68, mayBeDormLeader: false },
   { id: 15, name: '周雨', studentNo: '20240017', gender: 0, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '成都', avatarUrl: '', bio: '喜欢游戏和动漫', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 38, mayBeDormLeader: false },
   { id: 16, name: '吴桐', studentNo: '20240018', gender: 0, collegeName: '电子学院', majorName: '通信工程', hometown: '南京', avatarUrl: '', bio: '注重生活品质，爱干净', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 75, mayBeDormLeader: true },
+  { id: 17, name: '林思雨', studentNo: '20240019', gender: 0, collegeName: '外语学院', majorName: '日语', hometown: '厦门', avatarUrl: '', bio: '温柔细心，喜欢整理收纳和养多肉植物', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 88, mayBeDormLeader: true },
 ]
 
 export const mockRecommendations = [

@@ -144,6 +144,9 @@ function backToSchoolEntry() {
         <el-button size="default" class="demo-btn" @click="demoLogin('李娜', '20240012')">👩 李娜 - 软件</el-button>
       </div>
       <div class="demo-btns" style="margin-top:8px">
+        <el-button size="default" class="demo-btn new-btn" @click="demoLogin('林思雨', '20240019')">🆕 林思雨 - 日语</el-button>
+      </div>
+      <div class="demo-btns" style="margin-top:8px">
         <el-button size="default" class="demo-btn admin-btn" @click="demoAdminLogin">🔧 管理员 - 后台管理</el-button>
       </div>
       <div class="demo-btns" style="margin-top:8px">
@@ -187,6 +190,8 @@ function backToSchoolEntry() {
 .admin-btn:hover { border-color: #faad14; color: #d48806; background: #fffbe6; }
 .dev-btn { border-color: #b37feb; color: #722ed1; }
 .dev-btn:hover { border-color: #9254de; color: #531dab; background: #f9f0ff; }
+.new-btn { border-color: #5cdbd3; color: #08979c; }
+.new-btn:hover { border-color: #36cfc9; color: #006d75; background: #e6fffb; }
 .switch-school { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; font-size: 13px; color: #a0aec0; cursor: pointer; }
 .switch-school:hover { color: #667eea; }
 </style>
