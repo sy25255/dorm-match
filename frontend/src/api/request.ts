@@ -38,9 +38,10 @@ function getDraftFromStorage() {
   return JSON.parse(localStorage.getItem('demo_survey_draft') || '{}')
 }
 
-async function handleMock(url: string, method: string, bodyData?: any): Promise<any> {
+async function handleMock(url: string, method: string, bodyData?: any, schoolCodeParam?: string): Promise<any> {
   const m = await loadMockData()
   const userId = Number(localStorage.getItem('userId')) || 1
+  const schoolCode = schoolCodeParam || localStorage.getItem('schoolCode') || 'DEMO-UNI'
   const surveyDone = localStorage.getItem('demo_survey_completed') === 'true'
 
   // ========== School Validation ==========
@@ -236,7 +237,8 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     return makeMockResponse(null)
   }
   if (url.includes('/admin/students')) {
-    return makeMockResponse(m.mockAllStudents)
+    const scStudents = m.schoolStudentsMap[schoolCode] || m.mockAllStudents
+    return makeMockResponse(scStudents)
   }
 
   // ========== Admin: School Management ==========
@@ -337,7 +339,8 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     return makeMockResponse(null)
   }
   if (url.includes('/admin/dormitory/buildings')) {
-    return makeMockResponse(m.mockDormBuildings)
+    const scBld = m.schoolBuildingsMap[schoolCode] || m.mockDormBuildings
+    return makeMockResponse(scBld)
   }
   if (url.includes('/admin/dormitory/rooms') && method === 'post') {
     ElMessage.success('房间已添加')
@@ -348,7 +351,8 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     return makeMockResponse(null)
   }
   if (url.includes('/admin/dormitory/rooms')) {
-    return makeMockResponse(m.mockDormRooms)
+    const scRooms = m.schoolRoomsMap[schoolCode] || m.mockDormRooms
+    return makeMockResponse(scRooms)
   }
 
   // ========== Admin: Allocation ==========
@@ -365,12 +369,14 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     return makeMockResponse(null)
   }
   if (url.includes('/admin/allocation/results')) {
-    return makeMockResponse(m.mockAllocations)
+    const scAlloc = m.schoolAllocationsMap[schoolCode] || m.mockAllocations
+    return makeMockResponse(scAlloc)
   }
 
   // ========== Admin: Statistics ==========
   if (url.includes('/admin/statistics')) {
-    return makeMockResponse(m.mockStatistics)
+    const scStats = m.getSchoolStatistics(schoolCode)
+    return makeMockResponse(scStats)
   }
 
   // ========== Admin: Audit Logs ==========
@@ -382,21 +388,20 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
   if (url.includes('/admin/objections/') && method === 'put') {
     const id = Number(url.split('/admin/objections/')[1])
     const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
-    console.log('[Mock] PUT /admin/objections/:id - 管理员处理异议:', { id, newStatus: b.status, reviewComment: (b.reviewComment || '').substring(0, 50) })
-    const obj = m.mockAllObjections.find((o: any) => o.id === id)
+    const scObj = m.schoolObjectionsMap[schoolCode] || m.mockAllObjections
+    const obj = scObj.find((o: any) => o.id === id)
     if (obj) {
       obj.status = b.status || 'RESOLVED'
       obj.reviewComment = b.reviewComment || ''
       obj.currentHandler = userId
       if (b.status === 'RESOLVED') obj.resolvedAt = new Date().toISOString()
-      console.log('[Mock] 异议状态已更新:', { id, status: obj.status, handler: userId })
     }
     ElMessage.success('异议已处理')
     return makeMockResponse(null)
   }
   if (url.includes('/admin/objections')) {
-    console.log('[Mock] GET /admin/objections - 管理员查看异议列表, 共', m.mockAllObjections.length, '条')
-    return makeMockResponse(m.mockAllObjections)
+    const scObj = m.schoolObjectionsMap[schoolCode] || m.mockAllObjections
+    return makeMockResponse(scObj)
   }
 
   // ========== Admin: Invite Codes ==========
@@ -578,7 +583,8 @@ request.interceptors.response.use(
       const url: string = response.config?.url || ''
       const method = response.config?.method || 'get'
       const bodyData = response.config?.data
-      const mock = await handleMock(url, method, bodyData)
+      const sc = (response.config?.headers as any)?.['X-School-Code'] || localStorage.getItem('schoolCode') || undefined
+      const mock = await handleMock(url, method, bodyData, sc)
       if (mock) return mock
     }
     return response
@@ -589,9 +595,10 @@ request.interceptors.response.use(
     const bodyData = error.config?.data
     const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.code === 'ERR_BAD_RESPONSE' || !error.response
     const isHtmlError = error.response && typeof error.response.data === 'string' && (error.response.data.includes('<!DOCTYPE html>') || error.response.data.includes('<html'))
+    const sc = (error.config?.headers as any)?.['X-School-Code'] || localStorage.getItem('schoolCode') || undefined
 
     if (isNetworkError || isHtmlError || isDemoMode()) {
-      const mock = await handleMock(url, method, bodyData)
+      const mock = await handleMock(url, method, bodyData, sc)
       if (mock) return mock
     }
 
