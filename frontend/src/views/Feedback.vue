@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
@@ -25,7 +25,7 @@ const majors = ref<Major[]>([])
 const classes = ref<Clazz[]>([])
 
 const schoolCode = computed(() => route.params.schoolCode as string || userStore.schoolCode || '')
-const schoolName = computed(() => userStore.schoolName || localStorage.getItem('schoolName') || '示范大学')
+const schoolName = computed(() => userStore.schoolName || localStorage.getItem('schoolName') || '绀鸿寖澶у')
 const currentRole = computed(() => userStore.role || localStorage.getItem('role') || 'STUDENT')
 
 const form = ref({
@@ -39,38 +39,38 @@ const form = ref({
 })
 
 const problemTypes = [
-  { value: 'DORM', label: '宿舍问题', desc: '住宿环境、室友矛盾、调换宿舍等' },
-  { value: 'FACILITY', label: '设施维修', desc: '水电、门窗、空调、网络等报修' },
-  { value: 'ALLOCATION', label: '分配问题', desc: '宿舍分配结果、床位调整等' },
-  { value: 'HYGIENE', label: '卫生问题', desc: '公共区域卫生、垃圾处理等' },
-  { value: 'OTHER', label: '其他问题', desc: '其他需要管理员处理的事项' },
+  { value: 'DORM', label: '瀹胯垗闂', desc: '浣忓鐜銆佸鍙嬬煕鐩俱€佽皟鎹㈠鑸嶇瓑' },
+  { value: 'FACILITY', label: '璁炬柦缁翠慨', desc: '姘寸數銆侀棬绐椼€佺┖璋冦€佺綉缁滅瓑鎶ヤ慨' },
+  { value: 'ALLOCATION', label: '鍒嗛厤闂', desc: '瀹胯垗鍒嗛厤缁撴灉銆佸簥浣嶈皟鏁寸瓑' },
+  { value: 'HYGIENE', label: '鍗敓闂', desc: '鍏叡鍖哄煙鍗敓銆佸瀮鍦惧鐞嗙瓑' },
+  { value: 'OTHER', label: '鍏朵粬闂', desc: '鍏朵粬闇€瑕佺鐞嗗憳澶勭悊鐨勪簨椤? },
 ]
 
 const adminRules: FormRules = {
-  targetRole: [{ required: true, message: '请选择反馈对象', trigger: 'change' }],
+  targetRole: [{ required: true, message: '璇烽€夋嫨鍙嶉瀵硅薄', trigger: 'change' }],
   title: [
-    { required: true, message: '请输入标题', trigger: 'blur' },
-    { min: 2, max: 50, message: '标题长度在 2 到 50 个字符', trigger: 'blur' },
+    { required: true, message: '璇疯緭鍏ユ爣棰?, trigger: 'blur' },
+    { min: 2, max: 50, message: '鏍囬闀垮害鍦?2 鍒?50 涓瓧绗?, trigger: 'blur' },
   ],
   content: [
-    { required: true, message: '请输入详细描述', trigger: 'blur' },
-    { min: 10, max: 1000, message: '内容长度在 10 到 1000 个字符', trigger: 'blur' },
+    { required: true, message: '璇疯緭鍏ヨ缁嗘弿杩?, trigger: 'blur' },
+    { min: 10, max: 1000, message: '鍐呭闀垮害鍦?10 鍒?1000 涓瓧绗?, trigger: 'blur' },
   ],
-  problemType: [{ required: true, message: '请选择问题类型', trigger: 'change' }],
-  collegeId: [{ required: true, message: '请选择学院', trigger: 'change' }],
-  majorId: [{ required: true, message: '请选择专业', trigger: 'change' }],
-  classId: [{ required: true, message: '请选择班级', trigger: 'change' }],
+  problemType: [{ required: true, message: '璇烽€夋嫨闂绫诲瀷', trigger: 'change' }],
+  collegeId: [{ required: true, message: '璇烽€夋嫨瀛﹂櫌', trigger: 'change' }],
+  majorId: [{ required: true, message: '璇烽€夋嫨涓撲笟', trigger: 'change' }],
+  classId: [{ required: true, message: '璇烽€夋嫨鐝骇', trigger: 'change' }],
 }
 
 const devRules: FormRules = {
-  targetRole: [{ required: true, message: '请选择反馈对象', trigger: 'change' }],
+  targetRole: [{ required: true, message: '璇烽€夋嫨鍙嶉瀵硅薄', trigger: 'change' }],
   title: [
-    { required: true, message: '请输入标题', trigger: 'blur' },
-    { min: 2, max: 50, message: '标题长度在 2 到 50 个字符', trigger: 'blur' },
+    { required: true, message: '璇疯緭鍏ユ爣棰?, trigger: 'blur' },
+    { min: 2, max: 50, message: '鏍囬闀垮害鍦?2 鍒?50 涓瓧绗?, trigger: 'blur' },
   ],
   content: [
-    { required: true, message: '请输入详细描述', trigger: 'blur' },
-    { min: 10, max: 1000, message: '内容长度在 10 到 1000 个字符', trigger: 'blur' },
+    { required: true, message: '璇疯緭鍏ヨ缁嗘弿杩?, trigger: 'blur' },
+    { min: 10, max: 1000, message: '鍐呭闀垮害鍦?10 鍒?1000 涓瓧绗?, trigger: 'blur' },
   ],
 }
 
@@ -84,19 +84,19 @@ const filteredFeedbacks = computed(() => {
 })
 
 const statusMap: Record<string, { text: string; type: string }> = {
-  PENDING: { text: '待处理', type: 'warning' },
-  REVIEWING: { text: '处理中', type: 'info' },
-  ADOPTED: { text: '已采纳', type: 'success' },
-  DECLINED: { text: '已回绝', type: 'danger' },
+  PENDING: { text: '寰呭鐞?, type: 'warning' },
+  REVIEWING: { text: '澶勭悊涓?, type: 'info' },
+  ADOPTED: { text: '宸查噰绾?, type: 'success' },
+  DECLINED: { text: '宸插洖缁?, type: 'danger' },
 }
 
 const problemTypeMap: Record<string, string> = {
-  DORM: '宿舍问题', FACILITY: '设施维修', ALLOCATION: '分配问题', HYGIENE: '卫生问题', OTHER: '其他问题',
+  DORM: '瀹胯垗闂', FACILITY: '璁炬柦缁翠慨', ALLOCATION: '鍒嗛厤闂', HYGIENE: '鍗敓闂', OTHER: '鍏朵粬闂',
 }
 
 const targetMap: Record<string, { text: string; type: string; icon: string; desc: string }> = {
-  DEVELOPER: { text: '给系统开发者', type: '', icon: '👑', desc: '功能建议 · Bug反馈 · 系统优化' },
-  ADMIN: { text: '给管理员', type: 'warning', icon: '🔧', desc: '宿舍管理 · 设施报修 · 分配问题' },
+  DEVELOPER: { text: '缁欑郴缁熷紑鍙戣€?, type: '', icon: '馃憫', desc: '鍔熻兘寤鸿 路 Bug鍙嶉 路 绯荤粺浼樺寲' },
+  ADMIN: { text: '缁欑鐞嗗憳', type: 'warning', icon: '馃敡', desc: '瀹胯垗绠＄悊 路 璁炬柦鎶ヤ慨 路 鍒嗛厤闂' },
 }
 
 async function loadFeedbacks() {
@@ -180,12 +180,12 @@ async function submitFeedback() {
         payload.className = getClassNameById(form.value.classId)
       }
       await feedbackApi.submit(payload)
-      const targetName = form.value.targetRole === 'DEVELOPER' ? '系统开发者' : '管理员'
-      ElMessage.success(`已向${targetName}提交，感谢您的反馈！`)
+      const targetName = form.value.targetRole === 'DEVELOPER' ? '绯荤粺寮€鍙戣€? : '绠＄悊鍛?
+      ElMessage.success(`宸插悜${targetName}鎻愪氦锛屾劅璋㈡偍鐨勫弽棣堬紒`)
       showDialog.value = false
       await loadFeedbacks()
     } catch {
-      ElMessage.error('提交失败，请重试')
+      ElMessage.error('鎻愪氦澶辫触锛岃閲嶈瘯')
     } finally {
       submitting.value = false
     }
@@ -198,22 +198,22 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h1>建议反馈</h1>
-      <p class="page-desc">选择反馈对象，你的消息将准确传达给对应的人处理。</p>
+      <h1>寤鸿鍙嶉</h1>
+      <p class="page-desc">閫夋嫨鍙嶉瀵硅薄锛屼綘鐨勬秷鎭皢鍑嗙‘浼犺揪缁欏搴旂殑浜哄鐞嗐€?/p>
     </div>
 
     <div class="toolbar">
       <el-radio-group v-model="activeTab" size="default">
-        <el-radio-button value="all">全部</el-radio-button>
+        <el-radio-button value="all">鍏ㄩ儴</el-radio-button>
         <el-radio-button value="DEVELOPER">
-          <span style="display:flex;align-items:center;gap:4px">👑 给开发者</span>
+          <span style="display:flex;align-items:center;gap:4px">馃憫 缁欏紑鍙戣€?/span>
         </el-radio-button>
         <el-radio-button value="ADMIN">
-          <span style="display:flex;align-items:center;gap:4px">🔧 给管理员</span>
+          <span style="display:flex;align-items:center;gap:4px">馃敡 缁欑鐞嗗憳</span>
         </el-radio-button>
       </el-radio-group>
       <el-button type="primary" @click="openDialog">
-        <el-icon><EditPen /></el-icon> 提交反馈
+        <el-icon><EditPen /></el-icon> 鎻愪氦鍙嶉
       </el-button>
     </div>
 
@@ -256,7 +256,7 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
           <div class="card-footer">
             <div class="submitter-info">
               <el-tag size="small" type="info" effect="plain" class="role-tag">
-                {{ item.submitterRole === 'DEVELOPER' ? '👑 开发者' : item.submitterRole === 'ADMIN' ? '🔧 管理员' : '👤 学生' }}
+                {{ item.submitterRole === 'DEVELOPER' ? '馃憫 寮€鍙戣€? : item.submitterRole === 'ADMIN' ? '馃敡 绠＄悊鍛? : '馃懁 瀛︾敓' }}
               </el-tag>
               <span>{{ item.submitterName }}</span>
               <el-tag size="small" type="info" effect="plain" class="school-tag">
@@ -269,25 +269,25 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
           <div v-if="item.reply" class="reply-section">
             <div class="reply-header">
               <el-icon :size="14"><ChatLineSquare /></el-icon>
-              <span class="reply-from">{{ item.replierRole === 'DEVELOPER' ? '系统开发者' : '管理员' }} 回复：</span>
+              <span class="reply-from">{{ item.replierRole === 'DEVELOPER' ? '绯荤粺寮€鍙戣€? : '绠＄悊鍛? }} 鍥炲锛?/span>
             </div>
             <p class="reply-content">{{ item.reply }}</p>
           </div>
         </div>
       </template>
-      <el-empty v-else description="暂无反馈，快来提交第一条吧！" />
+      <el-empty v-else description="鏆傛棤鍙嶉锛屽揩鏉ユ彁浜ょ涓€鏉″惂锛? />
     </div>
 
-    <!-- 提交弹窗 -->
+    <!-- 鎻愪氦寮圭獥 -->
     <el-dialog
       v-model="showDialog"
-      title="提交反馈"
+      title="鎻愪氦鍙嶉"
       width="620px"
       destroy-on-close
       :close-on-click-modal="false"
     >
       <el-form ref="formRef" :model="form" :rules="currentRules" label-position="top">
-        <el-form-item label="反馈给谁" prop="targetRole">
+        <el-form-item label="鍙嶉缁欒皝" prop="targetRole">
           <div class="target-select">
             <div
               class="target-card"
@@ -295,10 +295,10 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
               @click="form.targetRole = 'DEVELOPER'"
             >
               <div class="target-card-header">
-                <span class="target-icon">👑</span>
-                <span class="target-name">系统开发者</span>
+                <span class="target-icon">馃憫</span>
+                <span class="target-name">绯荤粺寮€鍙戣€?/span>
               </div>
-              <p class="target-desc">功能建议 · Bug反馈 · 系统优化</p>
+              <p class="target-desc">鍔熻兘寤鸿 路 Bug鍙嶉 路 绯荤粺浼樺寲</p>
               <div class="target-check" v-if="form.targetRole === 'DEVELOPER'">
                 <el-icon color="#722ed1"><CircleCheckFilled /></el-icon>
               </div>
@@ -309,10 +309,10 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
               @click="form.targetRole = 'ADMIN'"
             >
               <div class="target-card-header">
-                <span class="target-icon">🔧</span>
-                <span class="target-name">学校管理员</span>
+                <span class="target-icon">馃敡</span>
+                <span class="target-name">瀛︽牎绠＄悊鍛?/span>
               </div>
-              <p class="target-desc">宿舍管理 · 设施报修 · 分配问题</p>
+              <p class="target-desc">瀹胯垗绠＄悊 路 璁炬柦鎶ヤ慨 路 鍒嗛厤闂</p>
               <div class="target-check" v-if="form.targetRole === 'ADMIN'">
                 <el-icon color="#d48806"><CircleCheckFilled /></el-icon>
               </div>
@@ -320,16 +320,15 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
           </div>
         </el-form-item>
 
-        <!-- ====== 给管理员的表单（结构化） ====== -->
+        <!-- ====== 缁欑鐞嗗憳鐨勮〃鍗曪紙缁撴瀯鍖栵級 ====== -->
         <template v-if="isAdminForm">
           <el-alert type="warning" :closable="false" style="margin-bottom:16px">
             <template #title>
-              请仔细填写以下信息，以便管理员快速定位和处理你的问题。
-            </template>
+              璇蜂粩缁嗗～鍐欎互涓嬩俊鎭紝浠ヤ究绠＄悊鍛樺揩閫熷畾浣嶅拰澶勭悊浣犵殑闂銆?            </template>
           </el-alert>
 
-          <el-form-item label="问题类型" prop="problemType">
-            <el-select v-model="form.problemType" placeholder="请选择问题类型" style="width:100%">
+          <el-form-item label="闂绫诲瀷" prop="problemType">
+            <el-select v-model="form.problemType" placeholder="璇烽€夋嫨闂绫诲瀷" style="width:100%">
               <el-option v-for="pt in problemTypes" :key="pt.value" :label="pt.label" :value="pt.value">
                 <div class="problem-option">
                   <span>{{ pt.label }}</span>
@@ -341,78 +340,78 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
 
           <el-row :gutter="12">
             <el-col :span="8">
-              <el-form-item label="学院" prop="collegeId">
-                <el-select v-model="form.collegeId" placeholder="选择学院" style="width:100%">
+              <el-form-item label="瀛﹂櫌" prop="collegeId">
+                <el-select v-model="form.collegeId" placeholder="閫夋嫨瀛﹂櫌" style="width:100%">
                   <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="专业" prop="majorId">
-                <el-select v-model="form.majorId" placeholder="选择专业" style="width:100%" :disabled="!form.collegeId">
+              <el-form-item label="涓撲笟" prop="majorId">
+                <el-select v-model="form.majorId" placeholder="閫夋嫨涓撲笟" style="width:100%" :disabled="!form.collegeId">
                   <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="班级" prop="classId">
-                <el-select v-model="form.classId" placeholder="选择班级" style="width:100%" :disabled="!form.majorId">
+              <el-form-item label="鐝骇" prop="classId">
+                <el-select v-model="form.classId" placeholder="閫夋嫨鐝骇" style="width:100%" :disabled="!form.majorId">
                   <el-option v-for="c in classes" :key="c.id" :label="c.name" :value="c.id" />
                 </el-select>
               </el-form-item>
             </el-col>
           </el-row>
 
-          <el-form-item label="所属学校">
+          <el-form-item label="鎵€灞炲鏍?>
             <el-input :model-value="schoolName" disabled>
               <template #prefix><el-icon><School /></el-icon></template>
             </el-input>
           </el-form-item>
 
-          <el-form-item label="问题概述" prop="title">
+          <el-form-item label="闂姒傝堪" prop="title">
             <el-input
               v-model="form.title"
-              placeholder="一句话概括你要反馈的问题，如：M1栋3楼热水供应不足"
+              placeholder="涓€鍙ヨ瘽姒傛嫭浣犺鍙嶉鐨勯棶棰橈紝濡傦細M1鏍?妤肩儹姘翠緵搴斾笉瓒?
               maxlength="50"
               show-word-limit
             />
           </el-form-item>
 
-          <el-form-item label="详细描述" prop="content">
+          <el-form-item label="璇︾粏鎻忚堪" prop="content">
             <el-input
               v-model="form.content"
               type="textarea"
               :rows="5"
-              placeholder="请详细描述：问题发生的具体时间、地点、影响范围、期望的处理方式等..."
+              placeholder="璇疯缁嗘弿杩帮細闂鍙戠敓鐨勫叿浣撴椂闂淬€佸湴鐐广€佸奖鍝嶈寖鍥淬€佹湡鏈涚殑澶勭悊鏂瑰紡绛?.."
               maxlength="1000"
               show-word-limit
             />
           </el-form-item>
         </template>
 
-        <!-- ====== 给开发者的表单（简洁） ====== -->
+        <!-- ====== 缁欏紑鍙戣€呯殑琛ㄥ崟锛堢畝娲侊級 ====== -->
         <template v-else>
-          <el-form-item label="所属学校">
+          <el-form-item label="鎵€灞炲鏍?>
             <el-input :model-value="schoolName" disabled>
               <template #prefix><el-icon><School /></el-icon></template>
             </el-input>
           </el-form-item>
 
-          <el-form-item label="标题" prop="title">
+          <el-form-item label="鏍囬" prop="title">
             <el-input
               v-model="form.title"
-              placeholder="简要描述你的功能建议或Bug"
+              placeholder="绠€瑕佹弿杩颁綘鐨勫姛鑳藉缓璁垨Bug"
               maxlength="50"
               show-word-limit
             />
           </el-form-item>
 
-          <el-form-item label="详细内容" prop="content">
+          <el-form-item label="璇︾粏鍐呭" prop="content">
             <el-input
               v-model="form.content"
               type="textarea"
               :rows="5"
-              placeholder="详细描述：期望的功能、复现步骤、改进方案等..."
+              placeholder="璇︾粏鎻忚堪锛氭湡鏈涚殑鍔熻兘銆佸鐜版楠ゃ€佹敼杩涙柟妗堢瓑..."
               maxlength="1000"
               show-word-limit
             />
@@ -421,9 +420,9 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
       </el-form>
 
       <template #footer>
-        <el-button @click="showDialog = false">取消</el-button>
+        <el-button @click="showDialog = false">鍙栨秷</el-button>
         <el-button type="primary" :loading="submitting" @click="submitFeedback">
-          提交反馈
+          鎻愪氦鍙嶉
         </el-button>
       </template>
     </el-dialog>
@@ -572,7 +571,7 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
   margin: 0;
 }
 
-/* 目标选择卡片 */
+/* 鐩爣閫夋嫨鍗＄墖 */
 .target-select {
   display: flex;
   gap: 16px;
@@ -636,7 +635,7 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
   font-size: 20px;
 }
 
-/* 问题类型选项 */
+/* 闂绫诲瀷閫夐」 */
 .problem-option {
   display: flex;
   flex-direction: column;
