@@ -23,7 +23,7 @@ const loading = ref(false)
 const searched = ref(false)
 
 async function loadColleges() {
-  try { const res = await request.get('/school/colleges'); colleges.value = res.data.data || [] } catch {}
+  try { const res = await request.get('/school/colleges'); colleges.value = res.data.data || [] } catch { ElMessage.error('加载学院列表失败') }
 }
 loadColleges()
 
@@ -31,13 +31,13 @@ watch(collegeId, async (cid) => {
   majorId.value = null
   classId.value = null
   if (!cid) { majors.value = []; classes.value = []; return }
-  try { const res = await request.get('/school/majors', { params: { collegeId: cid } }); majors.value = res.data.data || [] } catch {}
+  try { const res = await request.get('/school/majors', { params: { collegeId: cid } }); majors.value = res.data.data || [] } catch { ElMessage.error('加载专业列表失败') }
 })
 
 watch(majorId, async (mid) => {
   classId.value = null
   if (!mid) { classes.value = []; return }
-  try { const res = await request.get('/school/classes', { params: { majorId: mid } }); classes.value = res.data.data || [] } catch {}
+  try { const res = await request.get('/school/classes', { params: { majorId: mid } }); classes.value = res.data.data || [] } catch { ElMessage.error('加载班级列表失败') }
 })
 
 async function handleSearch() {
@@ -51,14 +51,14 @@ async function handleSearch() {
     if (classId.value) params.classId = classId.value
     const res = await matchApi.search(params)
     results.value = res.data.data || []
-  } catch {} finally { loading.value = false }
+  } catch { ElMessage.error('搜索失败，请稍后重试') } finally { loading.value = false }
 }
 
 async function sendInvite(targetId: number) {
   try {
     await inviteApi.send({ targetId, message: '' })
     ElMessage.success('邀请已发送')
-  } catch {}
+  } catch { ElMessage.error('发送邀请失败') }
 }
 </script>
 

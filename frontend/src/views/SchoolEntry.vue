@@ -13,6 +13,7 @@ const loading = ref(false)
 const schoolCode = ref('')
 const validatedSchool = ref<{ code: string; name: string } | null>(null)
 const validating = ref(false)
+const codeTouched = ref(false)
 const rememberAccount = ref(true)
 
 const loginForm = reactive({ studentNo: '', password: '' })
@@ -42,6 +43,7 @@ onMounted(() => {
 
 async function validateSchoolCode() {
   const code = schoolCode.value.trim().toUpperCase()
+  codeTouched.value = true
   if (!code) {
     validatedSchool.value = null
     return
@@ -62,18 +64,27 @@ async function validateSchoolCode() {
   }
 }
 
+async function ensureSchoolValidated(): Promise<boolean> {
+  if (validatedSchool.value || validating.value) return true
+  await validateSchoolCode()
+  return !!validatedSchool.value
+}
+
 async function handleLogin() {
   const code = schoolCode.value.trim().toUpperCase()
   if (!code) { ElMessage.warning('请输入学校编码'); return }
   if (!loginForm.studentNo) { ElMessage.warning('请输入学号'); return }
   if (!loginForm.password) { ElMessage.warning('请输入密码'); return }
-  if (!validatedSchool.value) {
-    ElMessage.warning('学校编码无效，请检查后重试')
-    return
-  }
 
   loading.value = true
   try {
+    if (!validatedSchool.value) {
+      await validateSchoolCode()
+    }
+    if (!validatedSchool.value) {
+      ElMessage.warning('学校编码无效，请检查后重试')
+      return
+    }
     await userStore.login(loginForm.studentNo, loginForm.password, code)
     userStore.setSchoolInfo(validatedSchool.value.code, validatedSchool.value.name)
     if (!rememberAccount.value) {
@@ -82,7 +93,9 @@ async function handleLogin() {
     ElMessage.success(`欢迎来到${validatedSchool.value.name}！`)
     const target = userStore.role === 'ADMIN' ? `/${code}/admin` : `/${code}/`
     router.push(target)
-  } catch {
+  } catch (e: any) {
+    const msg = e?.response?.data?.message || '登录失败，请检查学号和密码是否正确'
+    ElMessage.error(msg)
   } finally { loading.value = false }
 }
 
@@ -93,13 +106,16 @@ async function handleRegister() {
   if (!registerForm.realName) { ElMessage.warning('请填写真实姓名'); return }
   if (!registerForm.password) { ElMessage.warning('请设置密码'); return }
   if (registerForm.password !== registerForm.confirmPassword) { ElMessage.warning('两次密码不一致'); return }
-  if (!validatedSchool.value) {
-    ElMessage.warning('学校编码无效，请检查后重试')
-    return
-  }
 
   loading.value = true
   try {
+    if (!validatedSchool.value) {
+      await validateSchoolCode()
+    }
+    if (!validatedSchool.value) {
+      ElMessage.warning('学校编码无效，请检查后重试')
+      return
+    }
     await userStore.register(code, registerForm.studentNo, registerForm.realName, registerForm.password)
     userStore.setSchoolInfo(validatedSchool.value.code, validatedSchool.value.name)
     if (!rememberAccount.value) {
@@ -107,7 +123,9 @@ async function handleRegister() {
     }
     ElMessage.success('注册成功！请先完成偏好问卷')
     router.push(`/${code}/survey`)
-  } catch {
+  } catch (e: any) {
+    const msg = e?.response?.data?.message || '注册失败，该学号可能已被注册'
+    ElMessage.error(msg)
   } finally { loading.value = false }
 }
 
@@ -184,7 +202,7 @@ function onKeyUpRegister(e: KeyboardEvent) {
                   size="large"
                   :maxlength="20"
                   class="code-input"
-                  @input="validatedSchool = null"
+                  @input="codeTouched = false; validatedSchool = null"
                   @blur="validateSchoolCode"
                   @keyup="onKeyUpLogin"
                 >
@@ -197,8 +215,8 @@ function onKeyUpRegister(e: KeyboardEvent) {
                   {{ validatedSchool.name }}
                 </span>
               </div>
-              <p v-if="schoolCode && !validatedSchool && !validating" class="form-hint" style="color:#f53f3f">
-                {{ validating ? '验证中...' : '学校编码无效，请检查后重试' }}
+              <p v-if="codeTouched && schoolCode && !validatedSchool && !validating" class="form-hint" style="color:#f53f3f">
+                学校编码无效，请检查后重试
               </p>
             </div>
 
@@ -251,7 +269,7 @@ function onKeyUpRegister(e: KeyboardEvent) {
                   size="large"
                   :maxlength="20"
                   class="code-input"
-                  @input="validatedSchool = null"
+                  @input="codeTouched = false; validatedSchool = null"
                   @blur="validateSchoolCode"
                   @keyup="onKeyUpRegister"
                 >
@@ -311,6 +329,11 @@ function onKeyUpRegister(e: KeyboardEvent) {
                 show-password
                 @keyup="onKeyUpRegister"
               />
+
+            </div>
+
+            <div class="form-options">
+              <el-checkbox v-model="rememberAccount" size="small">记住账号</el-checkbox>
             </div>
 
             <el-button

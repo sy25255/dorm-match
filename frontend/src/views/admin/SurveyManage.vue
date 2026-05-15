@@ -124,16 +124,18 @@ async function toggleQuestion(row: any) {
     await adminApi.toggleQuestion(row.id, newStatus)
     row.status = newStatus
     ElMessage.success(`题目已${actionText}`)
-  } catch {}
-}
+  } catch (e: any) {
+    if (e !== 'cancel' && e !== 'close') ElMessage.error('操作失败')
+  }
 
 async function deleteQuestion(row: any) {
   try {
     await ElMessageBox.confirm(`确认删除题目"${row.questionText.slice(0, 20)}..."吗？`, '警告', { type: 'warning' })
     await adminApi.deleteQuestion(row.id)
     loadQuestions()
-  } catch {}
-}
+  } catch (e: any) {
+    if (e !== 'cancel' && e !== 'close') ElMessage.error('删除失败')
+  }
 
 const dimLabelMap: Record<string, string> = {
   SLEEP: '生活作息', HYGIENE: '卫生习惯', STUDY: '学习习惯', HOBBY: '兴趣爱好',

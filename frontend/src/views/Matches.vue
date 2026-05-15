@@ -25,7 +25,7 @@ async function loadRecommendations() {
   try {
     const res = await matchApi.getRecommendations()
     list.value = res.data.data || []
-  } catch {} finally {
+  } catch { ElMessage.error('加载推荐列表失败') } finally {
     loading.value = false
   }
 }
@@ -35,7 +35,7 @@ async function sendInvite(targetId: number) {
   try {
     await inviteApi.send({ targetId, message: '' })
     ElMessage.success('邀请已发送')
-  } catch {} finally {
+  } catch { ElMessage.error('发送邀请失败') } finally {
     inviting.value = null
   }
 }
