@@ -25,8 +25,8 @@ jobs:
       - name: Install and Build
         run: |
           cd frontend
-          npm ci
-          npm run build
+          npm install
+          npm run build 2>&1 || (echo "BUILD FAILED - checking for errors..." && exit 1)
       - uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist
