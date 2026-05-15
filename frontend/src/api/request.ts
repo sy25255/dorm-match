@@ -425,6 +425,84 @@ async function handleMock(url: string, method: string, bodyData?: any): Promise<
     return makeMockResponse(m.mockNotifications.filter((n: any) => n.studentId === userId))
   }
 
+  // ========== Developer API: Platform Stats ==========
+  if (url.includes('/admin/dev/platform-stats')) {
+    return makeMockResponse(m.getPlatformStats())
+  }
+  if (url.includes('/admin/dev/schools')) {
+    return makeMockResponse(m.mockSchools)
+  }
+  if (url.includes('/admin/dev/schools/') && url.includes('/statistics')) {
+    const code = url.split('/admin/dev/schools/')[1].split('/')[0]
+    return makeMockResponse(m.getSchoolStatistics(code))
+  }
+  if (url.includes('/admin/dev/schools/') && url.includes('/students')) {
+    const code = url.split('/admin/dev/schools/')[1].split('/')[0]
+    return makeMockResponse(m.schoolStudentsMap[code] || [])
+  }
+  if (url.includes('/admin/dev/schools/') && url.includes('/buildings')) {
+    const code = url.split('/admin/dev/schools/')[1].split('/')[0]
+    return makeMockResponse(m.schoolBuildingsMap[code] || [])
+  }
+  if (url.includes('/admin/dev/schools/') && url.includes('/rooms')) {
+    const code = url.split('/admin/dev/schools/')[1].split('/')[0]
+    return makeMockResponse(m.schoolRoomsMap[code] || [])
+  }
+  if (url.includes('/admin/dev/schools/') && url.includes('/allocations')) {
+    const code = url.split('/admin/dev/schools/')[1].split('/')[0]
+    return makeMockResponse(m.schoolAllocationsMap[code] || [])
+  }
+  if (url.includes('/admin/dev/schools/') && url.includes('/objections')) {
+    const code = url.split('/admin/dev/schools/')[1].split('/')[0]
+    return makeMockResponse(m.schoolObjectionsMap[code] || [])
+  }
+  if (url.includes('/admin/dev/schools/') && url.includes('/config') && method === 'put') {
+    ElMessage.success('学校配置已更新')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/dev/schools/') && url.includes('/config')) {
+    const code = url.split('/admin/dev/schools/')[1].split('/')[0]
+    const school = m.mockSchools.find((s: any) => s.code === code)
+    return makeMockResponse(school || null)
+  }
+  if (url.includes('/admin/dev/admins') && method === 'post') {
+    ElMessage.success('管理员账号已创建')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/dev/admins/') && method === 'put') {
+    ElMessage.success('管理员账号已更新')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/dev/admins/') && method === 'delete') {
+    ElMessage.success('管理员账号已删除')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/dev/admins')) {
+    return makeMockResponse(m.mockAdminAccounts)
+  }
+  if (url.includes('/admin/dev/feedbacks')) {
+    const devFeedbacks = m.mockFeedbacks
+      .filter((f: any) => f.targetRole === 'DEVELOPER')
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    return makeMockResponse(devFeedbacks)
+  }
+  if (url.includes('/admin/dev/feedbacks/') && url.includes('/reply')) {
+    const id = Number(url.split('/admin/dev/feedbacks/')[1]?.split('/')[0])
+    const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
+    const fb = m.mockFeedbacks.find((f: any) => f.id === id)
+    if (fb) {
+      fb.status = b.status || 'ADOPTED'
+      fb.reply = b.reply || ''
+      fb.replierRole = 'DEVELOPER'
+    }
+    ElMessage.success('反馈已处理')
+    return makeMockResponse(null)
+  }
+  if (url.includes('/admin/dev/notifications/send')) {
+    ElMessage.success('系统通知已发送')
+    return makeMockResponse(null)
+  }
+
   // ========== Feedback ==========
   if (url.includes('/admin/feedback/') && url.includes('/reply')) {
     const id = Number(url.split('/admin/feedback/')[1]?.split('/')[0])

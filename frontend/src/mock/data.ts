@@ -762,3 +762,188 @@ export function getUserRecommendations(userId: number) {
   const pairedIds = myPair ? myPair.members : [userId]
   return mockRecommendations.filter(r => !pairedIds.includes(r.studentId) && r.studentId !== userId)
 }
+
+// ==================== 多学校独立数据 ====================
+
+export const mockAdminAccounts: { id: number; username: string; role: string; schoolCode: string; schoolName: string; status: number }[] = [
+  { id: 100, username: '系统管理员', role: 'ADMIN', schoolCode: 'DEMO-UNI', schoolName: '示范大学', status: 1 },
+  { id: 101, username: '测试管理员', role: 'ADMIN', schoolCode: 'TEST', schoolName: '测试学院', status: 1 },
+  { id: 102, username: '北大管理员', role: 'ADMIN', schoolCode: 'BJ-UNI', schoolName: '北京大学', status: 1 },
+  { id: 103, username: '上大管理员', role: 'ADMIN', schoolCode: 'SH-UNI', schoolName: '上海大学', status: 1 },
+]
+
+export const schoolStudentsMap: Record<string, any[]> = {
+  'DEMO-UNI': [...mockAllStudents],
+  'TEST': [
+    { id: 101, studentNo: 'T2024001', name: '测试生A', gender: 1, collegeName: '计算机学院', majorName: '软件工程', hometown: '北京', bio: '', email: 't001@test.edu.cn', phone: '13900000001', surveyStatus: 2, matchStatus: 0, status: 1, createdAt: '2024-08-20T10:00:00' },
+    { id: 102, studentNo: 'T2024002', name: '测试生B', gender: 0, collegeName: '电子学院', majorName: '通信工程', hometown: '上海', bio: '', email: 't002@test.edu.cn', phone: '13900000002', surveyStatus: 1, matchStatus: 0, status: 1, createdAt: '2024-08-20T10:00:00' },
+    { id: 103, studentNo: 'T2024003', name: '测试生C', gender: 1, collegeName: '理学院', majorName: '数学', hometown: '广州', bio: '', email: 't003@test.edu.cn', phone: '13900000003', surveyStatus: 0, matchStatus: 0, status: 1, createdAt: '2024-08-21T10:00:00' },
+    { id: 104, studentNo: 'T2024004', name: '测试生D', gender: 0, collegeName: '外语学院', majorName: '英语', hometown: '深圳', bio: '', email: 't004@test.edu.cn', phone: '13900000004', surveyStatus: 2, matchStatus: 2, status: 1, createdAt: '2024-08-21T10:00:00' },
+    { id: 105, studentNo: 'T2024005', name: '测试生E', gender: 1, collegeName: '计算机学院', majorName: '人工智能', hometown: '杭州', bio: '', email: 't005@test.edu.cn', phone: '13900000005', surveyStatus: 2, matchStatus: 2, status: 0, createdAt: '2024-08-22T10:00:00' },
+    { id: 106, studentNo: 'T2024006', name: '测试生F', gender: 0, collegeName: '文学院', majorName: '汉语言文学', hometown: '南京', bio: '', email: 't006@test.edu.cn', phone: '13900000006', surveyStatus: 1, matchStatus: 0, status: 1, createdAt: '2024-08-22T10:00:00' },
+    { id: 107, studentNo: 'T2024007', name: '测试生G', gender: 1, collegeName: '经管学院', majorName: '工商管理', hometown: '成都', bio: '', email: 't007@test.edu.cn', phone: '13900000007', surveyStatus: 0, matchStatus: 0, status: 1, createdAt: '2024-08-23T10:00:00' },
+    { id: 108, studentNo: 'T2024008', name: '测试生H', gender: 0, collegeName: '电子学院', majorName: '电子信息', hometown: '武汉', bio: '', email: 't008@test.edu.cn', phone: '13900000008', surveyStatus: 2, matchStatus: 0, status: 1, createdAt: '2024-08-23T10:00:00' },
+  ],
+  'BJ-UNI': [
+    { id: 201, studentNo: 'B2024001', name: '北大学生A', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '北京', bio: '', email: 'b001@pku.edu.cn', phone: '13810000001', surveyStatus: 2, matchStatus: 2, status: 1, createdAt: '2024-08-18T10:00:00' },
+    { id: 202, studentNo: 'B2024002', name: '北大学生B', gender: 0, collegeName: '外语学院', majorName: '英语', hometown: '上海', bio: '', email: 'b002@pku.edu.cn', phone: '13810000002', surveyStatus: 2, matchStatus: 2, status: 1, createdAt: '2024-08-18T10:00:00' },
+    { id: 203, studentNo: 'B2024003', name: '北大学生C', gender: 1, collegeName: '理学院', majorName: '物理', hometown: '天津', bio: '', email: 'b003@pku.edu.cn', phone: '13810000003', surveyStatus: 2, matchStatus: 0, status: 1, createdAt: '2024-08-19T10:00:00' },
+    { id: 204, studentNo: 'B2024004', name: '北大学生D', gender: 0, collegeName: '文学院', majorName: '新闻传播', hometown: '广州', bio: '', email: 'b004@pku.edu.cn', phone: '13810000004', surveyStatus: 1, matchStatus: 0, status: 1, createdAt: '2024-08-19T10:00:00' },
+    { id: 205, studentNo: 'B2024005', name: '北大学生E', gender: 1, collegeName: '电子学院', majorName: '通信工程', hometown: '深圳', bio: '', email: 'b005@pku.edu.cn', phone: '13810000005', surveyStatus: 0, matchStatus: 0, status: 1, createdAt: '2024-08-20T10:00:00' },
+    { id: 206, studentNo: 'B2024006', name: '北大学生F', gender: 0, collegeName: '计算机学院', majorName: '人工智能', hometown: '杭州', bio: '', email: 'b006@pku.edu.cn', phone: '13810000006', surveyStatus: 2, matchStatus: 2, status: 1, createdAt: '2024-08-20T10:00:00' },
+    { id: 207, studentNo: 'B2024007', name: '北大学生G', gender: 1, collegeName: '经管学院', majorName: '会计学', hometown: '南京', bio: '', email: 'b007@pku.edu.cn', phone: '13810000007', surveyStatus: 1, matchStatus: 0, status: 1, createdAt: '2024-08-21T10:00:00' },
+    { id: 208, studentNo: 'B2024008', name: '北大学生H', gender: 0, collegeName: '理学院', majorName: '数学', hometown: '武汉', bio: '', email: 'b008@pku.edu.cn', phone: '13810000008', surveyStatus: 2, matchStatus: 0, status: 0, createdAt: '2024-08-21T10:00:00' },
+    { id: 209, studentNo: 'B2024009', name: '北大学生I', gender: 1, collegeName: '计算机学院', majorName: '软件工程', hometown: '成都', bio: '', email: 'b009@pku.edu.cn', phone: '13810000009', surveyStatus: 0, matchStatus: 0, status: 1, createdAt: '2024-08-22T10:00:00' },
+  ],
+  'SH-UNI': [
+    { id: 301, studentNo: 'S2024001', name: '上大学生A', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '上海', bio: '', email: 's001@shu.edu.cn', phone: '13710000001', surveyStatus: 2, matchStatus: 2, status: 1, createdAt: '2024-08-19T10:00:00' },
+    { id: 302, studentNo: 'S2024002', name: '上大学生B', gender: 0, collegeName: '外语学院', majorName: '日语', hometown: '北京', bio: '', email: 's002@shu.edu.cn', phone: '13710000002', surveyStatus: 1, matchStatus: 0, status: 1, createdAt: '2024-08-19T10:00:00' },
+    { id: 303, studentNo: 'S2024003', name: '上大学生C', gender: 1, collegeName: '电子学院', majorName: '电子信息', hometown: '广州', bio: '', email: 's003@shu.edu.cn', phone: '13710000003', surveyStatus: 2, matchStatus: 2, status: 1, createdAt: '2024-08-20T10:00:00' },
+    { id: 304, studentNo: 'S2024004', name: '上大学生D', gender: 0, collegeName: '文学院', majorName: '汉语言文学', hometown: '深圳', bio: '', email: 's004@shu.edu.cn', phone: '13710000004', surveyStatus: 0, matchStatus: 0, status: 1, createdAt: '2024-08-20T10:00:00' },
+    { id: 305, studentNo: 'S2024005', name: '上大学生E', gender: 1, collegeName: '理学院', majorName: '数学', hometown: '杭州', bio: '', email: 's005@shu.edu.cn', phone: '13710000005', surveyStatus: 2, matchStatus: 0, status: 1, createdAt: '2024-08-21T10:00:00' },
+    { id: 306, studentNo: 'S2024006', name: '上大学生F', gender: 0, collegeName: '计算机学院', majorName: '软件工程', hometown: '南京', bio: '', email: 's006@shu.edu.cn', phone: '13710000006', surveyStatus: 1, matchStatus: 0, status: 1, createdAt: '2024-08-21T10:00:00' },
+    { id: 307, studentNo: 'S2024007', name: '上大学生G', gender: 1, collegeName: '经管学院', majorName: '工商管理', hometown: '成都', bio: '', email: 's007@shu.edu.cn', phone: '13710000007', surveyStatus: 0, matchStatus: 0, status: 1, createdAt: '2024-08-22T10:00:00' },
+    { id: 308, studentNo: 'S2024008', name: '上大学生H', gender: 0, collegeName: '外语学院', majorName: '英语', hometown: '武汉', bio: '', email: 's008@shu.edu.cn', phone: '13710000008', surveyStatus: 2, matchStatus: 2, status: 1, createdAt: '2024-08-22T10:00:00' },
+  ],
+}
+
+export const schoolBuildingsMap: Record<string, any[]> = {
+  'DEMO-UNI': [...mockDormBuildings],
+  'TEST': [
+    { id: 201, buildingName: '测试A栋', buildingCode: 'TA', gender: 1, floors: 5, status: 1 },
+    { id: 202, buildingName: '测试B栋', buildingCode: 'TB', gender: 0, floors: 5, status: 1 },
+  ],
+  'BJ-UNI': [
+    { id: 301, buildingName: '燕园1号楼', buildingCode: 'YY1', gender: 1, floors: 7, status: 1 },
+    { id: 302, buildingName: '燕园2号楼', buildingCode: 'YY2', gender: 0, floors: 7, status: 1 },
+    { id: 303, buildingName: '燕园3号楼', buildingCode: 'YY3', gender: 1, floors: 5, status: 1 },
+  ],
+  'SH-UNI': [
+    { id: 401, buildingName: '泮池1号楼', buildingCode: 'PC1', gender: 1, floors: 6, status: 1 },
+    { id: 402, buildingName: '泮池2号楼', buildingCode: 'PC2', gender: 0, floors: 6, status: 1 },
+    { id: 403, buildingName: '泮池3号楼', buildingCode: 'PC3', gender: 1, floors: 5, status: 0 },
+  ],
+}
+
+export const schoolRoomsMap: Record<string, any[]> = {
+  'DEMO-UNI': [...mockDormRooms],
+  'TEST': [
+    { id: 201, buildingId: 201, roomNumber: 'TA-101', floor: 1, capacity: 4, occupied: 3, roomType: 'NORMAL', status: 1 },
+    { id: 202, buildingId: 201, roomNumber: 'TA-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+    { id: 203, buildingId: 202, roomNumber: 'TB-101', floor: 1, capacity: 4, occupied: 2, roomType: 'NORMAL', status: 1 },
+    { id: 204, buildingId: 202, roomNumber: 'TB-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+  ],
+  'BJ-UNI': [
+    { id: 301, buildingId: 301, roomNumber: 'YY1-101', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 1 },
+    { id: 302, buildingId: 301, roomNumber: 'YY1-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+    { id: 303, buildingId: 302, roomNumber: 'YY2-101', floor: 1, capacity: 4, occupied: 3, roomType: 'NORMAL', status: 1 },
+    { id: 304, buildingId: 302, roomNumber: 'YY2-102', floor: 1, capacity: 2, roomType: 'ACCESSIBLE', status: 0 },
+    { id: 305, buildingId: 303, roomNumber: 'YY3-101', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+  ],
+  'SH-UNI': [
+    { id: 401, buildingId: 401, roomNumber: 'PC1-101', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 1 },
+    { id: 402, buildingId: 401, roomNumber: 'PC1-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+    { id: 403, buildingId: 402, roomNumber: 'PC2-101', floor: 1, capacity: 4, occupied: 3, roomType: 'NORMAL', status: 1 },
+    { id: 404, buildingId: 402, roomNumber: 'PC2-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+  ],
+}
+
+export const schoolAllocationsMap: Record<string, any[]> = {
+  'DEMO-UNI': [...mockAllocations],
+  'TEST': [
+    { id: 201, studentId: 101, studentName: '测试生A', roomId: 201, roomNumber: 'TA-101', bedNo: 1, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-TEST-001' },
+    { id: 202, studentId: 102, studentName: '测试生B', roomId: 203, roomNumber: 'TB-101', bedNo: 1, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-TEST-001' },
+    { id: 203, studentId: 104, studentName: '测试生D', roomId: 201, roomNumber: 'TA-101', bedNo: 2, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-TEST-001' },
+    { id: 204, studentId: 105, studentName: '测试生E', roomId: 201, roomNumber: 'TA-101', bedNo: 3, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-TEST-001' },
+    { id: 205, studentId: 108, studentName: '测试生H', roomId: 203, roomNumber: 'TB-101', bedNo: 2, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-TEST-001' },
+  ],
+  'BJ-UNI': [
+    { id: 301, studentId: 201, studentName: '北大学生A', roomId: 301, roomNumber: 'YY1-101', bedNo: 1, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-BJ-001' },
+    { id: 302, studentId: 202, studentName: '北大学生B', roomId: 303, roomNumber: 'YY2-101', bedNo: 1, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-BJ-001' },
+    { id: 303, studentId: 203, studentName: '北大学生C', roomId: 301, roomNumber: 'YY1-101', bedNo: 2, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-BJ-001' },
+    { id: 304, studentId: 206, studentName: '北大学生F', roomId: 301, roomNumber: 'YY1-101', bedNo: 3, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-BJ-001' },
+    { id: 305, studentId: 207, studentName: '北大学生G', roomId: 301, roomNumber: 'YY1-101', bedNo: 4, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-BJ-001' },
+    { id: 306, studentId: 204, studentName: '北大学生D', roomId: 303, roomNumber: 'YY2-101', bedNo: 2, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-BJ-001' },
+    { id: 307, studentId: 208, studentName: '北大学生H', roomId: 303, roomNumber: 'YY2-101', bedNo: 3, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-BJ-001' },
+  ],
+  'SH-UNI': [
+    { id: 401, studentId: 301, studentName: '上大学生A', roomId: 401, roomNumber: 'PC1-101', bedNo: 1, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-SH-001' },
+    { id: 402, studentId: 303, studentName: '上大学生C', roomId: 401, roomNumber: 'PC1-101', bedNo: 2, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-SH-001' },
+    { id: 403, studentId: 305, studentName: '上大学生E', roomId: 401, roomNumber: 'PC1-101', bedNo: 3, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-SH-001' },
+    { id: 404, studentId: 306, studentName: '上大学生F', roomId: 401, roomNumber: 'PC1-101', bedNo: 4, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-SH-001' },
+    { id: 405, studentId: 302, studentName: '上大学生B', roomId: 403, roomNumber: 'PC2-101', bedNo: 1, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-SH-001' },
+    { id: 406, studentId: 308, studentName: '上大学生H', roomId: 403, roomNumber: 'PC2-101', bedNo: 2, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-SH-001' },
+  ],
+}
+
+export const schoolObjectionsMap: Record<string, any[]> = {
+  'DEMO-UNI': [...mockAllObjections],
+  'TEST': [
+    { id: 201, allocationId: 201, studentId: 101, studentName: '测试生A', reason: '希望换到安静的房间', status: 'PENDING', currentHandler: null, reviewComment: '', createdAt: '2024-08-26T09:00:00' },
+  ],
+  'BJ-UNI': [
+    { id: 301, allocationId: 301, studentId: 201, studentName: '北大学生A', reason: '离教学楼太远', status: 'PENDING', currentHandler: null, reviewComment: '', createdAt: '2024-08-25T10:00:00' },
+    { id: 302, allocationId: 302, studentId: 202, studentName: '北大学生B', reason: '和舍友作息冲突', status: 'REVIEWING', currentHandler: 102, reviewComment: '正在审核中', createdAt: '2024-08-24T14:00:00' },
+  ],
+  'SH-UNI': [
+    { id: 401, allocationId: 401, studentId: 301, studentName: '上大学生A', reason: '希望调换至其他楼栋', status: 'RESOLVED', currentHandler: null, reviewComment: '已调整至PC2-101', createdAt: '2024-08-23T10:00:00', resolvedAt: '2024-08-24T10:00:00' },
+  ],
+}
+
+export function getSchoolStatistics(schoolCode: string) {
+  const students = schoolStudentsMap[schoolCode] || []
+  const allocations = schoolAllocationsMap[schoolCode] || []
+  const objections = schoolObjectionsMap[schoolCode] || []
+  const total = students.length
+  const completed = students.filter(s => s.surveyStatus === 2).length
+  const drafting = students.filter(s => s.surveyStatus === 1).length
+  const notStarted = students.filter(s => s.surveyStatus === 0).length
+  const paired = students.filter(s => s.matchStatus === 2 || s.matchStatus === 3).length
+  const allocated = allocations.filter(a => a.status === 'CONFIRMED').length
+  const pendingObj = objections.filter(o => o.status === 'PENDING').length
+  const male = students.filter(s => s.gender === 1).length
+  const female = students.filter(s => s.gender === 0).length
+
+  const allocByType: Record<string, number> = { SELF_SELECT: 0, ALGORITHM: 0, RANDOM: 0, MANUAL: 0 }
+  allocations.forEach(a => { allocByType[a.allocationType] = (allocByType[a.allocationType] || 0) + 1 })
+
+  const collegeDist: Record<string, number> = {}
+  students.forEach(s => { collegeDist[s.collegeName] = (collegeDist[s.collegeName] || 0) + 1 })
+  const collegeDistribution = Object.entries(collegeDist).map(([name, count]) => ({ name, count }))
+
+  return {
+    totalStudents: total,
+    completedSurvey: completed,
+    paired,
+    allocated,
+    pendingObjections: pendingObj,
+    surveyStatus: { completed, drafting, notStarted },
+    matchStatus: { paired, inviting: Math.floor(total * 0.15), waiting: total - paired - Math.floor(total * 0.15) },
+    allocationByType: allocByType,
+    genderDistribution: { male, female },
+    collegeDistribution,
+    dailyRegistrations: [
+      { date: '08-20', count: Math.floor(total * 0.15) }, { date: '08-21', count: Math.floor(total * 0.25) },
+      { date: '08-22', count: Math.floor(total * 0.1) }, { date: '08-23', count: Math.floor(total * 0.2) },
+      { date: '08-24', count: Math.floor(total * 0.15) }, { date: '08-25', count: Math.floor(total * 0.1) },
+      { date: '08-26', count: Math.floor(total * 0.05) },
+    ],
+    dimensionAverages: { SLEEP: 3.2, HYGIENE: 3.5, STUDY: 3.0, HOBBY: 3.8, SOCIAL: 3.3, SPENDING: 2.8, PERSONALITY: 3.1, PSYCHOLOGY: 3.4 },
+    leaderScoreDistribution: { high: Math.floor(total * 0.22), medium: Math.floor(total * 0.55), low: Math.floor(total * 0.23) },
+  }
+}
+
+export function getPlatformStats() {
+  const allCodes = Object.keys(schoolStudentsMap)
+  const schoolStats = allCodes.map(code => {
+    const stats = getSchoolStatistics(code)
+    const school = mockSchools.find(s => s.code === code)
+    return { code, name: school?.name || code, shortName: school?.shortName || code, ...stats }
+  })
+  const totalStudents = schoolStats.reduce((sum, s) => sum + s.totalStudents, 0)
+  const completedSurvey = schoolStats.reduce((sum, s) => sum + s.completedSurvey, 0)
+  const paired = schoolStats.reduce((sum, s) => sum + s.paired, 0)
+  const allocated = schoolStats.reduce((sum, s) => sum + s.allocated, 0)
+  const pendingObjections = schoolStats.reduce((sum, s) => sum + s.pendingObjections, 0)
+  return { schoolStats, totals: { totalStudents, completedSurvey, paired, allocated, pendingObjections, schoolCount: allCodes.length } }
+}

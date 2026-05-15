@@ -59,7 +59,7 @@ function demoAdminLogin() {
 
 function demoDevLogin() {
   userStore.demoDevLogin()
-  router.push(`/${schoolCode.value}/`)
+  router.push('/dev')
 }
 
 async function handleRegister() {

@@ -51,6 +51,18 @@ const router = createRouter({
       ],
     },
     {
+      path: '/dev',
+      component: () => import('@/views/admin/DeveloperLayout.vue'),
+      meta: { dev: true },
+      children: [
+        { path: '', name: 'DevDashboard', component: () => import('@/views/admin/DeveloperDashboard.vue'), meta: { title: '平台总览' } },
+        { path: 'schools', name: 'DevSchools', component: () => import('@/views/admin/DeveloperSchools.vue'), meta: { title: '学校管理' } },
+        { path: 'admins', name: 'DevAdmins', component: () => import('@/views/admin/DeveloperAdmins.vue'), meta: { title: '管理员账号' } },
+        { path: 'feedbacks', name: 'DevFeedbacks', component: () => import('@/views/admin/DeveloperFeedbacks.vue'), meta: { title: '用户反馈' } },
+        { path: 'notifications', name: 'DevNotifications', component: () => import('@/views/admin/DeveloperNotifications.vue'), meta: { title: '系统公告' } },
+      ],
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
       component: () => import('@/views/NotFound.vue'),
@@ -61,6 +73,18 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const userStore = useUserStore()
   const storedCode = localStorage.getItem('schoolCode')
+
+  // Developer route - independent of schoolCode
+  if (to.meta.dev) {
+    if (!userStore.token) { next('/'); return }
+    if (userStore.role !== 'DEVELOPER') {
+      next(storedCode ? `/${storedCode}/` : '/')
+      return
+    }
+    next()
+    return
+  }
+
   const scFromPath = to.params.schoolCode as string | undefined
 
   // If school code is stored, enforce it in the URL path
