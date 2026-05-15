@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { matchApi } from '@/api/match'
 import { inviteApi } from '@/api/invite'
 import { ElMessage } from 'element-plus'
+import SearchView from './Search.vue'
+import InvitesView from './Invites.vue'
 
 interface Recommendation {
   studentId: number
@@ -16,9 +18,26 @@ interface Recommendation {
   commonTags: string[]
 }
 
+const activeTab = ref<'recommendations' | 'search' | 'invites'>('recommendations')
 const list = ref<Recommendation[]>([])
 const loading = ref(false)
 const inviting = ref<number | null>(null)
+
+const headerTitle = computed(() => {
+  switch (activeTab.value) {
+    case 'recommendations': return '舍友匹配推荐'
+    case 'search': return '搜索舍友'
+    case 'invites': return '邀请管理'
+  }
+})
+
+const headerDesc = computed(() => {
+  switch (activeTab.value) {
+    case 'recommendations': return '系统基于你的偏好问卷，为你推荐最匹配的舍友'
+    case 'search': return '通过学院→专业→班级精确找到同班同学，或按关键词搜索'
+    case 'invites': return '管理收到和发出的舍友邀请'
+  }
+})
 
 async function loadRecommendations() {
   loading.value = true
@@ -45,12 +64,21 @@ onMounted(loadRecommendations)
 
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <h1>舍友匹配推荐</h1>
-      <p>系统基于你的偏好问卷，为你推荐最匹配的舍友</p>
+    <div class="unified-header">
+      <div class="header-left">
+        <h1>{{ headerTitle }}</h1>
+        <p>{{ headerDesc }}</p>
+      </div>
+      <div class="header-tabs">
+        <el-radio-group v-model="activeTab" size="small">
+          <el-radio-button value="recommendations">舍友推荐</el-radio-button>
+          <el-radio-button value="search">搜索舍友</el-radio-button>
+          <el-radio-button value="invites">邀请管理</el-radio-button>
+        </el-radio-group>
+      </div>
     </div>
 
-    <div v-loading="loading">
+    <div v-show="activeTab === 'recommendations'" v-loading="loading">
       <el-empty v-if="list.length === 0 && !loading" description="暂无推荐，请先提交偏好问卷并触发匹配计算">
         <el-button type="primary" @click="$router.push(`/${$route.params.schoolCode}/survey`)">去填写问卷</el-button>
       </el-empty>
@@ -82,6 +110,18 @@ onMounted(loadRecommendations)
           </div>
         </el-card>
       </div>
+    </div>
+
+    <div v-if="activeTab === 'search'" class="embedded-view">
+      <KeepAlive>
+        <SearchView />
+      </KeepAlive>
+    </div>
+
+    <div v-if="activeTab === 'invites'" class="embedded-view">
+      <KeepAlive>
+        <InvitesView />
+      </KeepAlive>
     </div>
   </div>
 </template>
@@ -138,5 +178,35 @@ onMounted(loadRecommendations)
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.unified-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.unified-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1d2129;
+}
+
+.unified-header p {
+  margin-top: 8px;
+  color: #86909c;
+  font-size: 14px;
+}
+
+.header-tabs {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.embedded-view :deep(.page-header) {
+  display: none;
 }
 </style>
