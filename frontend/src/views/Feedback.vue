@@ -17,7 +17,8 @@ const loading = ref(false)
 const submitting = ref(false)
 const showDialog = ref(false)
 const viewDetail = ref<any>(null)
-const detailVisible = computed({ get: () => !!viewDetail.value, set: (v) => { if (!v) viewDetail.value = null } })
+const detailVisible = ref(false)
+watch(detailVisible, (v) => { if (!v) viewDetail.value = null })
 const feedbacks = ref<any[]>([])
 const activeTab = ref<'all' | 'DEVELOPER' | 'ADMIN'>('all')
 const formRef = ref<FormInstance>()
@@ -221,7 +222,7 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
 
     <div v-loading="loading" class="feedback-list">
       <template v-if="filteredFeedbacks.length">
-        <div v-for="item in filteredFeedbacks" :key="item.id" class="feedback-card" @click="viewDetail = item">
+        <div v-for="item in filteredFeedbacks" :key="item.id" class="feedback-card" @click="viewDetail = item; detailVisible = true">
           <div class="card-header">
             <div class="card-meta">
               <el-tag
