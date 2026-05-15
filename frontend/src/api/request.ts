@@ -64,6 +64,30 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
     }
     return makeMockResponse({ token: 'demo-token', refreshToken: 'demo-refresh', userId: 1, username: '张伟（演示）', role: 'STUDENT' })
   }
+  if (url.includes('/auth/register')) {
+    const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
+    const school = m.getSchoolByCode(b.schoolCode)
+    if (!school) return { data: { code: 400, message: '学校编码不存在', data: null } }
+    const newId = m.mockAllStudents.length + 1
+    const newStudent = {
+      id: newId,
+      studentNo: b.studentNo,
+      name: b.realName,
+      gender: 'UNKNOWN',
+      college: school.name,
+      major: '待分配',
+      className: '待分配',
+      surveyCompleted: false,
+      paired: false,
+      allocated: false,
+    }
+    m.mockAllStudents.push(newStudent)
+    if (!m.schoolStudentsMap[b.schoolCode]) {
+      m.schoolStudentsMap[b.schoolCode] = []
+    }
+    m.schoolStudentsMap[b.schoolCode].push(newStudent)
+    return makeMockResponse({ token: 'demo-token-reg-' + newId, refreshToken: 'demo-refresh-reg-' + newId, userId: newId, username: b.realName, role: 'STUDENT' })
+  }
   if (url.includes('/auth/refresh')) return makeMockResponse({ token: 'demo-token-2', refreshToken: 'demo-refresh-2', userId: 1, username: '张伟（演示）', role: 'STUDENT' })
 
   // ========== Survey ==========
@@ -604,7 +628,7 @@ request.interceptors.response.use(
 
     if (error.response?.status === 401) {
       localStorage.clear()
-      router.push('/login')
+      router.push('/')
       ElMessage.error('登录已过期，请重新登录')
     } else if (error.response?.status === 403) {
       ElMessage.error('权限不足')

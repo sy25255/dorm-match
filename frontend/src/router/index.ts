@@ -12,9 +12,7 @@ const router = createRouter({
     },
     {
       path: '/:schoolCode/login',
-      name: 'Login',
-      component: () => import('@/views/Login.vue'),
-      meta: { guest: true },
+      redirect: '/',
     },
     {
       path: '/:schoolCode',
@@ -74,7 +72,6 @@ router.beforeEach((to, _from, next) => {
   const userStore = useUserStore()
   const storedCode = localStorage.getItem('schoolCode')
 
-  // Developer route - independent of schoolCode
   if (to.meta.dev) {
     if (!userStore.token) { next('/'); return }
     if (userStore.role !== 'DEVELOPER') {
@@ -87,10 +84,9 @@ router.beforeEach((to, _from, next) => {
 
   const scFromPath = to.params.schoolCode as string | undefined
 
-  // If school code is stored, enforce it in the URL path
   if (storedCode) {
-    if (to.name === 'SchoolEntry') {
-      next(`/${storedCode}/login`)
+    if (to.name === 'SchoolEntry' && userStore.token) {
+      next(`/${storedCode}${userStore.role === 'ADMIN' ? '/admin' : '/'}`)
       return
     }
     if (scFromPath && scFromPath !== storedCode) {
@@ -99,13 +95,12 @@ router.beforeEach((to, _from, next) => {
       next('/')
       return
     }
-    if (!scFromPath) {
+    if (!scFromPath && to.path !== '/') {
       next(`/${storedCode}${to.path}`)
       return
     }
   } else {
-    // No school code stored
-    if (to.name !== 'SchoolEntry') {
+    if (to.name !== 'SchoolEntry' && to.path !== '/') {
       next('/')
       return
     }
@@ -113,7 +108,6 @@ router.beforeEach((to, _from, next) => {
     return
   }
 
-  // Auth checks
   if (to.meta.guest) {
     if (userStore.token) {
       next(`/${storedCode}/`)
@@ -125,7 +119,7 @@ router.beforeEach((to, _from, next) => {
 
   if (to.meta.admin) {
     if (!userStore.token) {
-      next(`/${storedCode}/login`)
+      next('/')
       return
     }
     if (userStore.role !== 'ADMIN' && userStore.role !== 'DEVELOPER') {
@@ -137,7 +131,7 @@ router.beforeEach((to, _from, next) => {
   }
 
   if (!userStore.token) {
-    next(`/${storedCode}/login`)
+    next('/')
     return
   }
 

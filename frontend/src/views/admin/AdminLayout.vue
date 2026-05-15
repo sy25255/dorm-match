@@ -15,7 +15,7 @@ const adminBase = computed(() => `${basePath.value}/admin`)
 
 function handleLogout() {
   userStore.logout()
-  router.push(`/${schoolCode.value}/login`)
+  router.push('/')
 }
 
 function goToStudent() {

@@ -20,8 +20,20 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('schoolName', name)
   }
 
-  async function login(studentNo: string, password: string) {
-    const res = await authApi.login({ studentNo, password })
+  function getRememberedAccount(): string {
+    return localStorage.getItem('remembered_studentNo') || ''
+  }
+
+  function saveRememberedAccount(studentNo: string) {
+    localStorage.setItem('remembered_studentNo', studentNo)
+  }
+
+  function clearRememberedAccount() {
+    localStorage.removeItem('remembered_studentNo')
+  }
+
+  async function login(studentNo: string, password: string, schoolCodeParam?: string) {
+    const res = await authApi.login({ studentNo, password, schoolCode: schoolCodeParam })
     const data = res.data.data || res.data
     token.value = data.token
     refreshToken.value = data.refreshToken
@@ -33,6 +45,23 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('userId', String(data.userId))
     localStorage.setItem('username', data.username)
     localStorage.setItem('role', data.role)
+    saveRememberedAccount(studentNo)
+  }
+
+  async function register(schoolCodeParam: string, studentNo: string, realName: string, password: string) {
+    const res = await authApi.register({ schoolCode: schoolCodeParam, studentNo, realName, password })
+    const data = res.data.data || res.data
+    token.value = data.token
+    refreshToken.value = data.refreshToken
+    userId.value = data.userId
+    username.value = data.username || realName
+    role.value = data.role || 'STUDENT'
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('refreshToken', data.refreshToken)
+    localStorage.setItem('userId', String(data.userId))
+    localStorage.setItem('username', data.username || realName)
+    localStorage.setItem('role', data.role || 'STUDENT')
+    saveRememberedAccount(studentNo)
   }
 
   function demoLogin(studentNo: string, name: string) {
@@ -47,6 +76,7 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('userId', String(userId.value))
     localStorage.setItem('username', name)
     localStorage.setItem('role', 'STUDENT')
+    saveRememberedAccount(studentNo)
   }
 
   function demoDevLogin() {
@@ -73,5 +103,5 @@ export const useUserStore = defineStore('user', () => {
     localStorage.clear()
   }
 
-  return { token, refreshToken, userId, username, role, schoolCode, schoolName, isLoggedIn, setSchoolInfo, login, demoLogin, demoDevLogin, logout }
+  return { token, refreshToken, userId, username, role, schoolCode, schoolName, isLoggedIn, setSchoolInfo, getRememberedAccount, saveRememberedAccount, clearRememberedAccount, login, register, demoLogin, demoDevLogin, logout }
 })
