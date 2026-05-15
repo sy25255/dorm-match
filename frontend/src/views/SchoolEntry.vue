@@ -39,6 +39,13 @@ async function enterSchool() {
 function onKeyUp(e: KeyboardEvent) {
   if (e.key === 'Enter') enterSchool()
 }
+
+function enterAsDeveloper() {
+  userStore.demoDevLogin()
+  localStorage.removeItem('schoolCode')
+  localStorage.removeItem('schoolName')
+  router.push('/dev')
+}
 </script>
 
 <template>
@@ -50,6 +57,20 @@ function onKeyUp(e: KeyboardEvent) {
         </div>
         <h1 class="entry-title">新生宿舍舍友选择系统</h1>
         <p class="entry-subtitle">请输入学校专属编码进入系统</p>
+      </div>
+
+      <div class="dev-entry">
+        <div class="dev-divider">
+          <span class="dev-divider-text">系统管理</span>
+        </div>
+        <el-button
+          class="dev-entry-btn"
+          @click="enterAsDeveloper"
+        >
+          <el-icon :size="18"><Monitor /></el-icon>
+          <span>系统开发者后台</span>
+        </el-button>
+        <p class="dev-entry-hint">查看全部学校数据 · 管理管理员账号 · 处理用户反馈</p>
       </div>
 
       <div class="entry-form">
@@ -145,10 +166,50 @@ function onKeyUp(e: KeyboardEvent) {
   backdrop-filter: blur(10px);
 }
 
-.entry-header { text-align: center; margin-bottom: 28px; }
+.entry-header { text-align: center; margin-bottom: 20px; }
 .entry-icon { margin-bottom: 12px; }
 .entry-title { font-size: 22px; font-weight: 700; color: #1a1a2e; margin: 0 0 8px; }
 .entry-subtitle { font-size: 14px; color: #86909c; margin: 0; }
+
+.dev-entry {
+  text-align: center;
+  padding: 14px 0 10px;
+  margin-bottom: 20px;
+  border-top: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.dev-divider {
+  position: relative;
+  margin-bottom: 10px;
+}
+.dev-divider-text {
+  display: inline-block;
+  padding: 0 12px;
+  font-size: 11px;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  position: relative;
+}
+.dev-entry-btn {
+  width: 100%;
+  height: 44px;
+  font-size: 14px;
+  border-radius: 10px;
+  border: 1.5px dashed #818cf8;
+  color: #6366f1;
+  background: #f5f3ff;
+}
+.dev-entry-btn:hover {
+  background: #818cf8;
+  color: #fff;
+  border-color: #818cf8;
+}
+.dev-entry-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #b0b8c0;
+}
 
 .entry-form { margin-bottom: 8px; }
 .entry-label { display: block; font-size: 14px; font-weight: 500; color: #1d2129; margin-bottom: 8px; }
