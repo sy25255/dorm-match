@@ -273,7 +273,7 @@ export const mockAllStudents = [
 
 export const mockSchoolConfig = {
   schoolName: '示范大学',
-  schoolCode: 'DEMO-UNIV',
+  schoolCode: 'DEMO-UNI',
   logoUrl: '',
   academicYear: '2024-2025',
   semester: '秋季学期',

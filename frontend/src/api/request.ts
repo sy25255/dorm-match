@@ -184,7 +184,7 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
     const myAlloc = m.getUserAllocation(userId)
     const newObj = {
       id: m.mockAllObjections.length + 1,
-      allocationId: myAlloc?.id || 1,
+      allocationId: myAlloc?.allocationId || 1,
       studentId: userId,
       studentName,
       reason: typeof reason === 'string' ? reason : String(reason || ''),

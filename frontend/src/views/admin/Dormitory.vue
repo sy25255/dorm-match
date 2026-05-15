@@ -25,8 +25,12 @@ async function loadBuildings() {
 
 async function loadRooms(buildingId: number) {
   activeBuilding.value = buildingId
-  const res = await adminApi.getRooms(buildingId)
-  rooms.value = res.data.data || []
+  try {
+    const res = await adminApi.getRooms(buildingId)
+    rooms.value = res.data.data || []
+  } catch {
+    ElMessageBox.alert('加载房间列表失败', '错误')
+  }
 }
 
 function openBuildingEdit(row?: any) {
@@ -36,13 +40,17 @@ function openBuildingEdit(row?: any) {
 }
 
 async function saveBuilding() {
-  if (isEditBuilding.value && buildingForm.value.id) {
-    await adminApi.updateBuilding(buildingForm.value.id, buildingForm.value)
-  } else {
-    await adminApi.createBuilding(buildingForm.value)
+  try {
+    if (isEditBuilding.value && buildingForm.value.id) {
+      await adminApi.updateBuilding(buildingForm.value.id, buildingForm.value)
+    } else {
+      await adminApi.createBuilding(buildingForm.value)
+    }
+    buildingDialog.value = false
+    loadBuildings()
+  } catch {
+    ElMessageBox.alert('保存宿舍楼失败', '错误')
   }
-  buildingDialog.value = false
-  loadBuildings()
 }
 
 function openRoomEdit(row?: any) {
@@ -52,13 +60,17 @@ function openRoomEdit(row?: any) {
 }
 
 async function saveRoom() {
-  if (isEditRoom.value && roomForm.value.id) {
-    await adminApi.updateRoom(roomForm.value.id, roomForm.value)
-  } else {
-    await adminApi.createRoom(roomForm.value)
+  try {
+    if (isEditRoom.value && roomForm.value.id) {
+      await adminApi.updateRoom(roomForm.value.id, roomForm.value)
+    } else {
+      await adminApi.createRoom(roomForm.value)
+    }
+    roomDialog.value = false
+    if (activeBuilding.value) loadRooms(activeBuilding.value)
+  } catch {
+    ElMessageBox.alert('保存房间失败', '错误')
   }
-  roomDialog.value = false
-  if (activeBuilding.value) loadRooms(activeBuilding.value)
 }
 
 const statusMap: Record<number, string> = { 0: '空闲', 1: '部分占用', 2: '已满', 3: '维修中' }

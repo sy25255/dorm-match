@@ -2,7 +2,6 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { adminApi } from '@/api/admin'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { mockColleges, mockClasses } from '@/mock/data'
 import request from '@/api/request'
 
 interface College { id: number; name: string }
@@ -17,7 +16,7 @@ const filterMajorId = ref<number | null>(null)
 const filterClassId = ref<number | null>(null)
 const filterStatus = ref<number | null>(null)
 
-const allColleges = ref<College[]>(mockColleges.map(c => ({ id: c.id, name: c.name })))
+const allColleges = ref<College[]>([])
 const availableMajors = ref<Major[]>([])
 const availableClasses = ref<Clazz[]>([])
 const inviteCodeDialog = ref(false)
@@ -79,6 +78,13 @@ const filteredStudents = computed(() => {
 const surveyStatusMap: Record<number, string> = { 0: '未填写', 1: '填写中', 2: '已完成' }
 const matchStatusMap: Record<number, string> = { 0: '待匹配', 1: '邀请中', 2: '已配对', 3: '已分配' }
 
+async function loadColleges() {
+  try {
+    const res = await request.get('/school/colleges')
+    allColleges.value = res.data.data || []
+  } catch {}
+}
+
 async function loadStudents() {
   loading.value = true
   try { const res = await adminApi.getStudents(); students.value = res.data.data || [] } catch {} finally { loading.value = false }
@@ -124,7 +130,7 @@ async function generateCode() {
   const res = await adminApi.generateInviteCode(); inviteCodes.value.unshift({ code: res.data.data.code, isUsed: false, createdAt: new Date().toISOString() })
 }
 
-onMounted(loadStudents)
+onMounted(() => { loadStudents(); loadColleges() })
 </script>
 
 <template>
