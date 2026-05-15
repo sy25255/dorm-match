@@ -17,6 +17,8 @@ const loading = ref(false)
 const submitting = ref(false)
 const showDialog = ref(false)
 const viewDetail = ref<any>(null)
+const detailVisible = ref(false)
+watch(detailVisible, (v) => { if (!v) viewDetail.value = null })
 const feedbacks = ref<any[]>([])
 const activeTab = ref<'all' | 'DEVELOPER' | 'ADMIN'>('all')
 const formRef = ref<FormInstance>()
@@ -220,7 +222,7 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
 
     <div v-loading="loading" class="feedback-list">
       <template v-if="filteredFeedbacks.length">
-        <div v-for="item in filteredFeedbacks" :key="item.id" class="feedback-card" @click="viewDetail = item">
+        <div v-for="item in filteredFeedbacks" :key="item.id" class="feedback-card" @click="viewDetail = item; detailVisible = true">
           <div class="card-header">
             <div class="card-meta">
               <el-tag
@@ -284,11 +286,10 @@ onMounted(() => { loadFeedbacks(); loadColleges() })
 
     <!-- 查看反馈详情弹窗 -->
     <el-dialog
-      v-model="!!viewDetail"
+      v-model="detailVisible"
       :title="viewDetail?.title || '反馈详情'"
       width="600px"
       destroy-on-close
-      @closed="viewDetail = null"
     >
       <template v-if="viewDetail">
         <el-descriptions :column="2" border size="small" style="margin-bottom:16px">
