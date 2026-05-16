@@ -726,7 +726,8 @@ request.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
-      localStorage.clear()
+      const authKeys = ['token', 'refreshToken', 'userId', 'username', 'role']
+      authKeys.forEach(key => localStorage.removeItem(key))
       router.push('/')
       ElMessage.error('登录已过期，请重新登录')
     } else if (error.response?.status === 403) {
