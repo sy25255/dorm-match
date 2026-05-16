@@ -38,6 +38,14 @@ function getDraftFromStorage() {
   return JSON.parse(localStorage.getItem('demo_survey_draft') || '{}')
 }
 
+function parseBody(data: any) {
+  if (!data) return {}
+  if (typeof data === 'string') {
+    try { return JSON.parse(data) } catch { return {} }
+  }
+  return data
+}
+
 async function handleMock(url: string, method: string, bodyData?: any, schoolCodeParam?: string): Promise<any> {
   const m = await loadMockData()
   const userId = Number(localStorage.getItem('userId')) || 1
@@ -130,14 +138,14 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
 
   // ========== Invite ==========
   if (url.includes('/invite/send')) {
-    const body = parseBody(config)
+    const body = parseBody(bodyData)
     const fromId = userId
     const toId = body?.targetId || 0
     const sc = schoolCode
 
     console.log('[Mock] POST /invite/send - from:', fromId, 'to:', toId, 'school:', sc)
 
-    const { addSentInvite, addReceivedInvite } = await import('@/mock/data')
+    const { addSentInvite, addReceivedInvite } = m
     const invite: any = {
       id: Date.now(),
       fromStudentId: fromId,
@@ -154,13 +162,13 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
     return makeMockResponse({ id: invite.id, status: 0 })
   }
   if (url.includes('/invite/quota')) {
-    const { computeQuota } = await import('@/mock/data')
+    const { computeQuota } = m
     const quota = computeQuota(userId > 0 ? userId : 1)
     console.log('[Mock] GET /invite/quota - userId:', userId, 'quota:', quota)
     return makeMockResponse(quota)
   }
   if (url.includes('/invite/pairing/members')) {
-    const { getPersistedPairGroups } = await import('@/mock/data')
+    const { getPersistedPairGroups } = m
     const sc = schoolCode || 'DEMO-UNI'
     const uid = userId > 0 ? userId : 1
     const groups = getPersistedPairGroups()
@@ -174,7 +182,7 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
     return makeMockResponse([])
   }
   if (url.includes('/invite/pairing')) {
-    const { getPersistedPairGroups } = await import('@/mock/data')
+    const { getPersistedPairGroups } = m
     const sc = schoolCode || 'DEMO-UNI'
     const uid = userId > 0 ? userId : 1
     const groups = getPersistedPairGroups()
@@ -188,14 +196,14 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
   const nowIso = new Date().toISOString()
   const laterIso = new Date(Date.now() + 72 * 3600000).toISOString()
   if (url.includes('/invite/received')) {
-    const { getPersistedReceivedInvites } = await import('@/mock/data')
+    const { getPersistedReceivedInvites } = m
     const all = getPersistedReceivedInvites()
     const mine = all.filter((i: any) => i.toStudentId === (userId > 0 ? userId : 1) && i.schoolCode === (schoolCode || 'DEMO-UNI'))
     console.log('[Mock] GET /invite/received - count:', mine.length, 'for user:', userId)
     return makeMockResponse(mine)
   }
   if (url.includes('/invite/sent')) {
-    const { getPersistedSentInvites } = await import('@/mock/data')
+    const { getPersistedSentInvites } = m
     const all = getPersistedSentInvites()
     const mine = all.filter((i: any) => i.fromStudentId === (userId > 0 ? userId : 1) && i.schoolCode === (schoolCode || 'DEMO-UNI'))
     console.log('[Mock] GET /invite/sent - count:', mine.length, 'for user:', userId)
@@ -205,8 +213,7 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
     const idMatch = url.match(/\/invite\/(\d+)\/accept/)
     const inviteId = idMatch ? Number(idMatch[1]) : 0
     console.log('[Mock] PUT /invite/:id/accept - inviteId:', inviteId, 'userId:', userId)
-
-    const { updateInviteStatus, getPersistedReceivedInvites, getPersistedPairGroups, addPairMember } = await import('@/mock/data')
+    const { updateInviteStatus, getPersistedReceivedInvites, getPersistedPairGroups, addPairMember } = m
     updateInviteStatus(inviteId, 1)
 
     const received = getPersistedReceivedInvites()
@@ -255,7 +262,7 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
     const idMatch = url.match(/\/invite\/(\d+)\/reject/)
     const inviteId = idMatch ? Number(idMatch[1]) : 0
     console.log('[Mock] PUT /invite/reject - id:', inviteId)
-    const { updateInviteStatus } = await import('@/mock/data')
+    const { updateInviteStatus } = m
     updateInviteStatus(inviteId, 2)
     return makeMockResponse(null)
   }
@@ -263,7 +270,7 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
     const idMatch = url.match(/\/invite\/(\d+)\/withdraw/)
     const inviteId = idMatch ? Number(idMatch[1]) : 0
     console.log('[Mock] PUT /invite/withdraw - id:', inviteId)
-    const { updateInviteStatus } = await import('@/mock/data')
+    const { updateInviteStatus } = m
     updateInviteStatus(inviteId, 3)
     return makeMockResponse(null)
   }
@@ -693,11 +700,13 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
 request.interceptors.response.use(
   async (response) => {
     const data = response.data
-    if (typeof data === 'string' && (data.includes('<!DOCTYPE html>') || data.includes('<html'))) {
+    const isHtml = typeof data === 'string' && (data.includes('<!DOCTYPE html>') || data.includes('<html'))
+    if (isHtml || isDemoMode()) {
       const url: string = response.config?.url || ''
       const method = response.config?.method || 'get'
       const bodyData = response.config?.data
       const sc = (response.config?.headers as any)?.['X-School-Code'] || localStorage.getItem('schoolCode') || undefined
+      console.log('[Interceptor] Response - triggering mock for:', method, url)
       const mock = await handleMock(url, method, bodyData, sc)
       if (mock) return mock
     }
