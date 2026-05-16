@@ -437,7 +437,6 @@ async function executeAlloc() {
   await ElMessageBox.confirm(`确认执行宿舍分配？系统将根据配对组和 ${roomCapacity.value} 人标准进行智能分配。`, '确认', { type: 'warning' })
   console.log('[Admin] Executing allocation, capacity:', roomCapacity.value)
 
-  // Generate mock allocation results
   const { getPersistedPairGroups, getRoomCapacityConfig } = await import('@/mock/data')
   const groups = getPersistedPairGroups()
   const sc = 'DEMO-UNI'
@@ -446,57 +445,73 @@ async function executeAlloc() {
 
   const allStudents: Set<number> = new Set()
   const result: Allocation[] = []
-  let roomIdx = 1
+  let currentRoomOccupancy = 0
+  let roomIdCounter = 0
 
-  // Assign paired groups
-  for (const group of schoolGroups) {
-    for (const sid of group.members) {
-      if (!allStudents.has(sid)) {
-        allStudents.add(sid)
-        result.push({
-          id: result.length + 1,
-          studentId: sid,
-          studentName: `学生${sid}`,
-          studentNo: `2024${String(sid).padStart(4, '0')}`,
-          roomId: roomIdx,
-          roomNumber: `M1-${String(100 + roomIdx)}`,
-          buildingName: '梅园1号',
-          bedNo: (result.filter(a => a.roomId === roomIdx).length % cap) + 1,
-          allocationType: 'SELF_SELECT',
-          status: 'PENDING',
-          batchCode: batchCode.value,
-        })
-      }
-    }
-    roomIdx++
+  function nextRoom() {
+    roomIdCounter++
+    currentRoomOccupancy = 0
   }
 
-  // Add unpaired students via algorithm
+  function addStudent(sid: number, allocType: string) {
+    allStudents.add(sid)
+    const bedNo = currentRoomOccupancy + 1
+    result.push({
+      id: result.length + 1,
+      studentId: sid,
+      studentName: `学生${sid}`,
+      studentNo: `2024${String(sid).padStart(4, '0')}`,
+      roomId: roomIdCounter,
+      roomNumber: `M1-${String(100 + roomIdCounter)}`,
+      buildingName: '梅园1号',
+      bedNo,
+      allocationType: allocType,
+      status: 'PENDING',
+      batchCode: batchCode.value,
+    })
+    currentRoomOccupancy++
+    if (currentRoomOccupancy >= cap) nextRoom()
+  }
+
+  nextRoom()
+
+  // Phase 1: Pack pair groups into rooms efficiently
+  // Sort groups by size descending for better packing
+  const sortedGroups = [...schoolGroups].sort((a: any, b: any) => b.members.length - a.members.length)
+
+  for (const group of sortedGroups) {
+    const groupStudents = group.members.filter((sid: number) => !allStudents.has(sid))
+    if (groupStudents.length === 0) continue
+
+    // If current room can't fit this group, open new room
+    if (currentRoomOccupancy > 0 && currentRoomOccupancy + groupStudents.length > cap) {
+      nextRoom()
+    }
+
+    for (const sid of groupStudents) {
+      addStudent(sid, 'SELF_SELECT')
+    }
+  }
+
+  // Phase 2: Fill under-filled rooms with unpaired students, then open new rooms
   for (let i = 1; i <= 22; i++) {
     if (!allStudents.has(i)) {
-      allStudents.add(i)
-      result.push({
-        id: result.length + 1,
-        studentId: i,
-        studentName: `学生${i}`,
-        studentNo: `2024${String(i).padStart(4, '0')}`,
-        roomId: roomIdx,
-        roomNumber: `M1-${String(100 + roomIdx)}`,
-        buildingName: '梅园1号',
-        bedNo: (result.filter(a => a.roomId === roomIdx).length % cap) + 1,
-        allocationType: 'ALGORITHM',
-        status: 'PENDING',
-        batchCode: batchCode.value,
-      })
-      if (result.filter(a => a.roomId === roomIdx).length >= cap) roomIdx++
+      addStudent(i, 'ALGORITHM')
     }
+  }
+
+  // Remove empty last room if no students were placed in it
+  if (currentRoomOccupancy === 0 && roomIdCounter > 1) {
+    roomIdCounter--
   }
 
   allocations.value = result
   currentStep.value = 1
   saveAllocState()
-  ElMessage.success(`分配完成！共分配 ${result.length} 名学生到 ${roomIdx - 1} 个房间`)
-  console.log('[Admin] Allocation complete:', result.length, 'students,', roomIdx - 1, 'rooms')
+
+  const roomCount = new Set(result.map(a => a.roomId)).size
+  ElMessage.success(`分配完成！共分配 ${result.length} 名学生到 ${roomCount} 个房间`)
+  console.log('[Admin] Allocation complete:', result.length, 'students,', roomCount, 'rooms')
 }
 
 async function publishResults() {
@@ -527,40 +542,138 @@ function resetAlloc() {
 const remainingStudents = ref<RemainingStudent[]>([])
 
 async function computeRemaining() {
-  const { getPersistedPairGroups, getRoomCapacityConfig } = await import('@/mock/data')
-  const sc = 'DEMO-UNI'
-  const groups = getPersistedPairGroups().filter((g: any) => g.schoolCode === sc)
+  const { getRoomCapacityConfig } = await import('@/mock/data')
   const cap = getRoomCapacityConfig()
   const result: RemainingStudent[] = []
 
-  for (const group of groups) {
-    if (group.members.length < cap) {
-      const needed = cap - group.members.length
-      for (const sid of group.members) {
+  // Group allocations by room
+  const roomMap = new Map<number, Allocation[]>()
+  for (const a of allocations.value) {
+    if (!roomMap.has(a.roomId)) roomMap.set(a.roomId, [])
+    roomMap.get(a.roomId)!.push(a)
+  }
+
+  // Find under-filled rooms
+  for (const [roomId, students] of roomMap) {
+    const occupancy = students.length
+    if (occupancy < cap) {
+      const needed = cap - occupancy
+      for (const s of students) {
         result.push({
-          name: `学生${sid}`,
-          studentNo: `2024${String(sid).padStart(4, '0')}`,
-          collegeName: sid <= 8 ? '计算机学院' : '外国语学院',
-          studentId: sid,
-          currentGroupSize: group.members.length,
+          name: s.studentName,
+          studentNo: s.studentNo,
+          collegeName: s.studentId <= 8 ? '计算机学院' : '外国语学院',
+          studentId: s.studentId,
+          currentGroupSize: occupancy,
           neededMore: needed,
         })
       }
     }
   }
   remainingStudents.value = result
-  console.log('[Admin] Remaining students:', result.length, '/ groups:', result.length > 0 ? Math.round(result.length / result[0].currentGroupSize) : 0)
+  console.log('[Admin] Under-filled rooms:', roomMap.size, 'rooms,', result.length, 'students in under-filled rooms')
 }
 
 function autoFillStudent(row: RemainingStudent) {
-  ElMessage.success(`学生 ${row.name} 已自动补位到有空位的宿舍`)
-  console.log('[Admin] Auto-filled student:', row.studentId)
+  const cap = Number(localStorage.getItem('demo_room_capacity') || '8')
+  const roomMap = new Map<number, Allocation[]>()
+
+  for (const a of allocations.value) {
+    if (!roomMap.has(a.roomId)) roomMap.set(a.roomId, [])
+    roomMap.get(a.roomId)!.push(a)
+  }
+
+  const studentAlloc = allocations.value.find(a => a.studentId === row.studentId)
+  if (!studentAlloc) return
+
+  const currentRoom = roomMap.get(studentAlloc.roomId)
+  const currentRoomOccupancy = currentRoom?.length || 0
+  if (currentRoomOccupancy <= 1) {
+    ElMessage.warning('该学生所在房间只剩1人，无法单独移动')
+    return
+  }
+
+  // Find target room with space
+  for (const [roomId, students] of roomMap) {
+    if (roomId === studentAlloc.roomId) continue
+    if (students.length < cap) {
+      const newBedNo = students.length + 1
+      studentAlloc.roomId = roomId
+      studentAlloc.roomNumber = `M1-${String(100 + roomId)}`
+      studentAlloc.bedNo = newBedNo
+      saveAllocState()
+      computeRemaining()
+      ElMessage.success(`${row.name} 已补位到 ${studentAlloc.roomNumber} ${newBedNo}号床`)
+      return
+    }
+  }
+  ElMessage.warning('没有可补位的房间，所有房间均已满')
 }
 
 function autoFillAll() {
-  const count = new Set(remainingStudents.value.map(s => s.studentId)).size
-  ElMessage.success(`已将 ${count} 名剩余学生全部补位`)
-  console.log('[Admin] Auto-filled all:', count, 'students')
+  const cap = Number(localStorage.getItem('demo_room_capacity') || '8')
+  const roomMap = new Map<number, Allocation[]>()
+
+  for (const a of allocations.value) {
+    if (!roomMap.has(a.roomId)) roomMap.set(a.roomId, [])
+    roomMap.get(a.roomId)!.push(a)
+  }
+
+  // Collect rooms by occupancy (ascending)
+  const rooms = Array.from(roomMap.entries())
+    .map(([id, students]) => ({ id, occupancy: students.length, students }))
+    .filter(r => r.occupancy < cap)
+    .sort((a, b) => a.occupancy - b.occupancy)
+
+  if (rooms.length <= 1) {
+    ElMessage.info('所有房间已满或只剩一个房间，无需补位')
+    return
+  }
+
+  let mergeCount = 0
+
+  // Greedy merge: smallest room into next available room
+  for (let i = 0; i < rooms.length; i++) {
+    const source = rooms[i]
+    if (source.occupancy === 0) continue
+
+    for (let j = i + 1; j < rooms.length; j++) {
+      const target = rooms[j]
+      if (target.occupancy >= cap) continue
+
+      const canMove = Math.min(source.occupancy, cap - target.occupancy)
+      if (canMove === 0) continue
+
+      // Move students from source to target
+      const movedStudents = source.students.slice(0, canMove)
+      for (const s of movedStudents) {
+        const alloc = allocations.value.find(a => a.id === s.id)
+        if (alloc) {
+          alloc.roomId = target.id
+          alloc.roomNumber = `M1-${String(100 + target.id)}`
+          alloc.bedNo = target.occupancy + 1
+          target.occupancy++
+        }
+      }
+      source.occupancy -= canMove
+      mergeCount += canMove
+    }
+  }
+
+  // Recalculate bed numbers for all rooms
+  const updatedRoomMap = new Map<number, Allocation[]>()
+  for (const a of allocations.value) {
+    if (!updatedRoomMap.has(a.roomId)) updatedRoomMap.set(a.roomId, [])
+    updatedRoomMap.get(a.roomId)!.push(a)
+  }
+  for (const [, roomStudents] of updatedRoomMap) {
+    roomStudents.forEach((s, idx) => { s.bedNo = idx + 1 })
+  }
+
+  saveAllocState()
+  computeRemaining()
+  ElMessage.success(`已自动补位 ${mergeCount} 名学生`)
+  console.log('[Admin] Auto-filled:', mergeCount, 'students')
 }
 
 // ========== 辅助 ==========
