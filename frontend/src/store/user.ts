@@ -100,7 +100,8 @@ export const useUserStore = defineStore('user', () => {
     role.value = ''
     schoolCode.value = ''
     schoolName.value = ''
-    localStorage.clear()
+    const authKeys = ['token', 'refreshToken', 'userId', 'username', 'role']
+    authKeys.forEach(key => localStorage.removeItem(key))
   }
 
   return { token, refreshToken, userId, username, role, schoolCode, schoolName, isLoggedIn, setSchoolInfo, getRememberedAccount, saveRememberedAccount, clearRememberedAccount, login, register, demoLogin, demoDevLogin, logout }
