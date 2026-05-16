@@ -77,7 +77,7 @@ export const mockQuestions = [
   { id: 94, questionCode: 'VALUE_11', dimension: 'PSYCHOLOGY', questionText: '你觉得对不同肤色的人种，应该无差别平等对待吗？', questionType: 'VALUE_JUDGE', optionsJson: '[{"label":"A","value":"1","text":"应该"},{"label":"B","value":"2","text":"不应该"}]', sortOrder: 61, isRequired: 1, isAttentionCheck: 0, status: 1 },
   { id: 95, questionCode: 'VALUE_12', dimension: 'PSYCHOLOGY', questionText: '你觉得男女之间有纯友谊吗？', questionType: 'VALUE_JUDGE', optionsJson: '[{"label":"A","value":"1","text":"当然有，友谊不分性别"},{"label":"B","value":"2","text":"可能存在，但比较难得，需要两人都有清醒的边界感"},{"label":"C","value":"3","text":"很难，总有一方会有超越友谊的想法"},{"label":"D","value":"4","text":"因人而异，有人能有，有人不能有"}]', sortOrder: 62, isRequired: 1, isAttentionCheck: 0, status: 1 },
   { id: 96, questionCode: 'VALUE_13', dimension: 'PSYCHOLOGY', questionText: '岳飞是中华民族的民族英雄吗？', questionType: 'VALUE_JUDGE', optionsJson: '[{"label":"A","value":"1","text":"是"},{"label":"B","value":"2","text":"不是"}]', sortOrder: 63, isRequired: 1, isAttentionCheck: 0, status: 1 },
-  { id: 97, questionCode: 'VALUE_14', dimension: 'PSYCHOLOGY', questionText: '电车问题：一辆失控的电车正冲向五个被绑在轨道上的工人，你可以拉一个拉杆让电车转向另一条轨道，但另一条轨道上绑着一个人。你会拉下拉杆吗？', questionType: 'VALUE_JUDGE', optionsJson: '[{"label":"A","value":"1","text":"救5个人"},{"label":"B","value":"2","text":"救一个人"}]', sortOrder: 64, isRequired: 1, isAttentionCheck: 0, status: 1 },
+  { id: 97, questionCode: 'VALUE_14', dimension: 'PSYCHOLOGY', questionText: '当你正准备进行一场手术时，发现躺在手术台上的是曾经霸凌你的人，你是否还会救？', questionType: 'VALUE_JUDGE', optionsJson: '[{"label":"A","value":"1","text":"救"},{"label":"B","value":"2","text":"不救"}]', sortOrder: 64, isRequired: 1, isAttentionCheck: 0, status: 1 },
   { id: 98, questionCode: 'VALUE_15', dimension: 'PSYCHOLOGY', questionText: '台湾是否属于中国的领土？', questionType: 'VALUE_JUDGE', optionsJson: '[{"label":"A","value":"1","text":"是"},{"label":"B","value":"2","text":"不是"}]', sortOrder: 65, isRequired: 1, isAttentionCheck: 0, status: 1 },
   // ========== 扩展信息（2题）==========
   { id: 56, questionCode: 'EXT_01', dimension: 'EXTENSION', questionText: '你未来4年是否有明确的学习或职业发展计划？请简述。', questionType: 'LONG_TEXT', optionsJson: null, sortOrder: 56, isRequired: 0, isAttentionCheck: 0, status: 1, placeholder: '例如：计划考研/出国/考公/创业/就业，目标院校或企业等...' },
@@ -160,23 +160,23 @@ export const mockSelfIntroTemplate = {
 }
 
 export const mockStudents = [
-  { id: 1, name: '张伟', studentNo: '20240001', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '北京', avatarUrl: '', bio: '热爱编程和篮球，希望找到志同道合的舍友', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 85, mayBeDormLeader: true },
-  { id: 2, name: '李明', studentNo: '20240002', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '上海', avatarUrl: '', bio: '喜欢安静的学习环境，作息规律', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 72, mayBeDormLeader: false },
-  { id: 3, name: '王强', studentNo: '20240003', gender: 1, collegeName: '计算机学院', majorName: '软件工程', hometown: '广州', avatarUrl: '', bio: '重度游戏玩家，希望能找到一起开黑的舍友', smoking: '1', snoring: '3', smokingLabel: '抽烟', snoringLabel: '打呼噜严重', isValid: false, leaderScore: 30, mayBeDormLeader: false },
-  { id: 4, name: '赵刚', studentNo: '20240004', gender: 1, collegeName: '电子学院', majorName: '通信工程', hometown: '深圳', avatarUrl: '', bio: '喜欢运动和户外，性格开朗', smoking: '2', snoring: '2', smokingLabel: '不抽烟', snoringLabel: '打呼噜轻微', isValid: true, leaderScore: 78, mayBeDormLeader: true },
-  { id: 5, name: '孙磊', studentNo: '20240005', gender: 1, collegeName: '电子学院', majorName: '通信工程', hometown: '杭州', avatarUrl: '', bio: '性格内向，喜欢独处和阅读', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 40, mayBeDormLeader: false },
-  { id: 6, name: '刘洋', studentNo: '20240006', gender: 1, collegeName: '计算机学院', majorName: '人工智能', hometown: '成都', avatarUrl: '', bio: '音乐爱好者，会弹吉他', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 65, mayBeDormLeader: false },
-  { id: 7, name: '陈宇', studentNo: '20240007', gender: 1, collegeName: '理学院', majorName: '数学', hometown: '武汉', avatarUrl: '', bio: '喜欢整洁，希望舍友也有良好的卫生习惯', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 55, mayBeDormLeader: false },
-  { id: 8, name: '周杰', studentNo: '20240008', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '南京', avatarUrl: '', bio: '夜猫子，喜欢深夜学习和写代码', smoking: '3', snoring: '2', smokingLabel: '偶尔抽烟', snoringLabel: '打呼噜轻微', isValid: true, leaderScore: 48, mayBeDormLeader: false },
-  { id: 9, name: '王芳', studentNo: '20240011', gender: 0, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '北京', avatarUrl: '', bio: '喜欢整洁安静的环境，作息规律', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 82, mayBeDormLeader: true },
-  { id: 10, name: '李娜', studentNo: '20240012', gender: 0, collegeName: '计算机学院', majorName: '软件工程', hometown: '上海', avatarUrl: '', bio: '性格开朗，喜欢社交和集体活动', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 90, mayBeDormLeader: true },
-  { id: 11, name: '张雪', studentNo: '20240013', gender: 0, collegeName: '电子学院', majorName: '通信工程', hometown: '广州', avatarUrl: '', bio: '喜欢追剧和看综艺', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 50, mayBeDormLeader: false },
-  { id: 12, name: '刘婷', studentNo: '20240014', gender: 0, collegeName: '计算机学院', majorName: '人工智能', hometown: '杭州', avatarUrl: '', bio: '文艺青年，喜欢阅读和写作', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: false, leaderScore: 35, mayBeDormLeader: false },
-  { id: 13, name: '陈静', studentNo: '20240015', gender: 0, collegeName: '理学院', majorName: '数学', hometown: '武汉', avatarUrl: '', bio: '性格比较内向，喜欢独处', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 42, mayBeDormLeader: false },
-  { id: 14, name: '赵敏', studentNo: '20240016', gender: 0, collegeName: '外语学院', majorName: '英语', hometown: '深圳', avatarUrl: '', bio: '热爱运动健身，每天跑步', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 68, mayBeDormLeader: false },
-  { id: 15, name: '周雨', studentNo: '20240017', gender: 0, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '成都', avatarUrl: '', bio: '喜欢游戏和动漫', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 38, mayBeDormLeader: false },
-  { id: 16, name: '吴桐', studentNo: '20240018', gender: 0, collegeName: '电子学院', majorName: '通信工程', hometown: '南京', avatarUrl: '', bio: '注重生活品质，爱干净', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 75, mayBeDormLeader: true },
-  { id: 17, name: '林思雨', studentNo: '20240019', gender: 0, collegeName: '外语学院', majorName: '日语', hometown: '厦门', avatarUrl: '', bio: '温柔细心，喜欢整理收纳和养多肉植物', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 88, mayBeDormLeader: true },
+  { id: 1, name: '张伟', studentNo: '20240001', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '北京', avatarUrl: '', bio: '热爱编程和篮球，希望找到志同道合的舍友', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 85, mayBeDormLeader: true, wechat: 'zhangwei_cs', phone: '13800000001', email: '20240001@demo-uni.edu.cn' },
+  { id: 2, name: '李明', studentNo: '20240002', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '上海', avatarUrl: '', bio: '喜欢安静的学习环境，作息规律', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 72, mayBeDormLeader: false, wechat: 'liming_sh', phone: '13800000002', email: '20240002@demo-uni.edu.cn' },
+  { id: 3, name: '王强', studentNo: '20240003', gender: 1, collegeName: '计算机学院', majorName: '软件工程', hometown: '广州', avatarUrl: '', bio: '重度游戏玩家，希望能找到一起开黑的舍友', smoking: '1', snoring: '3', smokingLabel: '抽烟', snoringLabel: '打呼噜严重', isValid: false, leaderScore: 30, mayBeDormLeader: false, wechat: 'wq_gamer', phone: '13800000003', email: '20240003@demo-uni.edu.cn' },
+  { id: 4, name: '赵刚', studentNo: '20240004', gender: 1, collegeName: '电子学院', majorName: '通信工程', hometown: '深圳', avatarUrl: '', bio: '喜欢运动和户外，性格开朗', smoking: '2', snoring: '2', smokingLabel: '不抽烟', snoringLabel: '打呼噜轻微', isValid: true, leaderScore: 78, mayBeDormLeader: true, wechat: 'zhaogang_sport', phone: '13800000004', email: '20240004@demo-uni.edu.cn' },
+  { id: 5, name: '孙磊', studentNo: '20240005', gender: 1, collegeName: '电子学院', majorName: '通信工程', hometown: '杭州', avatarUrl: '', bio: '性格内向，喜欢独处和阅读', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 40, mayBeDormLeader: false, wechat: 'sunlei_read', phone: '13800000005', email: '20240005@demo-uni.edu.cn' },
+  { id: 6, name: '刘洋', studentNo: '20240006', gender: 1, collegeName: '计算机学院', majorName: '人工智能', hometown: '成都', avatarUrl: '', bio: '音乐爱好者，会弹吉他', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 65, mayBeDormLeader: false, wechat: 'liuyang_music', phone: '13800000006', email: '20240006@demo-uni.edu.cn' },
+  { id: 7, name: '陈宇', studentNo: '20240007', gender: 1, collegeName: '理学院', majorName: '数学', hometown: '武汉', avatarUrl: '', bio: '喜欢整洁，希望舍友也有良好的卫生习惯', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 55, mayBeDormLeader: false, wechat: 'chenyu_math', phone: '13800000007', email: '20240007@demo-uni.edu.cn' },
+  { id: 8, name: '周杰', studentNo: '20240008', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '南京', avatarUrl: '', bio: '夜猫子，喜欢深夜学习和写代码', smoking: '3', snoring: '2', smokingLabel: '偶尔抽烟', snoringLabel: '打呼噜轻微', isValid: true, leaderScore: 48, mayBeDormLeader: false, wechat: 'zhoujie_night', phone: '13800000008', email: '20240008@demo-uni.edu.cn' },
+  { id: 9, name: '王芳', studentNo: '20240011', gender: 0, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '北京', avatarUrl: '', bio: '喜欢整洁安静的环境，作息规律', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 82, mayBeDormLeader: true, wechat: 'wangfang_bj', phone: '13800000011', email: '20240011@demo-uni.edu.cn' },
+  { id: 10, name: '李娜', studentNo: '20240012', gender: 0, collegeName: '计算机学院', majorName: '软件工程', hometown: '上海', avatarUrl: '', bio: '性格开朗，喜欢社交和集体活动', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 90, mayBeDormLeader: true, wechat: 'lina_social', phone: '13800000012', email: '20240012@demo-uni.edu.cn' },
+  { id: 11, name: '张雪', studentNo: '20240013', gender: 0, collegeName: '电子学院', majorName: '通信工程', hometown: '广州', avatarUrl: '', bio: '喜欢追剧和看综艺', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 50, mayBeDormLeader: false, wechat: 'zhangxue_tv', phone: '13800000013', email: '20240013@demo-uni.edu.cn' },
+  { id: 12, name: '刘婷', studentNo: '20240014', gender: 0, collegeName: '计算机学院', majorName: '人工智能', hometown: '杭州', avatarUrl: '', bio: '文艺青年，喜欢阅读和写作', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: false, leaderScore: 35, mayBeDormLeader: false, wechat: 'liuting_art', phone: '13800000014', email: '20240014@demo-uni.edu.cn' },
+  { id: 13, name: '陈静', studentNo: '20240015', gender: 0, collegeName: '理学院', majorName: '数学', hometown: '武汉', avatarUrl: '', bio: '性格比较内向，喜欢独处', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 42, mayBeDormLeader: false, wechat: 'chenjing_quiet', phone: '13800000015', email: '20240015@demo-uni.edu.cn' },
+  { id: 14, name: '赵敏', studentNo: '20240016', gender: 0, collegeName: '外语学院', majorName: '英语', hometown: '深圳', avatarUrl: '', bio: '热爱运动健身，每天跑步', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 68, mayBeDormLeader: false, wechat: 'zhaomin_fit', phone: '13800000016', email: '20240016@demo-uni.edu.cn' },
+  { id: 15, name: '周雨', studentNo: '20240017', gender: 0, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '成都', avatarUrl: '', bio: '喜欢游戏和动漫', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 38, mayBeDormLeader: false, wechat: 'zhouyu_acg', phone: '13800000017', email: '20240017@demo-uni.edu.cn' },
+  { id: 16, name: '吴桐', studentNo: '20240018', gender: 0, collegeName: '电子学院', majorName: '通信工程', hometown: '南京', avatarUrl: '', bio: '注重生活品质，爱干净', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 75, mayBeDormLeader: true, wechat: 'wutong_clean', phone: '13800000018', email: '20240018@demo-uni.edu.cn' },
+  { id: 17, name: '林思雨', studentNo: '20240019', gender: 0, collegeName: '外语学院', majorName: '日语', hometown: '厦门', avatarUrl: '', bio: '温柔细心，喜欢整理收纳和养多肉植物', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 88, mayBeDormLeader: true, wechat: 'linsiyu_garden', phone: '13800000019', email: '20240019@demo-uni.edu.cn' },
 ]
 
 export const mockRecommendations = [
@@ -201,9 +201,9 @@ export const mockAllocation = {
   allocationId: 1, roomId: 1, roomNumber: 'M1-101', bedNo: 1,
   allocationType: 'SELF_SELECT', status: 'CONFIRMED', confirmedByStudent: 1,
   roommates: [
-    { studentId: 2, name: '李明', bedNo: 2, allocationType: 'SELF_SELECT' },
-    { studentId: 6, name: '刘洋', bedNo: 3, allocationType: 'ALGORITHM' },
-    { studentId: 8, name: '周杰', bedNo: 4, allocationType: 'ALGORITHM' },
+    { studentId: 2, name: '李明', bedNo: 2, allocationType: 'SELF_SELECT', wechat: 'liming_sh', phone: '13800000002', email: '20240002@demo-uni.edu.cn', bio: '喜欢安静的学习环境，作息规律' },
+    { studentId: 6, name: '刘洋', bedNo: 3, allocationType: 'ALGORITHM', wechat: 'liuyang_music', phone: '13800000006', email: '20240006@demo-uni.edu.cn', bio: '音乐爱好者，会弹吉他' },
+    { studentId: 8, name: '周杰', bedNo: 4, allocationType: 'ALGORITHM', wechat: 'zhoujie_night', phone: '13800000008', email: '20240008@demo-uni.edu.cn', bio: '夜猫子，喜欢深夜学习和写代码' },
   ]
 }
 
@@ -783,7 +783,19 @@ export function getUserAllocation(userId: number) {
     confirmedByStudent: room.status === 'CONFIRMED' ? 1 : 0,
     roommates: room.members
       .filter(m => m.studentId !== userId)
-      .map(m => ({ studentId: m.studentId, name: nameMap[m.studentId] || `学生${m.studentId}`, bedNo: m.bedNo, allocationType: m.allocationType })),
+      .map(m => {
+        const student = mockStudents.find(s => s.id === m.studentId)
+        return {
+          studentId: m.studentId,
+          name: nameMap[m.studentId] || `学生${m.studentId}`,
+          bedNo: m.bedNo,
+          allocationType: m.allocationType,
+          wechat: student?.wechat || '',
+          phone: student?.phone || '',
+          email: student?.email || '',
+          bio: student?.bio || '',
+        }
+      }),
   }
 }
 
