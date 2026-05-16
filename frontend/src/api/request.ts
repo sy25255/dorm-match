@@ -130,53 +130,143 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
 
   // ========== Invite ==========
   if (url.includes('/invite/send')) {
+    const body = parseBody(config)
+    const fromId = userId
+    const toId = body?.targetId || 0
+    const sc = schoolCode
+
+    console.log('[Mock] POST /invite/send - from:', fromId, 'to:', toId, 'school:', sc)
+
+    const { addSentInvite, addReceivedInvite } = await import('@/mock/data')
+    const invite: any = {
+      id: Date.now(),
+      fromStudentId: fromId,
+      toStudentId: toId,
+      message: body?.message || '',
+      status: 0,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 72 * 3600000).toISOString(),
+      schoolCode: sc,
+    }
+    addSentInvite(invite)
+    addReceivedInvite(invite)
     ElMessage.success('邀请已发送')
-    return makeMockResponse({ id: Date.now(), status: 0 })
+    return makeMockResponse({ id: invite.id, status: 0 })
   }
-  if (url.includes('/invite/quota')) return makeMockResponse(m.mockQuota)
+  if (url.includes('/invite/quota')) {
+    const { computeQuota } = await import('@/mock/data')
+    const quota = computeQuota(userId > 0 ? userId : 1)
+    console.log('[Mock] GET /invite/quota - userId:', userId, 'quota:', quota)
+    return makeMockResponse(quota)
+  }
   if (url.includes('/invite/pairing/members')) {
-    if (!surveyDone) return makeMockResponse([])
-    const members = m.getUserPairMembers(userId)
-    return makeMockResponse(members)
-  }
-  if (url.includes('/invite/pairing')) {
-    if (!surveyDone) return makeMockResponse(null)
-    const pair = m.getUserPair(userId)
-    return makeMockResponse(pair)
-  }
-  const nowIso = new Date().toISOString()
-  const laterIso = new Date(Date.now() + 172800000).toISOString()
-  if (url.includes('/invite/received')) {
-    if (!surveyDone) return makeMockResponse([])
-    const pair = m.getUserPair(userId)
-    if (pair && pair.status >= 1) return makeMockResponse([])
-    return makeMockResponse([
-      { id: 101, fromStudentId: 2, toStudentId: userId, message: '你好！我觉得我们很合得来，一起组团吧！', status: 0, createdAt: nowIso, expiresAt: laterIso },
-      { id: 102, fromStudentId: 4, toStudentId: userId, message: '我也喜欢打篮球，一起呀！', status: 0, createdAt: nowIso, expiresAt: laterIso },
-    ])
-  }
-  if (url.includes('/invite/sent')) {
-    if (!surveyDone) return makeMockResponse([])
-    const pair = m.getUserPair(userId)
-    if (pair && pair.status >= 1) return makeMockResponse([])
+    const { getPersistedPairGroups } = await import('@/mock/data')
+    const sc = schoolCode || 'DEMO-UNI'
+    const uid = userId > 0 ? userId : 1
+    const groups = getPersistedPairGroups()
+    const group = groups.find((g: any) => g.members.includes(uid) && g.schoolCode === sc)
+    console.log('[Mock] GET /invite/pairing/members - uid:', uid, 'found:', !!group, 'members:', group?.members)
+    if (group) {
+      return makeMockResponse(group.members.map((sid: number) => ({
+        studentId: sid, name: `学生${sid}`, avatarUrl: '', isInitiator: 0
+      })))
+    }
     return makeMockResponse([])
   }
+  if (url.includes('/invite/pairing')) {
+    const { getPersistedPairGroups } = await import('@/mock/data')
+    const sc = schoolCode || 'DEMO-UNI'
+    const uid = userId > 0 ? userId : 1
+    const groups = getPersistedPairGroups()
+    const group = groups.find((g: any) => g.members.includes(uid) && g.schoolCode === sc)
+    console.log('[Mock] GET /invite/pairing - uid:', uid, 'found:', !!group)
+    if (group) {
+      return makeMockResponse({ id: group.pairId, pairingCode: group.pairingCode, groupSize: group.members.length, status: group.status, lockedAt: new Date().toISOString(), createdAt: new Date().toISOString() })
+    }
+    return makeMockResponse(null)
+  }
+  const nowIso = new Date().toISOString()
+  const laterIso = new Date(Date.now() + 72 * 3600000).toISOString()
+  if (url.includes('/invite/received')) {
+    const { getPersistedReceivedInvites } = await import('@/mock/data')
+    const all = getPersistedReceivedInvites()
+    const mine = all.filter((i: any) => i.toStudentId === (userId > 0 ? userId : 1) && i.schoolCode === (schoolCode || 'DEMO-UNI'))
+    console.log('[Mock] GET /invite/received - count:', mine.length, 'for user:', userId)
+    return makeMockResponse(mine)
+  }
+  if (url.includes('/invite/sent')) {
+    const { getPersistedSentInvites } = await import('@/mock/data')
+    const all = getPersistedSentInvites()
+    const mine = all.filter((i: any) => i.fromStudentId === (userId > 0 ? userId : 1) && i.schoolCode === (schoolCode || 'DEMO-UNI'))
+    console.log('[Mock] GET /invite/sent - count:', mine.length, 'for user:', userId)
+    return makeMockResponse(mine)
+  }
   if (url.includes('/invite/') && url.includes('/accept')) {
-    const inviteId = Number(url.split('/invite/')[1]?.split('/')[0])
-    // Check room capacity
-    const myAlloc = m.getUserAllocation(userId)
-    if (myAlloc) {
-      if (m.isRoomFull(myAlloc.roomId)) {
-        ElMessage.warning('对方宿舍已满员，无法接受邀请')
+    const idMatch = url.match(/\/invite\/(\d+)\/accept/)
+    const inviteId = idMatch ? Number(idMatch[1]) : 0
+    console.log('[Mock] PUT /invite/:id/accept - inviteId:', inviteId, 'userId:', userId)
+
+    const { updateInviteStatus, getPersistedReceivedInvites, getPersistedPairGroups, addPairMember } = await import('@/mock/data')
+    updateInviteStatus(inviteId, 1)
+
+    const received = getPersistedReceivedInvites()
+    const inv = received.find((i: any) => i.id === inviteId)
+    if (inv) {
+      const sc = inv.schoolCode || schoolCode || 'DEMO-UNI'
+      const groups = getPersistedPairGroups()
+      const senderGroup = groups.find((g: any) => g.members.includes(inv.fromStudentId) && g.schoolCode === sc)
+      const recvGroup = groups.find((g: any) => g.members.includes(inv.toStudentId) && g.schoolCode === sc)
+      const roomCapacity = m.getRoomCapacityConfig()
+
+      if (senderGroup && senderGroup.members.length >= roomCapacity) {
+        ElMessage.warning(`宿舍为${roomCapacity}人间，对方组已满员，无法接受邀请`)
         return makeMockResponse(null)
+      }
+      if (recvGroup && recvGroup.members.length >= roomCapacity) {
+        ElMessage.warning(`宿舍为${roomCapacity}人间，你的组已满员，无法接受邀请`)
+        return makeMockResponse(null)
+      }
+
+      if (senderGroup && !senderGroup.members.includes(inv.toStudentId)) {
+        const combined = new Set([...senderGroup.members, ...(recvGroup?.members || []), inv.toStudentId])
+        if (combined.size > roomCapacity) {
+          ElMessage.warning(`合并后将超过${roomCapacity}人，请先减少成员`)
+          return makeMockResponse(null)
+        }
+        addPairMember(senderGroup.pairId, inv.toStudentId, sc)
+        if (recvGroup) recvGroup.members.filter((m: number) => m !== inv.toStudentId).forEach((m: number) => addPairMember(senderGroup.pairId, m, sc))
+      } else if (recvGroup && !recvGroup.members.includes(inv.fromStudentId)) {
+        addPairMember(recvGroup.pairId, inv.fromStudentId, sc)
+        if (senderGroup) senderGroup.members.filter((m: number) => m !== inv.fromStudentId).forEach((m: number) => addPairMember(recvGroup.pairId, m, sc))
+      } else if (senderGroup) {
+        addPairMember(senderGroup.pairId, inv.toStudentId, sc)
+      } else if (recvGroup) {
+        addPairMember(recvGroup.pairId, inv.fromStudentId, sc)
+      } else {
+        const newId = Math.max(...groups.map((g: any) => g.pairId), 0) + 1
+        addPairMember(newId, inv.fromStudentId, sc)
+        addPairMember(newId, inv.toStudentId, sc)
       }
     }
     ElMessage.success('配对成功！')
-    localStorage.setItem('demo_survey_completed', 'true')
     return makeMockResponse(null)
   }
-  if (url.includes('/invite/') && url.includes('/reject')) return makeMockResponse(null)
-  if (url.includes('/invite/') && url.includes('/withdraw')) return makeMockResponse(null)
+  if (url.includes('/invite/') && url.includes('/reject')) {
+    const idMatch = url.match(/\/invite\/(\d+)\/reject/)
+    const inviteId = idMatch ? Number(idMatch[1]) : 0
+    console.log('[Mock] PUT /invite/reject - id:', inviteId)
+    const { updateInviteStatus } = await import('@/mock/data')
+    updateInviteStatus(inviteId, 2)
+    return makeMockResponse(null)
+  }
+  if (url.includes('/invite/') && url.includes('/withdraw')) {
+    const idMatch = url.match(/\/invite\/(\d+)\/withdraw/)
+    const inviteId = idMatch ? Number(idMatch[1]) : 0
+    console.log('[Mock] PUT /invite/withdraw - id:', inviteId)
+    const { updateInviteStatus } = await import('@/mock/data')
+    updateInviteStatus(inviteId, 3)
+    return makeMockResponse(null)
+  }
 
   // ========== Allocation (student) ==========
   if (url.includes('/allocation/my')) {
