@@ -23,6 +23,13 @@ const list = ref<Recommendation[]>([])
 const loading = ref(false)
 const inviting = ref<number | null>(null)
 
+const roomCapacity = ref(8)
+try {
+  const stored = localStorage.getItem('demo_room_capacity')
+  if (stored) roomCapacity.value = Number(stored)
+} catch {}
+console.log('[Matches] Room capacity:', roomCapacity.value)
+
 const headerTitle = computed(() => {
   switch (activeTab.value) {
     case 'recommendations': return '舍友匹配推荐'
@@ -67,7 +74,7 @@ onMounted(loadRecommendations)
     <div class="unified-header">
       <div class="header-left">
         <h1>{{ headerTitle }}</h1>
-        <p>{{ headerDesc }}</p>
+        <p>{{ headerDesc }} · <el-tag type="warning" size="small">{{ roomCapacity }}人间宿舍</el-tag></p>
       </div>
       <div class="header-tabs">
         <el-radio-group v-model="activeTab" size="small">
