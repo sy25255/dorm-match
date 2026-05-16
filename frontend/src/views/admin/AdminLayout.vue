@@ -56,10 +56,7 @@ function goToStudent() {
           <el-icon><OfficeBuilding /></el-icon>
           <span>宿舍管理</span>
         </el-menu-item>
-        <el-menu-item :index="`${adminBase}/allocation`">
-          <el-icon><Finished /></el-icon>
-          <span>宿舍分配</span>
-        </el-menu-item>
+
         <el-menu-item :index="`${adminBase}/feedback`">
           <el-icon><ChatLineSquare /></el-icon>
           <span>反馈管理</span>
