@@ -99,6 +99,7 @@ async function toggleStatus(row: any) {
   } catch (e: any) {
     if (e !== 'cancel' && e !== 'close') ElMessage.error('操作失败')
   }
+}
 
 function openEdit(row?: any) {
   if (row) {
