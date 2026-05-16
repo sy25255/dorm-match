@@ -14,6 +14,14 @@ interface Member {
 
 const router = useRouter()
 const route = useRoute()
+
+const roomCapacity = ref(8)
+try {
+  const stored = localStorage.getItem('demo_room_capacity')
+  if (stored) roomCapacity.value = Number(stored)
+} catch {}
+console.log('[Pairing] Room capacity:', roomCapacity.value)
+
 const pairing = ref<any>(null)
 const members = ref<Member[]>([])
 const loading = ref(false)
@@ -30,7 +38,7 @@ async function loadData() {
     ])
     pairing.value = p.data.data
     members.value = m.data.data || []
-  } catch {} finally {
+  } catch { ElMessage.error('加载配对数据失败') } finally {
     loading.value = false
   }
 }
@@ -52,10 +60,12 @@ async function sendGroupInvite(targetId: number, targetName: string) {
     await inviteApi.send({ targetId, message: inviteMessage.value || '我们的配对组正在扩招，一起来组队吧！' })
     ElMessage.success('组队邀请已发送')
     showInviteDialog.value = false
-  } catch {}
+  } catch {
+    if (e !== 'cancel' && e !== 'close') ElMessage.error('发送组队邀请失败')
+  }
 }
 
-const statusLabels = ['组建中', '已锁定', '已分配']
+const statusLabels: Record<number, string> = { 0: '组建中', 1: '已锁定', 2: '已分配' }
 
 onMounted(loadData)
 </script>
@@ -89,10 +99,10 @@ onMounted(loadData)
             <el-tag v-else type="success" size="small" style="margin-top:4px">成员</el-tag>
           </el-card>
 
-          <el-card v-if="members.length < 4 && pairing.status === 1" shadow="hover" class="member-card add-card" @click="openInviteDialog">
+          <el-card v-if="members.length < roomCapacity && pairing.status === 1" shadow="hover" class="member-card add-card" @click="openInviteDialog">
             <el-icon :size="48" color="#c9cdd4"><Plus /></el-icon>
             <h3 style="color:#c9cdd4;margin-top:8px">邀请新成员</h3>
-            <el-tag size="small" type="info">还可邀请 {{ 4 - members.length }} 人</el-tag>
+            <el-tag size="small" type="info">当前 {{ roomCapacity }} 人间宿舍 | 还需 {{ roomCapacity - members.length }} 人</el-tag>
           </el-card>
         </div>
 
