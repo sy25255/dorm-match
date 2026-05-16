@@ -188,7 +188,7 @@ export const mockRecommendations = [
   { studentId: 3, name: '王强', avatarUrl: '', collegeName: '计算机学院', majorName: '软件工程', bio: '重度游戏玩家，希望能找到一起开黑的舍友', matchScore: 55.0, dimensionScores: { LIFESTYLE: 30, SLEEP: 30, HYGIENE: 45, SOCIAL: 70, PERSONALITY: 60, STUDY: 40, HOBBY: 75, SPENDING: 55, PSYCHOLOGY: 42 }, commonTags: ['篮球', '游戏'], lifestyleCompat: { smoking: 'conflict', snoring: 'conflict' }, psychCompat: 42, leaderScore: 30, mayBeDormLeader: false, isValid: false },
 ]
 
-export const mockQuota = { maxSent: 5, usedSent: 1, remainingSent: 4, maxReceived: 10, usedReceived: 2, remainingReceived: 8 }
+export const mockQuota = { maxSent: 5, usedSent: 0, remainingSent: 5, maxReceived: 10, usedReceived: 0, remainingReceived: 10 }
 
 export const mockPairing = { id: 1, pairingCode: 'demo-pairing-000', groupSize: 2, status: 1, lockedAt: '2024-08-25T10:00:00', createdAt: '2024-08-25T09:30:00' }
 
@@ -974,6 +974,138 @@ export function getSchoolStatistics(schoolCode: string) {
     ],
     dimensionAverages: { SLEEP: 3.2, HYGIENE: 3.5, STUDY: 3.0, HOBBY: 3.8, SOCIAL: 3.3, SPENDING: 2.8, PERSONALITY: 3.1, PSYCHOLOGY: 3.4 },
     leaderScoreDistribution: { high: Math.floor(total * 0.22), medium: Math.floor(total * 0.55), low: Math.floor(total * 0.23) },
+  }
+}
+
+// ==================== 宿舍容量配置 ====================
+
+export function getRoomCapacityConfig(): number {
+  try {
+    const stored = localStorage.getItem('demo_room_capacity')
+    if (stored) return Number(stored)
+  } catch {}
+  return 8
+}
+
+export function setRoomCapacityConfig(capacity: number) {
+  localStorage.setItem('demo_room_capacity', String(capacity))
+}
+
+// ==================== 邀请持久化辅助 ====================
+
+const INVITE_SENT_KEY = 'demo_sent_invites'
+const INVITE_RECEIVED_KEY = 'demo_received_invites'
+const PAIR_GROUPS_KEY = 'demo_pair_groups'
+
+interface PersistedInvite {
+  id: number
+  fromStudentId: number
+  toStudentId: number
+  message: string
+  status: number
+  createdAt: string
+  expiresAt: string
+  schoolCode: string
+}
+
+interface PersistedPairGroup {
+  pairId: number
+  members: number[]
+  status: number
+  pairingCode: string
+  schoolCode: string
+}
+
+export function getPersistedSentInvites(): PersistedInvite[] {
+  try {
+    const raw = localStorage.getItem(INVITE_SENT_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+}
+
+function saveSentInvites(invites: PersistedInvite[]) {
+  localStorage.setItem(INVITE_SENT_KEY, JSON.stringify(invites))
+}
+
+export function getPersistedReceivedInvites(): PersistedInvite[] {
+  try {
+    const raw = localStorage.getItem(INVITE_RECEIVED_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+}
+
+function saveReceivedInvites(invites: PersistedInvite[]) {
+  localStorage.setItem(INVITE_RECEIVED_KEY, JSON.stringify(invites))
+}
+
+export function getPersistedPairGroups(): PersistedPairGroup[] {
+  try {
+    const raw = localStorage.getItem(PAIR_GROUPS_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return [
+    { pairId: 1, members: [1, 2], status: 1, pairingCode: 'PAIR-240825-A1', schoolCode: 'DEMO-UNI' },
+    { pairId: 2, members: [4, 5], status: 1, pairingCode: 'PAIR-240825-A2', schoolCode: 'DEMO-UNI' },
+    { pairId: 3, members: [9, 10], status: 1, pairingCode: 'PAIR-240825-B1', schoolCode: 'DEMO-UNI' },
+  ]
+}
+
+function savePairGroups(groups: PersistedPairGroup[]) {
+  localStorage.setItem(PAIR_GROUPS_KEY, JSON.stringify(groups))
+}
+
+export function addSentInvite(invite: PersistedInvite) {
+  const list = getPersistedSentInvites()
+  list.push(invite)
+  saveSentInvites(list)
+  console.log('[Invite] Sent invite persisted:', invite.id, 'from', invite.fromStudentId, 'to', invite.toStudentId)
+}
+
+export function addReceivedInvite(invite: PersistedInvite) {
+  const list = getPersistedReceivedInvites()
+  list.push(invite)
+  saveReceivedInvites(list)
+  console.log('[Invite] Received invite persisted:', invite.id, 'for student', invite.toStudentId)
+}
+
+export function updateInviteStatus(inviteId: number, newStatus: number) {
+  const sent = getPersistedSentInvites()
+  const received = getPersistedReceivedInvites()
+  const updateFn = (list: PersistedInvite[]) => {
+    const idx = list.findIndex(i => i.id === inviteId)
+    if (idx >= 0) list[idx].status = newStatus
+    return list
+  }
+  saveSentInvites(updateFn(sent))
+  saveReceivedInvites(updateFn(received))
+  console.log('[Invite] Status updated:', inviteId, '->', newStatus)
+}
+
+export function addPairMember(groupId: number, studentId: number, schoolCode: string) {
+  const groups = getPersistedPairGroups()
+  let group = groups.find(g => g.pairId === groupId && g.schoolCode === schoolCode)
+  if (group) {
+    if (!group.members.includes(studentId)) {
+      group.members.push(studentId)
+      console.log('[Pair] Student', studentId, 'added to group', groupId, 'members:', group.members)
+    }
+  } else {
+    groups.push({ pairId: groupId, members: [studentId], status: 1, pairingCode: `PAIR-${Date.now().toString(36).toUpperCase()}`, schoolCode })
+    console.log('[Pair] New group created:', groupId, 'with student', studentId)
+  }
+  savePairGroups(groups)
+}
+
+export function computeQuota(userId: number): { maxSent: number; usedSent: number; remainingSent: number; maxReceived: number; usedReceived: number; remainingReceived: number } {
+  const sent = getPersistedSentInvites().filter(i => i.fromStudentId === userId)
+  const received = getPersistedReceivedInvites().filter(i => i.toStudentId === userId && i.status === 0)
+  return {
+    maxSent: 5,
+    usedSent: sent.filter(i => i.status === 0).length,
+    remainingSent: Math.max(0, 5 - sent.filter(i => i.status === 0).length),
+    maxReceived: 10,
+    usedReceived: received.length,
+    remainingReceived: Math.max(0, 10 - received.length),
   }
 }
 
