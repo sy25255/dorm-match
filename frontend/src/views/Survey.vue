@@ -120,7 +120,8 @@ const bioStatus = computed(() => {
 })
 
 function checkCompleted() {
-  if (localStorage.getItem('demo_survey_completed') === 'true') {
+  const userId = localStorage.getItem('userId') || '0'
+  if (localStorage.getItem(`demo_survey_completed_${userId}`) === 'true') {
     submitted.value = true
   }
 }
@@ -341,9 +342,10 @@ async function handleSubmit() {
     })
     allItems.push({ questionId: -1, answerValue: JSON.stringify(selfIntro.value) })
     await surveyApi.submit(allItems)
+    const userId = localStorage.getItem('userId') || '0'
     localStorage.removeItem('demo_survey_intro')
     localStorage.removeItem('demo_survey_supplements')
-    localStorage.removeItem('demo_survey_draft')
+    localStorage.removeItem(`demo_survey_draft_${userId}`)
     localStorage.removeItem('demo_survey_section')
     ElMessage.success('问卷提交成功！正在为你计算匹配结果...')
     submitted.value = true

@@ -35,7 +35,8 @@ function makeMockResponse(data: any) {
 }
 
 function getDraftFromStorage() {
-  return JSON.parse(localStorage.getItem('demo_survey_draft') || '{}')
+  const userId = localStorage.getItem('userId') || '0'
+  return JSON.parse(localStorage.getItem(`demo_survey_draft_${userId}`) || '{}')
 }
 
 function parseBody(data: any) {
@@ -50,7 +51,7 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
   const m = await loadMockData()
   const userId = Number(localStorage.getItem('userId')) || 1
   const schoolCode = schoolCodeParam || localStorage.getItem('schoolCode') || 'DEMO-UNI'
-  const surveyDone = localStorage.getItem('demo_survey_completed') === 'true'
+  const surveyDone = localStorage.getItem(`demo_survey_completed_${userId}`) === 'true'
 
   // ========== School Validation ==========
   if (url.includes('/school/validate')) {
@@ -110,7 +111,7 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
       if (bodyData?.answers) {
         const draft: Record<string, string> = getDraftFromStorage()
         bodyData.answers.forEach((a: any) => { draft[String(a.questionId)] = a.answerValue })
-        localStorage.setItem('demo_survey_draft', JSON.stringify(draft))
+        localStorage.setItem(`demo_survey_draft_${userId}`, JSON.stringify(draft))
       }
       return makeMockResponse(null)
     }
@@ -119,7 +120,7 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
     return makeMockResponse(items)
   }
   if (url.includes('/survey/submit')) {
-    localStorage.setItem('demo_survey_completed', 'true')
+    localStorage.setItem(`demo_survey_completed_${userId}`, 'true')
     return makeMockResponse(null)
   }
 

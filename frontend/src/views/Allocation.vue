@@ -3,7 +3,7 @@ import { ref, onMounted, nextTick, watch } from 'vue'
 import { allocationApi } from '@/api/invite'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ChatDotRound, User, CopyDocument } from '@element-plus/icons-vue'
+import { ChatDotRound, User } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
 
@@ -55,14 +55,6 @@ function sendMessage() {
 function formatTime(iso: string) {
   const d = new Date(iso)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
-
-function copyText(text: string, label: string) {
-  navigator.clipboard.writeText(text).then(() => {
-    ElMessage.success(`${label}已复制到剪贴板`)
-  }).catch(() => {
-    ElMessage.info(`${label}: ${text}`)
-  })
 }
 
 onMounted(async () => {
@@ -155,23 +147,6 @@ async function submitObjection() {
                         <span class="rm-bio">{{ r.bio || '这个人很懒，什么都没写' }}</span>
                       </div>
                       <el-tag size="small" class="bed-tag">{{ r.bedNo }}号床</el-tag>
-                    </div>
-                    <div class="rm-contact">
-                      <div v-if="r.wechat" class="contact-item" @click="copyText(r.wechat, '微信')">
-                        <span class="contact-label">微信</span>
-                        <span class="contact-value">{{ r.wechat }}</span>
-                        <el-icon :size="14"><CopyDocument /></el-icon>
-                      </div>
-                      <div v-if="r.phone" class="contact-item" @click="copyText(r.phone, '手机号')">
-                        <span class="contact-label">手机</span>
-                        <span class="contact-value">{{ r.phone }}</span>
-                        <el-icon :size="14"><CopyDocument /></el-icon>
-                      </div>
-                      <div v-if="r.email" class="contact-item" @click="copyText(r.email, '邮箱')">
-                        <span class="contact-label">邮箱</span>
-                        <span class="contact-value">{{ r.email }}</span>
-                        <el-icon :size="14"><CopyDocument /></el-icon>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -306,40 +281,6 @@ async function submitObjection() {
 
 .bed-tag {
   flex-shrink: 0;
-}
-
-.rm-contact {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-top: 8px;
-  border-top: 1px dashed #e4e7ed;
-}
-
-.contact-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  padding: 3px 6px;
-  border-radius: 4px;
-  transition: background 0.15s;
-}
-
-.contact-item:hover {
-  background: #f5f7fa;
-}
-
-.contact-label {
-  color: #909399;
-  min-width: 32px;
-}
-
-.contact-value {
-  color: #409eff;
-  flex: 1;
 }
 
 .allocation-actions {
