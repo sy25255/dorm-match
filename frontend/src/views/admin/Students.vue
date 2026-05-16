@@ -41,13 +41,13 @@ watch(filterCollegeId, async (cid) => {
   filterMajorId.value = null
   filterClassId.value = null
   if (!cid) { availableMajors.value = []; availableClasses.value = []; return }
-  try { const res = await request.get('/school/majors', { params: { collegeId: cid } }); availableMajors.value = res.data.data || [] } catch { ElMessage.error('加载专业列表失败') }
+  try { const res = await request.get('/school/majors', { params: { collegeId: cid } }); availableMajors.value = res.data.data || [] } catch {}
 })
 
 watch(filterMajorId, async (mid) => {
   filterClassId.value = null
   if (!mid) { availableClasses.value = []; return }
-  try { const res = await request.get('/school/classes', { params: { majorId: mid } }); availableClasses.value = res.data.data || [] } catch { ElMessage.error('加载班级列表失败') }
+  try { const res = await request.get('/school/classes', { params: { majorId: mid } }); availableClasses.value = res.data.data || [] } catch {}
 })
 
 watch(() => form.value.collegeId, async (cid) => {
@@ -61,7 +61,7 @@ watch(() => form.value.majorId, async (mid) => {
     try { const res = await request.get('/school/majors', { params: { collegeId: form.value.collegeId } })
       const list = res.data.data || []
       form.value.majorName = list.find((m: any) => m.id === mid)?.name || ''
-    } catch { ElMessage.error('加载院系列表失败') }
+    } catch {}
   }
 })
 
@@ -82,12 +82,12 @@ async function loadColleges() {
   try {
     const res = await request.get('/school/colleges')
     allColleges.value = res.data.data || []
-  } catch { ElMessage.error('加载院系列表失败') }
+  } catch {}
 }
 
 async function loadStudents() {
   loading.value = true
-  try { const res = await adminApi.getStudents(); students.value = res.data.data || [] } catch { ElMessage.error('加载学生列表失败') } finally { loading.value = false }
+  try { const res = await adminApi.getStudents(); students.value = res.data.data || [] } catch {} finally { loading.value = false }
 }
 
 async function toggleStatus(row: any) {
@@ -96,9 +96,8 @@ async function toggleStatus(row: any) {
     await ElMessageBox.confirm(`确认${newStatus === 0 ? '禁用' : '启用'}学生"${row.name}"吗？`, '提示', { type: 'warning' })
     await adminApi.toggleStudent(row.id, newStatus)
     row.status = newStatus
-  } catch (e: any) {
-    if (e !== 'cancel' && e !== 'close') ElMessage.error('操作失败')
-  }
+  } catch {}
+}
 
 function openEdit(row?: any) {
   if (row) {
@@ -121,7 +120,7 @@ async function saveStudent() {
     }
     editDialogVisible.value = false
     loadStudents()
-  } catch { ElMessage.error('保存学生信息失败，请重试') }
+  } catch {}
 }
 
 async function loadInviteCodes() {

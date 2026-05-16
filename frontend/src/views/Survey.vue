@@ -155,7 +155,6 @@ onMounted(async () => {
       if (idx >= 0 && idx < sections.value.length) sectionFromDraft.value = idx
     }
   } catch {
-    ElMessage.warning('问卷数据加载失败，请刷新重试')
     buildSections()
   }
 })
@@ -294,7 +293,7 @@ async function saveDraft() {
   if (items.length === 0) return
   try {
     await surveyApi.saveDraft(items)
-  } catch { ElMessage.warning('草稿保存失败') }
+  } catch {}
   localStorage.setItem('demo_survey_supplements', JSON.stringify(supplements.value))
 }
 

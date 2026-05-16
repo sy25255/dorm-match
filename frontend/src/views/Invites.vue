@@ -48,7 +48,7 @@ async function loadAll() {
       } catch { nameMap[id] = `学生${id}` }
     }
     studentNames.value = nameMap
-  } catch { ElMessage.error('加载邀请数据失败') } finally {
+  } catch {} finally {
     loading.value = false
   }
 }
@@ -67,7 +67,7 @@ async function accept(id: number) {
     await inviteApi.accept(id)
     ElMessage.success('配对成功！')
     loadAll()
-  } catch { ElMessage.error('接受邀请失败') } finally {
+  } catch {} finally {
     processingId.value = null
   }
 }
@@ -78,7 +78,7 @@ async function reject(id: number) {
     await inviteApi.reject(id)
     ElMessage.success('已拒绝')
     loadAll()
-  } catch { ElMessage.error('拒绝邀请失败') } finally {
+  } catch {} finally {
     processingId.value = null
   }
 }
@@ -89,7 +89,7 @@ async function withdraw(id: number) {
     await inviteApi.withdraw(id)
     ElMessage.success('已撤回')
     loadAll()
-  } catch { ElMessage.error('撤回邀请失败') } finally {
+  } catch {} finally {
     processingId.value = null
   }
 }

@@ -36,7 +36,7 @@ async function handleLogin() {
     await userStore.login(loginForm.studentNo, loginForm.password)
     ElMessage.success('登录成功')
     router.push(`/${schoolCode.value}${userStore.role === 'ADMIN' ? '/admin' : '/'}`)
-  } catch { ElMessage.error('登录失败，请检查学号和密码') } finally { loading.value = false }
+  } catch {} finally { loading.value = false }
 }
 
 function demoLogin(name: string, studentNo?: string) {

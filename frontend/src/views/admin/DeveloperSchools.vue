@@ -45,9 +45,7 @@ async function toggleSchool(row: any) {
     await devApi.updateSchoolConfig(row.code, { ...row, status: row.status === 1 ? 0 : 1 })
     ElMessage.success(`学校已${action}`)
     loadSchools()
-  } catch (e: any) {
-    if (e !== 'cancel' && e !== 'close') ElMessage.error('操作失败')
-  }
+  } catch {}
 }
 
 const statusMap: Record<number, { label: string; type: string }> = {

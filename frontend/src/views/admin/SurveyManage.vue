@@ -124,9 +124,7 @@ async function toggleQuestion(row: any) {
     await adminApi.toggleQuestion(row.id, newStatus)
     row.status = newStatus
     ElMessage.success(`题目已${actionText}`)
-  } catch (e: any) {
-    if (e !== 'cancel' && e !== 'close') ElMessage.error('操作失败')
-  }
+  } catch {}
 }
 
 async function deleteQuestion(row: any) {
@@ -134,9 +132,7 @@ async function deleteQuestion(row: any) {
     await ElMessageBox.confirm(`确认删除题目"${row.questionText.slice(0, 20)}..."吗？`, '警告', { type: 'warning' })
     await adminApi.deleteQuestion(row.id)
     loadQuestions()
-  } catch (e: any) {
-    if (e !== 'cancel' && e !== 'close') ElMessage.error('删除失败')
-  }
+  } catch {}
 }
 
 const dimLabelMap: Record<string, string> = {

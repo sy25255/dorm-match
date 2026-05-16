@@ -30,7 +30,7 @@ async function loadData() {
     ])
     pairing.value = p.data.data
     members.value = m.data.data || []
-  } catch { ElMessage.error('加载配对数据失败') } finally {
+  } catch {} finally {
     loading.value = false
   }
 }
@@ -52,12 +52,10 @@ async function sendGroupInvite(targetId: number, targetName: string) {
     await inviteApi.send({ targetId, message: inviteMessage.value || '我们的配对组正在扩招，一起来组队吧！' })
     ElMessage.success('组队邀请已发送')
     showInviteDialog.value = false
-  } catch {
-    if (e !== 'cancel' && e !== 'close') ElMessage.error('发送组队邀请失败')
-  }
+  } catch {}
 }
 
-const statusLabels: Record<number, string> = { 0: '组建中', 1: '已锁定', 2: '已分配' }
+const statusLabels = ['组建中', '已锁定', '已分配']
 
 onMounted(loadData)
 </script>

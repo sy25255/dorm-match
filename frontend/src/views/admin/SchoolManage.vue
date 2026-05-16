@@ -38,7 +38,7 @@ function getMajorName(id: number) {
 }
 
 async function loadConfig() {
-  try { const res = await schoolApi.getConfig(); config.value = res.data.data || {} } catch { ElMessage.error('加载学校配置失败') }
+  try { const res = await schoolApi.getConfig(); config.value = res.data.data || {} } catch {}
 }
 
 async function saveConfig() { await schoolApi.updateConfig(config.value); ElMessage.success('学校配置已保存') }

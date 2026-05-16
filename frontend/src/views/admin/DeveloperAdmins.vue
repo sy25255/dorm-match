@@ -44,9 +44,7 @@ async function deleteAdmin(row: any) {
     await devApi.deleteAdmin(row.id)
     ElMessage.success('管理员已删除')
     loadAdmins()
-  } catch (e: any) {
-    if (e !== 'cancel' && e !== 'close') ElMessage.error('删除失败')
-  }
+  } catch {}
 }
 
 const statusMap: Record<number, { label: string; type: string }> = {
