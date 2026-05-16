@@ -18,6 +18,13 @@ interface InviteItem {
 const received = ref<InviteItem[]>([])
 const sent = ref<InviteItem[]>([])
 const quotas = ref({ maxSent: 5, usedSent: 0, remainingSent: 5, maxReceived: 10, usedReceived: 0, remainingReceived: 10 })
+const roomCapacity = ref(8)
+
+try {
+  const stored = localStorage.getItem('demo_room_capacity')
+  if (stored) roomCapacity.value = Number(stored)
+} catch {}
+console.log('[Invites] Room capacity:', roomCapacity.value)
 const activeTab = ref('received')
 const loading = ref(false)
 const studentNames = ref<Record<number, string>>({})
@@ -48,7 +55,7 @@ async function loadAll() {
       } catch { nameMap[id] = `学生${id}` }
     }
     studentNames.value = nameMap
-  } catch {} finally {
+  } catch { ElMessage.error('加载邀请数据失败') } finally {
     loading.value = false
   }
 }
@@ -67,7 +74,7 @@ async function accept(id: number) {
     await inviteApi.accept(id)
     ElMessage.success('配对成功！')
     loadAll()
-  } catch {} finally {
+  } catch { ElMessage.error('接受邀请失败') } finally {
     processingId.value = null
   }
 }
@@ -78,7 +85,7 @@ async function reject(id: number) {
     await inviteApi.reject(id)
     ElMessage.success('已拒绝')
     loadAll()
-  } catch {} finally {
+  } catch { ElMessage.error('拒绝邀请失败') } finally {
     processingId.value = null
   }
 }
@@ -89,7 +96,7 @@ async function withdraw(id: number) {
     await inviteApi.withdraw(id)
     ElMessage.success('已撤回')
     loadAll()
-  } catch {} finally {
+  } catch { ElMessage.error('撤回邀请失败') } finally {
     processingId.value = null
   }
 }
@@ -102,6 +109,7 @@ async function withdraw(id: number) {
       <p>
         发出 {{ quotas.usedSent }}/{{ quotas.maxSent }}
         · 收到 {{ quotas.usedReceived }}/{{ quotas.maxReceived }}
+        · {{ roomCapacity }}人间宿舍
       </p>
     </div>
 
