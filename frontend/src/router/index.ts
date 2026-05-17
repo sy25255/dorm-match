@@ -12,7 +12,9 @@ const router = createRouter({
     },
     {
       path: '/:schoolCode/login',
-      redirect: '/',
+      name: 'Login',
+      component: () => import('@/views/Login.vue'),
+      meta: { guest: true },
     },
     {
       path: '/:schoolCode',
@@ -68,12 +70,26 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, _from, next) => {
+let sessionRestored = false
+
+router.beforeEach(async (to, _from, next) => {
   const userStore = useUserStore()
   const storedCode = localStorage.getItem('schoolCode')
 
+  if (!sessionRestored) {
+    sessionRestored = true
+    const hasSession = await userStore.restoreSession().catch(() => false)
+    if (hasSession && userStore.schoolCode.value) {
+      if (to.path === '/' || to.name === 'SchoolEntry') {
+        const target = `/${userStore.schoolCode.value}${userStore.role.value === 'ADMIN' ? '/admin' : '/'}`
+        next(target)
+        return
+      }
+    }
+  }
+
   if (to.meta.dev) {
-    if (!userStore.token) { next('/'); return }
+    if (!userStore.token && !userStore.supabaseUserId) { next('/'); return }
     if (userStore.role !== 'DEVELOPER') {
       next(storedCode ? `/${storedCode}/` : '/')
       return
@@ -85,13 +101,15 @@ router.beforeEach((to, _from, next) => {
   const scFromPath = to.params.schoolCode as string | undefined
 
   if (storedCode) {
-    if (to.name === 'SchoolEntry' && userStore.token) {
-      next(`/${storedCode}${userStore.role === 'ADMIN' ? '/admin' : '/'}`)
+    if (to.name === 'SchoolEntry' && (userStore.token || userStore.supabaseUserId)) {
+      next(`/${storedCode}${userStore.role.value === 'ADMIN' || userStore.role.value === 'DEVELOPER' ? (userStore.role.value === 'DEVELOPER' ? '/admin' : '/admin') : userStore.role.value === 'ADMIN' ? '/admin' : '/'}`)
       return
     }
     if (scFromPath && scFromPath !== storedCode) {
-      localStorage.clear()
-      userStore.logout()
+      localStorage.removeItem('schoolCode')
+      localStorage.removeItem('schoolName')
+      userStore.schoolCode = ''
+      userStore.schoolName = ''
       next('/')
       return
     }
@@ -109,7 +127,7 @@ router.beforeEach((to, _from, next) => {
   }
 
   if (to.meta.guest) {
-    if (userStore.token) {
+    if (userStore.token || userStore.supabaseUserId) {
       next(`/${storedCode}/`)
       return
     }
@@ -118,7 +136,7 @@ router.beforeEach((to, _from, next) => {
   }
 
   if (to.meta.admin) {
-    if (!userStore.token) {
+    if (!userStore.token && !userStore.supabaseUserId) {
       next('/')
       return
     }
@@ -130,7 +148,7 @@ router.beforeEach((to, _from, next) => {
     return
   }
 
-  if (!userStore.token) {
+  if (!userStore.token && !userStore.supabaseUserId) {
     next('/')
     return
   }

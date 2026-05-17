@@ -5,9 +5,27 @@
 
 ## 技术栈
 - 前端：Vue 3 + TypeScript + Element Plus + Vite + Pinia + ECharts
-- 后端：Java Spring Boot（仅本地开发用，GitHub Pages 部署时使用 mock 数据）
-- 部署：**GitHub Pages**（纯前端静态部署，无后端）
+- 后端：**Supabase**（PostgreSQL + Auth + RLS），替代旧 mock 数据方案
+- 部署：**GitHub Pages**（前端静态部署）+ **Supabase**（数据库 & 认证云服务）
 - 自动化测试：Playwright (Python)
+
+## 后端迁移规划（Supabase → 未来腾讯云/阿里云）
+### 当前阶段：Supabase 免费版
+- **用途**：真实数据库 + 用户认证，支持多人同时使用
+- **免费额度**：500MB 数据库、5万月活用户、不绑卡、不花钱
+- **区域**：Southeast Asia (Singapore) — `ap-southeast-1`
+- **前端 SDK**：`@supabase/supabase-js`
+- **核心模块**：
+  - `src/lib/supabase.ts` — Supabase 客户端初始化（Project URL + anon key）
+  - Auth：`signUp()` / `signInWithPassword()` 替代 mock token
+  - 数据库：直接查询 PostgreSQL，替代 `handleMock()` 拦截器
+  - RLS：Row Level Security 实现学校间数据天然隔离
+
+### 未来阶段：收费功能上线后迁移到腾讯云/阿里云
+- **触发条件**：产品需要向用户收费、需要微信/支付宝支付集成、需要国内更低延迟
+- **迁移方式**：Supabase 导出完整 SQL dump → 导入腾讯云 PostgreSQL / 阿里云 RDS
+- **数据不会丢失**：所有数据可一键导出，不绑定平台
+- **前端代码改动量小**：只需替换 supabase 客户端连接信息
 
 ## 已部署网站
 - **地址**：https://sy25255.github.io/dorm-match/
@@ -172,6 +190,36 @@ https://sy25255.github.io/dorm-match/ （用户需 Ctrl+F5 刷新）
 - **修改 mock 数据时保持 `data.ts` 结构完整**，不要破坏 `handleMock()` 的 URL 匹配逻辑
 - **添加到 request.ts 的新 API 必须同时添加 mock 处理逻辑**
 - **永远不要在代码中硬编码 Token 或密码**，`push-to-github.bat` 已被 `.gitignore` 忽略
+
+## Supabase 配置
+### 获取凭证
+在 Supabase Dashboard → Project Settings → API 中获取：
+- **Project URL**：`https://xxxxx.supabase.co`
+- **anon public key**：以 `eyJ...` 开头的长字符串
+
+### 数据库表结构（17 张表）
+1. `schools` — 学校（多租户核心）
+2. `profiles` — 用户扩展（关联 auth.users）
+3. `colleges` — 学院
+4. `majors` — 专业
+5. `classes` — 班级
+6. `survey_questions` — 问卷题目
+7. `survey_sections` — 问卷分节配置
+8. `survey_answers` — 问卷答案
+9. `invites` — 邀请
+10. `pair_groups` — 配对组
+11. `pair_members` — 配对成员
+12. `dormitory_buildings` — 宿舍楼
+13. `dormitory_rooms` — 宿舍房间
+14. `allocations` — 分配结果
+15. `allocation_objections` — 异议
+16. `notifications` — 通知
+17. `audit_logs` — 审计日志
+
+### RLS 安全策略
+- 所有表启用 Row Level Security
+- 同校学生互相可见，跨校数据完全隔离
+- 管理员只能操作本校数据
 
 ## 常用调试命令
 ```bash

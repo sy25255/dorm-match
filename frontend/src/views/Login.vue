@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
+import { supabase } from '@/lib/supabase'
 
 const router = useRouter()
 const route = useRoute()
@@ -12,15 +13,40 @@ const loading = ref(false)
 const activeTab = ref('login')
 const schoolCode = computed(() => route.params.schoolCode as string)
 
-const loginForm = reactive({ studentNo: '', password: '' })
+const loginForm = reactive({ email: '', password: '' })
 const registerForm = reactive({
-  studentNo: '', realName: '', password: '', confirmPassword: '',
-  inviteCode: '', collegeId: null as number | null, majorId: null as number | null, classId: null as number | null
+  email: '', password: '', confirmPassword: '',
+  realName: '', studentNo: '',
 })
 
-const rules = {
-  studentNo: [{ required: true, message: '请输入学号', trigger: 'blur' }],
+const loginRules = {
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' },
+  ],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+}
+
+const registerRules = {
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' },
+  ],
+  password: [
+    { required: true, message: '请设置密码（至少6位）', trigger: 'blur' },
+    { min: 6, message: '密码至少6位', trigger: 'blur' },
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入密码', trigger: 'blur' },
+    {
+      validator: (_rule: any, value: string, callback: any) => {
+        if (value !== registerForm.password) callback(new Error('两次密码不一致'))
+        else callback()
+      },
+      trigger: 'blur',
+    },
+  ],
+  realName: [{ required: true, message: '请填写真实姓名', trigger: 'blur' }],
 }
 
 onMounted(() => {
@@ -33,14 +59,54 @@ onMounted(() => {
 async function handleLogin() {
   loading.value = true
   try {
-    await userStore.login(loginForm.studentNo, loginForm.password)
+    await userStore.supabaseLogin(loginForm.email, loginForm.password)
     ElMessage.success('登录成功')
     router.push(`/${schoolCode.value}${userStore.role === 'ADMIN' ? '/admin' : '/'}`)
-  } catch {} finally { loading.value = false }
+  } catch (err: any) {
+    const msg = err?.message || '登录失败'
+    if (msg.includes('Invalid login credentials')) {
+      ElMessage.error('邮箱或密码错误')
+    } else if (msg.includes('Email not confirmed')) {
+      ElMessage.warning('邮箱尚未验证，请检查收件箱中的验证邮件')
+    } else {
+      ElMessage.error(msg)
+    }
+  } finally { loading.value = false }
 }
 
+async function handleRegister() {
+  if (registerForm.password !== registerForm.confirmPassword) {
+    ElMessage.warning('两次密码不一致')
+    return
+  }
+  if (!registerForm.realName.trim()) {
+    ElMessage.warning('请填写真实姓名')
+    return
+  }
+  loading.value = true
+  try {
+    await userStore.supabaseRegister(
+      registerForm.email,
+      registerForm.password,
+      registerForm.realName.trim(),
+      schoolCode.value,
+      registerForm.studentNo || ''
+    )
+    ElMessage.success('注册成功！请先完成偏好问卷')
+    router.push(`/${schoolCode.value}/survey`)
+  } catch (err: any) {
+    const msg = err?.message || '注册失败'
+    if (msg.includes('already registered') || msg.includes('already exists')) {
+      ElMessage.error('该邮箱已被注册，请直接登录')
+    } else {
+      ElMessage.error(msg)
+    }
+  } finally { loading.value = false }
+}
+
+// ========== 演示模式（保留兼容） ==========
 function demoLogin(name: string, studentNo?: string) {
-  userStore.demoLogin(studentNo || loginForm.studentNo || '20240001', name)
+  userStore.demoLogin(studentNo || '20240001', name)
   router.push(`/${schoolCode.value}/`)
 }
 
@@ -60,18 +126,6 @@ function demoAdminLogin() {
 function demoDevLogin() {
   userStore.demoDevLogin()
   router.push('/dev')
-}
-
-async function handleRegister() {
-  if (!registerForm.inviteCode) { ElMessage.warning('请输入学校发放的邀请码'); return }
-  if (registerForm.password !== registerForm.confirmPassword) { ElMessage.warning('两次密码不一致'); return }
-  if (!registerForm.realName) { ElMessage.warning('请填写真实姓名'); return }
-  loading.value = true
-  try {
-    await userStore.login(registerForm.studentNo, registerForm.password)
-    ElMessage.success('注册成功！请先完成偏好问卷')
-    router.push(`/${schoolCode.value}/survey`)
-  } finally { loading.value = false }
 }
 
 function backToSchoolEntry() {
@@ -96,10 +150,11 @@ function backToSchoolEntry() {
       </div>
 
       <el-tabs v-model="activeTab" class="login-tabs">
-        <el-tab-pane label="学号登录" name="login">
-          <el-form :model="loginForm" :rules="rules" label-position="top" @submit.prevent="handleLogin">
-            <el-form-item label="学号" prop="studentNo">
-              <el-input v-model="loginForm.studentNo" placeholder="请输入学号" size="large" />
+        <!-- 邮箱登录 -->
+        <el-tab-pane label="邮箱登录" name="login">
+          <el-form :model="loginForm" :rules="loginRules" label-position="top" @submit.prevent="handleLogin">
+            <el-form-item label="邮箱" prop="email">
+              <el-input v-model="loginForm.email" placeholder="请输入邮箱地址" size="large" />
             </el-form-item>
             <el-form-item label="密码" prop="password">
               <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" size="large" show-password />
@@ -108,22 +163,22 @@ function backToSchoolEntry() {
           </el-form>
         </el-tab-pane>
 
+        <!-- 新生注册 -->
         <el-tab-pane label="新生注册" name="register">
-          <el-alert type="info" :closable="false" style="margin-bottom:12px" title="新生需填写学校统一发放的邀请码完成注册" />
-          <el-form :model="registerForm" label-position="top" @submit.prevent="handleRegister">
-            <el-form-item label="邀请码" required>
-              <el-input v-model="registerForm.inviteCode" placeholder="请输入学校发放的邀请码（如 INV-XXXX）" size="large" />
+          <el-form :model="registerForm" :rules="registerRules" label-position="top" @submit.prevent="handleRegister">
+            <el-form-item label="邮箱" prop="email">
+              <el-input v-model="registerForm.email" placeholder="请输入邮箱（登录和找回密码用）" size="large" />
             </el-form-item>
-            <el-form-item label="学号" required>
-              <el-input v-model="registerForm.studentNo" placeholder="请输入录取通知书上的学号" size="large" />
-            </el-form-item>
-            <el-form-item label="真实姓名" required>
+            <el-form-item label="真实姓名" prop="realName">
               <el-input v-model="registerForm.realName" placeholder="请输入真实姓名" size="large" />
             </el-form-item>
-            <el-form-item label="密码" required>
+            <el-form-item label="学号（选填）">
+              <el-input v-model="registerForm.studentNo" placeholder="请输入录取通知书上的学号" size="large" />
+            </el-form-item>
+            <el-form-item label="密码" prop="password">
               <el-input v-model="registerForm.password" type="password" placeholder="设置登录密码（至少6位）" size="large" show-password />
             </el-form-item>
-            <el-form-item label="确认密码" required>
+            <el-form-item label="确认密码" prop="confirmPassword">
               <el-input v-model="registerForm.confirmPassword" type="password" placeholder="再次输入密码" size="large" show-password />
             </el-form-item>
             <el-button type="primary" size="large" :loading="loading" native-type="submit" class="login-btn">注 册</el-button>
@@ -132,7 +187,7 @@ function backToSchoolEntry() {
       </el-tabs>
 
       <el-divider style="margin: 16px 0 12px;">
-        <span style="color:#c9cdd4;font-size:12px;">— 演示模式（无需后端）—</span>
+        <span style="color:#c9cdd4;font-size:12px;">— 演示模式（无后端 / 测试用）—</span>
       </el-divider>
 
       <div class="demo-btns">
@@ -142,9 +197,6 @@ function backToSchoolEntry() {
       <div class="demo-btns" style="margin-top:8px">
         <el-button size="default" class="demo-btn" @click="demoLogin('王芳', '20240011')">👩 王芳 - 计算机</el-button>
         <el-button size="default" class="demo-btn" @click="demoLogin('李娜', '20240012')">👩 李娜 - 软件</el-button>
-      </div>
-      <div class="demo-btns" style="margin-top:8px">
-        <el-button size="default" class="demo-btn new-btn" @click="demoLogin('林思雨', '20240019')">🆕 林思雨 - 日语</el-button>
       </div>
       <div class="demo-btns" style="margin-top:8px">
         <el-button size="default" class="demo-btn admin-btn" @click="demoAdminLogin">🔧 管理员 - 后台管理</el-button>
@@ -176,6 +228,8 @@ function backToSchoolEntry() {
   border-radius: 16px;
   padding: 36px 40px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 .login-header { text-align: center; margin-bottom: 24px; }
 .school-brand { display: flex; flex-direction: column; align-items: center; }
@@ -190,8 +244,6 @@ function backToSchoolEntry() {
 .admin-btn:hover { border-color: #faad14; color: #d48806; background: #fffbe6; }
 .dev-btn { border-color: #b37feb; color: #722ed1; }
 .dev-btn:hover { border-color: #9254de; color: #531dab; background: #f9f0ff; }
-.new-btn { border-color: #5cdbd3; color: #08979c; }
-.new-btn:hover { border-color: #36cfc9; color: #006d75; background: #e6fffb; }
 .switch-school { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; font-size: 13px; color: #a0aec0; cursor: pointer; }
 .switch-school:hover { color: #667eea; }
 </style>

@@ -1,23 +1,17 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
-import request from '@/api/request'
+import { supabase } from '@/lib/supabase'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
 
-const activeTab = ref('login')
-const loading = ref(false)
 const schoolCode = ref('')
-const validatedSchool = ref<{ code: string; name: string } | null>(null)
 const validating = ref(false)
+const validatedSchool = ref<{ code: string; name: string } | null>(null)
 const codeTouched = ref(false)
-const rememberAccount = ref(true)
-
-const loginForm = reactive({ studentNo: '', password: '' })
-const registerForm = reactive({ studentNo: '', realName: '', password: '', confirmPassword: '' })
 
 const demoStudents = [
   { name: '张伟', studentNo: '20240001', school: 'DEMO-UNI', schoolName: '示范大学' },
@@ -26,13 +20,6 @@ const demoStudents = [
 const demoAdmins = [
   { label: '示范大学', school: 'DEMO-UNI', schoolName: '示范大学' },
 ]
-
-onMounted(() => {
-  const remembered = userStore.getRememberedAccount()
-  if (remembered) {
-    loginForm.studentNo = remembered
-  }
-})
 
 async function validateSchoolCode() {
   const code = schoolCode.value.trim().toUpperCase()
@@ -43,10 +30,28 @@ async function validateSchoolCode() {
   }
   validating.value = true
   try {
-    const res = await request.post('/school/validate', { code })
-    const data = res.data?.data || res.data
-    if (data?.valid && data?.school) {
-      validatedSchool.value = data.school
+    const { data, error } = await supabase
+      .from('schools')
+      .select('code, name')
+      .eq('code', code)
+      .eq('status', 1)
+      .single()
+
+    if (error) {
+      // Fallback: try mock if Supabase not yet set up
+      try {
+        const mod = await import('@/mock/data')
+        const school = mod.getSchoolByCode(code)
+        if (school) {
+          validatedSchool.value = school
+        } else {
+          validatedSchool.value = null
+        }
+      } catch {
+        validatedSchool.value = null
+      }
+    } else if (data) {
+      validatedSchool.value = data
     } else {
       validatedSchool.value = null
     }
@@ -57,85 +62,28 @@ async function validateSchoolCode() {
   }
 }
 
-async function ensureSchoolValidated(): Promise<boolean> {
-  if (validatedSchool.value || validating.value) return true
-  await validateSchoolCode()
-  return !!validatedSchool.value
-}
-
-async function handleLogin() {
+async function enterSchool() {
   const code = schoolCode.value.trim().toUpperCase()
   if (!code) { ElMessage.warning('请输入学校编码'); return }
-  if (!loginForm.studentNo) { ElMessage.warning('请输入学号'); return }
-  if (!loginForm.password) { ElMessage.warning('请输入密码'); return }
 
-  loading.value = true
-  try {
-    if (!validatedSchool.value) {
-      await validateSchoolCode()
-    }
-    if (!validatedSchool.value) {
-      ElMessage.warning('学校编码无效，请检查后重试')
-      return
-    }
-    await userStore.login(loginForm.studentNo, loginForm.password, code)
-    userStore.setSchoolInfo(validatedSchool.value.code, validatedSchool.value.name)
-    if (!rememberAccount.value) {
-      userStore.clearRememberedAccount()
-    }
-    ElMessage.success(`欢迎来到${validatedSchool.value.name}！`)
-    const target = userStore.role === 'ADMIN' ? `/${code}/admin` : `/${code}/`
-    router.push(target)
-  } catch (e: any) {
-    const msg = e?.response?.data?.message || '登录失败，请检查学号和密码是否正确'
-    ElMessage.error(msg)
-  } finally { loading.value = false }
-}
-
-async function handleRegister() {
-  const code = schoolCode.value.trim().toUpperCase()
-  if (!code) { ElMessage.warning('请输入学校编码'); return }
-  if (!registerForm.studentNo) { ElMessage.warning('请输入学号'); return }
-  if (!registerForm.realName) { ElMessage.warning('请填写真实姓名'); return }
-  if (!registerForm.password) { ElMessage.warning('请设置密码'); return }
-  if (registerForm.password !== registerForm.confirmPassword) { ElMessage.warning('两次密码不一致'); return }
-
-  loading.value = true
-  try {
-    if (!validatedSchool.value) {
-      await validateSchoolCode()
-    }
-    if (!validatedSchool.value) {
-      ElMessage.warning('学校编码无效，请检查后重试')
-      return
-    }
-    await userStore.register(code, registerForm.studentNo, registerForm.realName, registerForm.password)
-    userStore.setSchoolInfo(validatedSchool.value.code, validatedSchool.value.name)
-    if (!rememberAccount.value) {
-      userStore.clearRememberedAccount()
-    }
-    ElMessage.success('注册成功！请先完成偏好问卷')
-    router.push(`/${code}/survey`)
-  } catch (e: any) {
-    const msg = e?.response?.data?.message || '注册失败，该学号可能已被注册'
-    ElMessage.error(msg)
-  } finally { loading.value = false }
-}
-
-function onSwitchTab(tab: string) {
-  activeTab.value = tab
-  if (tab === 'login') {
-    const remembered = userStore.getRememberedAccount()
-    if (remembered && !loginForm.studentNo) {
-      loginForm.studentNo = remembered
-    }
+  if (!validatedSchool.value) {
+    await validateSchoolCode()
   }
+
+  if (!validatedSchool.value) {
+    ElMessage.warning('学校编码无效，请检查后重试')
+    return
+  }
+
+  userStore.setSchoolInfo(validatedSchool.value.code, validatedSchool.value.name)
+  router.push(`/${validatedSchool.value.code}/login`)
+}
+
+function onKeyUp(e: KeyboardEvent) {
+  if (e.key === 'Enter') enterSchool()
 }
 
 function demoLogin(studentNo: string, name: string, school: string, schoolName: string) {
-  schoolCode.value = school.toUpperCase()
-  validatedSchool.value = { code: school.toUpperCase(), name: schoolName }
-  loginForm.studentNo = studentNo
   userStore.demoLogin(studentNo, name)
   userStore.setSchoolInfo(school.toUpperCase(), schoolName)
   router.push(`/${school.toUpperCase()}/`)
@@ -143,8 +91,6 @@ function demoLogin(studentNo: string, name: string, school: string, schoolName: 
 
 function demoAdminLogin(school: string, schoolName: string) {
   userStore.logout()
-  schoolCode.value = school.toUpperCase()
-  validatedSchool.value = { code: school.toUpperCase(), name: schoolName }
   userStore.role = 'ADMIN'
   userStore.token = 'demo-admin-token'
   userStore.userId = 99
@@ -158,6 +104,7 @@ function demoAdminLogin(school: string, schoolName: string) {
   router.push(`/${school.toUpperCase()}/admin`)
 }
 
+// ========== 开发者入口 ==========
 const showDevPwd = ref(false)
 const devPassword = ref('')
 
@@ -178,6 +125,7 @@ function confirmDevAccess() {
   }
 }
 
+// ========== 测试登录 ==========
 const showTestLogin = ref(false)
 const testLoginForm = reactive({ name: '', school: '示范大学', college: '', major: '' })
 
@@ -217,7 +165,6 @@ function handleTestLogin() {
   localStorage.setItem('test_user_major', testLoginForm.major)
   localStorage.setItem('is_test_user', 'true')
 
-  // 写入共享注册表，让同一浏览器内的测试账号互相可见
   const registryKey = 'demo_registered_test_users'
   const raw = localStorage.getItem(registryKey)
   const registry: any[] = raw ? JSON.parse(raw) : []
@@ -243,13 +190,6 @@ function handleTestLogin() {
   showTestLogin.value = false
   router.push('/DEMO-UNI/')
 }
-
-function onKeyUpLogin(e: KeyboardEvent) {
-  if (e.key === 'Enter') handleLogin()
-}
-function onKeyUpRegister(e: KeyboardEvent) {
-  if (e.key === 'Enter') handleRegister()
-}
 </script>
 
 <template>
@@ -264,169 +204,49 @@ function onKeyUpRegister(e: KeyboardEvent) {
           <el-icon :size="44" color="#667eea"><School /></el-icon>
         </div>
         <h1 class="entry-title">新生宿舍舍友选择系统</h1>
-        <p class="entry-subtitle">登录或注册，开启你的大学舍友之旅</p>
+        <p class="entry-subtitle">输入学校编码，开启你的大学舍友之旅</p>
       </div>
 
-      <el-tabs v-model="activeTab" class="entry-tabs" @tab-change="onSwitchTab">
-        <el-tab-pane label="登录" name="login">
-          <div class="form-section">
-            <div class="form-item">
-              <label class="form-label">学校编码</label>
-              <div class="school-code-row">
-                <el-input
-                  v-model="schoolCode"
-                  placeholder="例如：DEMO-UNI"
-                  size="large"
-                  :maxlength="20"
-                  class="code-input"
-                  @input="codeTouched = false; validatedSchool = null"
-                  @blur="validateSchoolCode"
-                  @keyup="onKeyUpLogin"
-                >
-                  <template #prefix>
-                    <el-icon><Key /></el-icon>
-                  </template>
-                </el-input>
-                <span v-if="validatedSchool" class="school-check">
-                  <el-icon color="#52c41a"><CircleCheck /></el-icon>
-                  {{ validatedSchool.name }}
-                </span>
-              </div>
-              <p v-if="codeTouched && schoolCode && !validatedSchool && !validating" class="form-hint" style="color:#f53f3f">
-                学校编码无效，请检查后重试
-              </p>
-            </div>
-
-            <div class="form-item">
-              <label class="form-label">学号</label>
-              <el-input
-                v-model="loginForm.studentNo"
-                placeholder="请输入学号"
-                size="large"
-                @keyup="onKeyUpLogin"
-              />
-            </div>
-
-            <div class="form-item">
-              <label class="form-label">密码</label>
-              <el-input
-                v-model="loginForm.password"
-                type="password"
-                placeholder="请输入密码"
-                size="large"
-                show-password
-                @keyup="onKeyUpLogin"
-              />
-            </div>
-
-            <div class="form-options">
-              <el-checkbox v-model="rememberAccount" size="small">记住账号</el-checkbox>
-            </div>
-
-            <el-button
-              type="primary"
+      <div class="form-section">
+        <div class="form-item">
+          <label class="form-label">学校编码</label>
+          <div class="school-code-row">
+            <el-input
+              v-model="schoolCode"
+              placeholder="例如：DEMO-UNI"
               size="large"
-              :loading="loading"
-              class="submit-btn"
-              @click="handleLogin"
+              :maxlength="20"
+              class="code-input"
+              @input="codeTouched = false; validatedSchool = null"
+              @blur="validateSchoolCode"
+              @keyup="onKeyUp"
             >
-              登 录
-            </el-button>
+              <template #prefix>
+                <el-icon><Key /></el-icon>
+              </template>
+            </el-input>
+            <span v-if="validatedSchool" class="school-check">
+              <el-icon color="#52c41a"><CircleCheck /></el-icon>
+              {{ validatedSchool.name }}
+            </span>
           </div>
-        </el-tab-pane>
+          <p v-if="codeTouched && schoolCode && !validatedSchool && !validating" class="form-hint" style="color:#f53f3f">
+            学校编码无效，请检查后重试
+          </p>
+        </div>
 
-        <el-tab-pane label="注册" name="register">
-          <div class="form-section">
-            <div class="form-item">
-              <label class="form-label">学校编码 <span class="required">*</span></label>
-              <div class="school-code-row">
-                <el-input
-                  v-model="schoolCode"
-                  placeholder="例如：DEMO-UNI"
-                  size="large"
-                  :maxlength="20"
-                  class="code-input"
-                  @input="codeTouched = false; validatedSchool = null"
-                  @blur="validateSchoolCode"
-                  @keyup="onKeyUpRegister"
-                >
-                  <template #prefix>
-                    <el-icon><Key /></el-icon>
-                  </template>
-                </el-input>
-                <span v-if="validatedSchool" class="school-check">
-                  <el-icon color="#52c41a"><CircleCheck /></el-icon>
-                  {{ validatedSchool.name }}
-                </span>
-              </div>
-              <p v-if="schoolCode && !validatedSchool && !validating" class="form-hint" style="color:#f53f3f">
-                学校编码无效，请检查后重试
-              </p>
-            </div>
+        <el-button
+          type="primary"
+          size="large"
+          :loading="validating"
+          class="submit-btn"
+          @click="enterSchool"
+        >
+          进入登录
+        </el-button>
+      </div>
 
-            <div class="form-item">
-              <label class="form-label">学号 <span class="required">*</span></label>
-              <el-input
-                v-model="registerForm.studentNo"
-                placeholder="请输入录取通知书上的学号"
-                size="large"
-                @keyup="onKeyUpRegister"
-              />
-            </div>
-
-            <div class="form-item">
-              <label class="form-label">真实姓名 <span class="required">*</span></label>
-              <el-input
-                v-model="registerForm.realName"
-                placeholder="请输入真实姓名"
-                size="large"
-                @keyup="onKeyUpRegister"
-              />
-            </div>
-
-            <div class="form-item">
-              <label class="form-label">登录密码 <span class="required">*</span></label>
-              <el-input
-                v-model="registerForm.password"
-                type="password"
-                placeholder="设置登录密码（至少6位）"
-                size="large"
-                show-password
-                @keyup="onKeyUpRegister"
-              />
-            </div>
-
-            <div class="form-item">
-              <label class="form-label">确认密码 <span class="required">*</span></label>
-              <el-input
-                v-model="registerForm.confirmPassword"
-                type="password"
-                placeholder="再次输入密码"
-                size="large"
-                show-password
-                @keyup="onKeyUpRegister"
-              />
-
-            </div>
-
-            <div class="form-options">
-              <el-checkbox v-model="rememberAccount" size="small">记住账号</el-checkbox>
-            </div>
-
-            <el-button
-              type="primary"
-              size="large"
-              :loading="loading"
-              class="submit-btn"
-              @click="handleRegister"
-            >
-              注 册
-            </el-button>
-          </div>
-        </el-tab-pane>
-      </el-tabs>
-
-      <el-divider style="margin: 16px 0 12px;">
+      <el-divider style="margin: 24px 0 16px;">
         <span style="color:#c9cdd4;font-size:12px;">— 演示模式（无需注册）—</span>
       </el-divider>
 
@@ -482,7 +302,6 @@ function onKeyUpRegister(e: KeyboardEvent) {
       </div>
     </div>
 
-    <!-- 测试登录对话框 -->
     <el-dialog v-model="showTestLogin" title="🔬 测试登录" width="420px" :close-on-click-modal="false">
       <el-form :model="testLoginForm" label-width="80px">
         <el-form-item label="姓名">
@@ -508,7 +327,6 @@ function onKeyUpRegister(e: KeyboardEvent) {
       </template>
     </el-dialog>
 
-    <!-- 开发者密码验证对话框 -->
     <el-dialog v-model="showDevPwd" title="🔒 开发者验证" width="350px" :close-on-click-modal="false">
       <el-form @submit.prevent="confirmDevAccess">
         <el-form-item label="开发者密码">
@@ -581,19 +399,14 @@ function onKeyUpRegister(e: KeyboardEvent) {
   backdrop-filter: blur(10px);
 }
 
-.entry-header { text-align: center; margin-bottom: 10px; }
+.entry-header { text-align: center; margin-bottom: 24px; }
 .entry-icon { margin-bottom: 8px; }
 .entry-title { font-size: 20px; font-weight: 700; color: #1a1a2e; margin: 0 0 4px; }
 .entry-subtitle { font-size: 13px; color: #86909c; margin: 0; }
 
-.entry-tabs :deep(.el-tabs__nav) { width: 100%; display: flex; }
-.entry-tabs :deep(.el-tabs__item) { flex: 1; text-align: center; font-size: 15px; font-weight: 500; }
-.entry-tabs :deep(.el-tabs__header) { margin-bottom: 12px; }
-
 .form-section { padding: 0 4px; }
-.form-item { margin-bottom: 16px; }
+.form-item { margin-bottom: 20px; }
 .form-label { display: block; font-size: 13px; font-weight: 500; color: #1d2129; margin-bottom: 6px; }
-.required { color: #f53f3f; }
 
 .school-code-row { position: relative; }
 .code-input :deep(.el-input__inner) { font-size: 15px; letter-spacing: 2px; font-family: 'Courier New', monospace; }
@@ -602,7 +415,6 @@ function onKeyUpRegister(e: KeyboardEvent) {
   font-size: 12px; color: #52c41a; margin-top: 6px;
 }
 
-.form-options { display: flex; align-items: center; margin-bottom: 16px; }
 .form-hint { font-size: 12px; margin: 4px 0 0; }
 
 .submit-btn { width: 100%; height: 46px; font-size: 16px; border-radius: 10px; }
