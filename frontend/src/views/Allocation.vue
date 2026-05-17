@@ -1,11 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { allocationApi } from '@/api/invite'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ChatDotRound, User } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
+
+const router = useRouter()
+const route = useRoute()
+
+const surveyCompleted = ref(false)
+
+function checkSurveyCompletion() {
+  const userId = localStorage.getItem('userId') || '0'
+  surveyCompleted.value = localStorage.getItem(`demo_survey_completed_${userId}`) === 'true'
+}
 
 const allocation = ref<any>(null)
 const loading = ref(false)
@@ -58,6 +69,9 @@ function formatTime(iso: string) {
 }
 
 onMounted(async () => {
+  checkSurveyCompletion()
+  if (!surveyCompleted.value) return
+
   currentUserId.value = userStore.userId
   currentUserName.value = userStore.username
 
@@ -115,7 +129,13 @@ async function submitObjection() {
     </div>
 
     <div v-loading="loading">
-      <el-empty v-if="!allocation" description="暂无分配结果，请等待管理员分配" />
+      <el-empty v-if="!surveyCompleted" description="请先完成偏好问卷，系统才能为你分配宿舍">
+        <template #extra>
+          <el-button type="primary" @click="router.push(`/${route.params.schoolCode}/survey`)">前往填写问卷</el-button>
+        </template>
+      </el-empty>
+
+      <el-empty v-else-if="!allocation" description="暂无分配结果，请等待管理员分配" />
 
       <template v-else>
         <div class="allocation-layout">

@@ -22,6 +22,13 @@ try {
 } catch {}
 console.log('[Pairing] Room capacity:', roomCapacity.value)
 
+const surveyCompleted = ref(false)
+
+function checkSurveyCompletion() {
+  const userId = localStorage.getItem('userId') || '0'
+  surveyCompleted.value = localStorage.getItem(`demo_survey_completed_${userId}`) === 'true'
+}
+
 const pairing = ref<any>(null)
 const members = ref<Member[]>([])
 const loading = ref(false)
@@ -30,6 +37,7 @@ const recommendations = ref<any[]>([])
 const inviteMessage = ref('')
 
 async function loadData() {
+  if (!surveyCompleted.value) return
   loading.value = true
   try {
     const [p, m] = await Promise.all([
@@ -67,7 +75,10 @@ async function sendGroupInvite(targetId: number, targetName: string) {
 
 const statusLabels: Record<number, string> = { 0: '组建中', 1: '已锁定', 2: '已分配' }
 
-onMounted(loadData)
+onMounted(() => {
+  checkSurveyCompletion()
+  if (surveyCompleted.value) loadData()
+})
 </script>
 
 <template>
@@ -78,7 +89,13 @@ onMounted(loadData)
     </div>
 
     <div v-loading="loading">
-      <el-empty v-if="!pairing" description="您还没有完成配对">
+      <el-empty v-if="!surveyCompleted" description="请先完成偏好问卷，系统才能为你匹配舍友">
+        <template #extra>
+          <el-button type="primary" @click="router.push(`/${route.params.schoolCode}/survey`)">前往填写问卷</el-button>
+        </template>
+      </el-empty>
+
+      <el-empty v-else-if="!pairing" description="您还没有完成配对">
         <el-button type="primary" @click="router.push(`/${route.params.schoolCode}/matches`)">去查看推荐</el-button>
         <el-button style="margin-left:8px" @click="router.push(`/${route.params.schoolCode}/invites`)">查看邀请</el-button>
       </el-empty>
