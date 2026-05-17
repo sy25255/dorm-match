@@ -26,7 +26,11 @@ function goToSchool(code: string) {
 </script>
 
 <template>
-  <el-container class="dev-container">
+  <div class="dev-root">
+    <div class="test-banner">
+      <span>🧪 测试环境 — 非最终交付版本，仅用于功能验证</span>
+    </div>
+    <el-container class="dev-container">
     <el-aside width="240px" class="dev-sidebar">
       <div class="dev-logo">
         <el-icon :size="24"><Monitor /></el-icon>
@@ -89,10 +93,22 @@ function goToSchool(code: string) {
       <router-view />
     </el-main>
   </el-container>
+  </div>
 </template>
 
 <style scoped>
-.dev-container { min-height: 100vh; }
+.dev-root { display: flex; flex-direction: column; min-height: 100vh; }
+.test-banner {
+  background: linear-gradient(90deg, #ffc069, #fa8c16);
+  color: #fff;
+  text-align: center;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.dev-container { flex: 1; min-height: 0; }
 .dev-sidebar { background: linear-gradient(180deg, #0f0f23 0%, #1a1a2e 100%); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.06); }
 .dev-logo { height: 60px; display: flex; align-items: center; gap: 10px; padding: 0 18px; color: #818cf8; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .dev-title { font-size: 16px; font-weight: 700; display: block; color: #e2e8f0; }

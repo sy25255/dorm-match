@@ -41,8 +41,12 @@ onMounted(loadUnread)
 </script>
 
 <template>
-  <div class="app-shell">
-    <div class="menu-overlay" v-if="menuOpen" @click="closeMenu" />
+  <div class="app-root">
+    <div class="test-banner">
+      <span>🧪 测试环境 — 非最终交付版本，仅用于功能验证</span>
+    </div>
+    <div class="app-shell">
+      <div class="menu-overlay" v-if="menuOpen" @click="closeMenu" />
 
     <aside class="sidebar" :class="{ open: menuOpen }">
       <div class="sidebar-close" @click="closeMenu">
@@ -95,11 +99,25 @@ onMounted(loadUnread)
         <router-view />
       </main>
     </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.app-shell { display: flex; min-height: 100vh; }
+.app-root { display: flex; flex-direction: column; min-height: 100vh; }
+.app-shell { display: flex; flex: 1; min-height: 0; }
+
+.test-banner {
+  background: linear-gradient(90deg, #ffc069, #fa8c16);
+  color: #fff;
+  text-align: center;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  z-index: 1000;
+  flex-shrink: 0;
+}
 
 .menu-overlay {
   display: none;

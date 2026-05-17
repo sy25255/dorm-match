@@ -31,7 +31,11 @@ function goToDev() {
 </script>
 
 <template>
-  <el-container class="admin-container">
+  <div class="admin-root">
+    <div class="test-banner">
+      <span>🧪 测试环境 — 非最终交付版本，仅用于功能验证</span>
+    </div>
+    <el-container class="admin-container">
     <el-aside width="220px" class="admin-sidebar">
       <div class="admin-logo" @click="goToStudent">
         <el-icon :size="22"><ArrowLeft /></el-icon>
@@ -88,10 +92,22 @@ function goToDev() {
       <router-view />
     </el-main>
   </el-container>
+  </div>
 </template>
 
 <style scoped>
-.admin-container { min-height: 100vh; }
+.admin-root { display: flex; flex-direction: column; min-height: 100vh; }
+.test-banner {
+  background: linear-gradient(90deg, #ffc069, #fa8c16);
+  color: #fff;
+  text-align: center;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.admin-container { flex: 1; min-height: 0; }
 .admin-sidebar { background: #1a1a2e; display: flex; flex-direction: column; }
 .admin-logo { height: 48px; display: flex; align-items: center; justify-content: center; gap: 6px; color: #a0aec0; font-size: 13px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .admin-logo:hover { color: #fff; }

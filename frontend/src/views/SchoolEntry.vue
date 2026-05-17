@@ -21,17 +21,10 @@ const registerForm = reactive({ studentNo: '', realName: '', password: '', confi
 
 const demoStudents = [
   { name: '张伟', studentNo: '20240001', school: 'DEMO-UNI', schoolName: '示范大学' },
-  { name: '赵刚', studentNo: '20240004', school: 'DEMO-UNI', schoolName: '示范大学' },
-  { name: '王芳', studentNo: '20240011', school: 'DEMO-UNI', schoolName: '示范大学' },
-  { name: '李娜', studentNo: '20240012', school: 'DEMO-UNI', schoolName: '示范大学' },
-  { name: '林思雨', studentNo: '20240019', school: 'DEMO-UNI', schoolName: '示范大学' },
 ]
 
 const demoAdmins = [
   { label: '示范大学', school: 'DEMO-UNI', schoolName: '示范大学' },
-  { label: '测试学院', school: 'TEST', schoolName: '测试学院' },
-  { label: '北京大学', school: 'BJ-UNI', schoolName: '北京大学' },
-  { label: '上海大学', school: 'SH-UNI', schoolName: '上海大学' },
 ]
 
 onMounted(() => {
@@ -172,6 +165,33 @@ function enterAsDeveloper() {
   router.push('/dev')
 }
 
+const showTestLogin = ref(false)
+const testLoginForm = reactive({ name: '', school: '示范大学', major: '' })
+
+function openTestLogin() {
+  testLoginForm.name = ''
+  testLoginForm.school = '示范大学'
+  testLoginForm.major = ''
+  showTestLogin.value = true
+}
+
+function handleTestLogin() {
+  if (!testLoginForm.name.trim()) { ElMessage.warning('请输入姓名'); return }
+  if (!testLoginForm.school.trim()) { ElMessage.warning('请输入院校名称'); return }
+
+  const studentNo = 'TEST' + Date.now().toString(36).slice(-6).toUpperCase()
+  const userId = Math.floor(Math.random() * 90000) + 10000
+  userStore.demoLogin(studentNo, testLoginForm.name.trim())
+  userStore.setSchoolInfo('DEMO-UNI', testLoginForm.school.trim())
+  localStorage.setItem('test_user_name', testLoginForm.name.trim())
+  localStorage.setItem('test_user_school', testLoginForm.school.trim())
+  localStorage.setItem('test_user_major', testLoginForm.major.trim())
+  localStorage.setItem('is_test_user', 'true')
+  ElMessage.success(`测试登录成功，欢迎 ${testLoginForm.name}！`)
+  showTestLogin.value = false
+  router.push('/DEMO-UNI/')
+}
+
 function onKeyUpLogin(e: KeyboardEvent) {
   if (e.key === 'Enter') handleLogin()
 }
@@ -181,7 +201,11 @@ function onKeyUpRegister(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="entry-container">
+  <div class="entry-root">
+    <div class="entry-banner">
+      <span>🧪 测试环境 — 非最终交付版本，仅用于功能验证</span>
+    </div>
+    <div class="entry-container">
     <div class="entry-card">
       <div class="entry-header">
         <div class="entry-icon">
@@ -393,13 +417,56 @@ function onKeyUpRegister(e: KeyboardEvent) {
         </el-button>
         <p class="dev-hint">查看全部学校数据 · 管理管理员账号 · 处理用户反馈</p>
       </div>
+
+      <div class="test-entry">
+        <el-button
+          class="test-btn-main"
+          @click="openTestLogin"
+        >
+          <el-icon :size="16"><Key /></el-icon>
+          <span>🔬 测试登录</span>
+        </el-button>
+        <p class="test-hint">输入姓名及院校即可登录，用于功能验证测试</p>
+      </div>
+    </div>
+
+    <!-- 测试登录对话框 -->
+    <el-dialog v-model="showTestLogin" title="🔬 测试登录" width="420px" :close-on-click-modal="false">
+      <el-form :model="testLoginForm" label-width="80px">
+        <el-form-item label="姓名">
+          <el-input v-model="testLoginForm.name" placeholder="输入任意姓名" maxlength="20" />
+        </el-form-item>
+        <el-form-item label="院校名称">
+          <el-input v-model="testLoginForm.school" placeholder="例如：示范大学" maxlength="30" />
+        </el-form-item>
+        <el-form-item label="专业班级">
+          <el-input v-model="testLoginForm.major" placeholder="例如：计算机科学2401班（选填）" maxlength="30" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showTestLogin = false">取消</el-button>
+        <el-button type="primary" @click="handleTestLogin">进入测试</el-button>
+      </template>
+    </el-dialog>
     </div>
   </div>
 </template>
 
 <style scoped>
+.entry-root { min-height: 100vh; display: flex; flex-direction: column; }
+.entry-banner {
+  background: linear-gradient(90deg, #ffc069, #fa8c16);
+  color: #fff;
+  text-align: center;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
 .entry-container {
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -488,4 +555,13 @@ function onKeyUpRegister(e: KeyboardEvent) {
 }
 .dev-btn-main:hover { background: #9254de; color: #fff; border-color: #9254de; }
 .dev-hint { margin: 6px 0 0; font-size: 11px; color: #b0b8c0; }
+
+.test-entry { text-align: center; padding: 10px 0 0; margin-top: 8px; border-top: 1.5px solid #ffe58f; }
+.test-btn-main {
+  width: 100%; height: 38px; font-size: 13px;
+  border-radius: 8px; border: 1.5px dashed #ffc069;
+  color: #d46b08; background: #fff7e6;
+}
+.test-btn-main:hover { background: #fa8c16; color: #fff; border-color: #fa8c16; }
+.test-hint { margin: 6px 0 0; font-size: 11px; color: #d89614; }
 </style>

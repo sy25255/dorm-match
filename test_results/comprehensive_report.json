@@ -1,0 +1,232 @@
+{
+  "test_time": "2026-05-17T11:14:32.860726",
+  "base_url": "https://sy25255.github.io/dorm-match",
+  "summary": {
+    "total": 30,
+    "passed": 30,
+    "failed": 0,
+    "warnings": 1,
+    "errors": 0,
+    "pass_rate": "100.0%",
+    "screenshots": 23,
+    "rating": "优秀"
+  },
+  "results": [
+    {
+      "id": "T01-01",
+      "name": "学校编码入口页面加载",
+      "status": "PASS",
+      "detail": "页面元素数: inputs=10, buttons=12",
+      "error": ""
+    },
+    {
+      "id": "T01-02",
+      "name": "演示模式一键登录(张伟)",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    },
+    {
+      "id": "T02-01",
+      "name": "未填问卷→匹配页面被拦截",
+      "status": "PASS",
+      "detail": "el-empty=True, survey_text=True",
+      "error": ""
+    },
+    {
+      "id": "T02-02",
+      "name": "未填问卷→配对页面被拦截",
+      "status": "PASS",
+      "detail": "empty=True, no_pairing_code=True",
+      "error": ""
+    },
+    {
+      "id": "T02-03",
+      "name": "未填问卷→分配页面被拦截",
+      "status": "PASS",
+      "detail": "empty=True, no_room=True",
+      "error": ""
+    },
+    {
+      "id": "T03-01",
+      "name": "localStorage数据结构正常",
+      "status": "PASS",
+      "detail": "token=***, schoolCode=DEMO-UNI, keys=8",
+      "error": ""
+    },
+    {
+      "id": "T03-02",
+      "name": "邀请页面加载正常",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    },
+    {
+      "id": "T03-03",
+      "name": "搜索页面加载正常",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    },
+    {
+      "id": "T04-01",
+      "name": "问卷页面加载并显示题目",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    },
+    {
+      "id": "T04-02",
+      "name": "模拟问卷完成-localStorage写入成功",
+      "status": "PASS",
+      "detail": "value=true",
+      "error": ""
+    },
+    {
+      "id": "T05-01",
+      "name": "完成问卷后→匹配推荐正常显示",
+      "status": "PASS",
+      "detail": "cards=5, match_cards=5",
+      "error": ""
+    },
+    {
+      "id": "T05-02",
+      "name": "完成问卷后→配对数据正常显示",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    },
+    {
+      "id": "T05-03",
+      "name": "完成问卷后→分配结果正常显示",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    },
+    {
+      "id": "T05-04",
+      "name": "个人信息页面加载正常",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    },
+    {
+      "id": "T05-05",
+      "name": "消息中心页面加载正常",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    },
+    {
+      "id": "T06-01",
+      "name": "管理员演示登录(示范大学-按钮)",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    },
+    {
+      "id": "T06-02a",
+      "name": "管理员后台首页加载",
+      "status": "PASS",
+      "detail": "url=https://sy25255.github.io/dorm-match/#/DEMO-UNI/admin/statistics, is_admin=True",
+      "error": ""
+    },
+    {
+      "id": "T06-03",
+      "name": "统计仪表盘数据显示",
+      "status": "PASS",
+      "detail": "stat_elements=4",
+      "error": ""
+    },
+    {
+      "id": "T06-04",
+      "name": "学校管理页面加载正常",
+      "status": "PASS",
+      "detail": "url=https://sy25255.github.io/dorm-match/#/DEMO-UNI/admin/school, inputs=5, selects=0, tables=2",
+      "error": ""
+    },
+    {
+      "id": "T06-05",
+      "name": "学生管理页面加载正常",
+      "status": "PASS",
+      "detail": "url=https://sy25255.github.io/dorm-match/#/DEMO-UNI/admin/students, tables=1",
+      "error": ""
+    },
+    {
+      "id": "T06-06",
+      "name": "问卷管理页面加载正常",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    },
+    {
+      "id": "T06-07",
+      "name": "宿舍管理页面加载正常",
+      "status": "PASS",
+      "detail": "tables=1, building_text=2",
+      "error": ""
+    },
+    {
+      "id": "T06-08",
+      "name": "宿舍分配按钮可见",
+      "status": "PASS",
+      "detail": "buttons=['退出', '添加楼栋', '编辑', '编辑', '编辑', '编辑', '编辑', '保存配置', '执行分配', '发布公示']",
+      "error": ""
+    },
+    {
+      "id": "T06-09",
+      "name": "异议处理页面加载正常",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    },
+    {
+      "id": "T06-10",
+      "name": "审计日志页面加载正常",
+      "status": "PASS",
+      "detail": "tables=1, selects=1",
+      "error": ""
+    },
+    {
+      "id": "T06-11",
+      "name": "审计日志操作类型筛选可用",
+      "status": "PASS",
+      "detail": "dropdown_options=7",
+      "error": ""
+    },
+    {
+      "id": "T07-01",
+      "name": "开发者后台页面加载正常",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    },
+    {
+      "id": "T08-01",
+      "name": "无应用级控制台错误",
+      "status": "PASS",
+      "detail": "total_logs=45, api_404s=29(expected), warnings=0",
+      "error": ""
+    },
+    {
+      "id": "T09-01",
+      "name": "localStorage核心数据跨页面持久化正常",
+      "status": "PASS",
+      "detail": "checks={'token_ok': True, 'userId_ok': True, 'schoolCode_ok': True, 'survey_key_exists': False}",
+      "error": ""
+    },
+    {
+      "id": "T10-01",
+      "name": "移动端适配-无水平溢出",
+      "status": "PASS",
+      "detail": "",
+      "error": ""
+    }
+  ],
+  "warnings": [
+    "[T07-02] 开发者后台学校列表未找到可点击元素: "
+  ],
+  "errors": [],
+  "console_error_count": 29,
+  "console_warning_count": 0
+}
