@@ -53,6 +53,19 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
   const schoolCode = schoolCodeParam || localStorage.getItem('schoolCode') || 'DEMO-UNI'
   const surveyDone = localStorage.getItem(`demo_survey_completed_${userId}`) === 'true'
 
+  // 读取共享测试用户注册表，合并到 mock 数据中（同一浏览器内可见）
+  function mergeTestUsers(baseList: any[]) {
+    const raw = localStorage.getItem('demo_registered_test_users')
+    if (!raw) return baseList
+    try {
+      const registry: any[] = JSON.parse(raw)
+      // 去重：按 id 排除已在 baseList 中的
+      const baseIds = new Set(baseList.map((s: any) => s.id))
+      const newUsers = registry.filter((u: any) => !baseIds.has(u.id))
+      return [...baseList, ...newUsers]
+    } catch { return baseList }
+  }
+
   // ========== School Validation ==========
   if (url.includes('/school/validate')) {
     const b = bodyData ? (typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData) : {}
@@ -127,7 +140,7 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
   // ========== Match ==========
   if (url.includes('/match/calculate')) return makeMockResponse(null)
   if (url.includes('/match/recommendations')) return makeMockResponse(m.getUserRecommendations(userId))
-  if (url.includes('/match/search')) return makeMockResponse(m.mockSearchResults)
+  if (url.includes('/match/search')) return makeMockResponse(mergeTestUsers(m.mockSearchResults))
   if (url.includes('/match/detail/')) {
     const id = Number(url.split('/match/detail/')[1])
     return makeMockResponse(m.getMockMatchDetail(id))
@@ -360,7 +373,7 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
   }
   if (url.includes('/admin/students')) {
     const scStudents = m.schoolStudentsMap[schoolCode] || m.mockAllStudents
-    return makeMockResponse(scStudents)
+    return makeMockResponse(mergeTestUsers(scStudents))
   }
 
   // ========== Admin: School Management ==========

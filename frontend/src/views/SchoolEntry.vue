@@ -216,6 +216,29 @@ function handleTestLogin() {
   localStorage.setItem('test_user_college', testLoginForm.college)
   localStorage.setItem('test_user_major', testLoginForm.major)
   localStorage.setItem('is_test_user', 'true')
+
+  // 写入共享注册表，让同一浏览器内的测试账号互相可见
+  const registryKey = 'demo_registered_test_users'
+  const raw = localStorage.getItem(registryKey)
+  const registry: any[] = raw ? JSON.parse(raw) : []
+  registry.push({
+    id: Date.now(),
+    name: testLoginForm.name.trim(),
+    studentNo,
+    gender: 1,
+    collegeName: testLoginForm.college,
+    majorName: testLoginForm.major,
+    className: testLoginForm.major ? testLoginForm.major + '2401班' : '',
+    hometown: '',
+    phone: '',
+    email: '',
+    surveyStatus: 'PENDING',
+    matchStatus: 'NONE',
+    isValid: true,
+    isTestUser: true,
+  })
+  localStorage.setItem(registryKey, JSON.stringify(registry))
+
   ElMessage.success(`测试登录成功，欢迎 ${testLoginForm.name}！`)
   showTestLogin.value = false
   router.push('/DEMO-UNI/')

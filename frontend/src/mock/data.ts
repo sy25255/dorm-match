@@ -161,6 +161,10 @@ export const mockSelfIntroTemplate = {
 
 export const mockStudents = [
   { id: 1, name: '张伟', studentNo: '20240001', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '北京', avatarUrl: '', bio: '热爱编程和篮球，希望找到志同道合的舍友', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 85, mayBeDormLeader: true, wechat: 'zhangwei_cs', phone: '13800000001', email: '20240001@demo-uni.edu.cn' },
+  { id: 5001, name: '测试-王同学', studentNo: 'TEST5001', gender: 1, collegeName: '计算机与信息工程学院', majorName: '计算机科学与技术', hometown: '', avatarUrl: '', bio: '系统预置测试账号', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 0, mayBeDormLeader: false, wechat: '', phone: '', email: '', isTestUser: true },
+  { id: 5002, name: '测试-李同学', studentNo: 'TEST5002', gender: 0, collegeName: '数理学院', majorName: '数学与应用数学', hometown: '', avatarUrl: '', bio: '系统预置测试账号', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 0, mayBeDormLeader: false, wechat: '', phone: '', email: '', isTestUser: true },
+  { id: 5003, name: '测试-陈同学', studentNo: 'TEST5003', gender: 1, collegeName: '经济管理学院', majorName: '工商管理', hometown: '', avatarUrl: '', bio: '系统预置测试账号', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 0, mayBeDormLeader: false, wechat: '', phone: '', email: '', isTestUser: true },
+  { id: 5004, name: '测试-赵同学', studentNo: 'TEST5004', gender: 0, collegeName: '计算机与信息工程学院', majorName: '软件工程', hometown: '', avatarUrl: '', bio: '系统预置测试账号', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 0, mayBeDormLeader: false, wechat: '', phone: '', email: '', isTestUser: true },
 ]
 
 export const mockRecommendations: any[] = []
@@ -204,6 +208,10 @@ export function getSchoolByCode(code: string) {
 
 export const mockAllStudents = [
   { id: 1, name: '张伟', studentNo: '20240001', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', className: '计科2401班', hometown: '北京', phone: '13800000001', email: '20240001@demo-uni.edu.cn', surveyStatus: 'COMPLETED', matchStatus: 'PAIRED', isValid: true, createdAt: '2024-08-01T00:00:00' },
+  { id: 5001, name: '测试-王同学', studentNo: 'TEST5001', gender: 1, collegeName: '计算机与信息工程学院', majorName: '计算机科学与技术', className: '计科2401班', hometown: '', phone: '', email: '', surveyStatus: 'COMPLETED', matchStatus: 'NONE', isValid: true, isTestUser: true, createdAt: '2024-08-15T00:00:00' },
+  { id: 5002, name: '测试-李同学', studentNo: 'TEST5002', gender: 0, collegeName: '数理学院', majorName: '数学与应用数学', className: '数学2401班', hometown: '', phone: '', email: '', surveyStatus: 'COMPLETED', matchStatus: 'NONE', isValid: true, isTestUser: true, createdAt: '2024-08-15T00:00:00' },
+  { id: 5003, name: '测试-陈同学', studentNo: 'TEST5003', gender: 1, collegeName: '经济管理学院', majorName: '工商管理', className: '工商2401班', hometown: '', phone: '', email: '', surveyStatus: 'PENDING', matchStatus: 'NONE', isValid: true, isTestUser: true, createdAt: '2024-08-15T00:00:00' },
+  { id: 5004, name: '测试-赵同学', studentNo: 'TEST5004', gender: 0, collegeName: '计算机与信息工程学院', majorName: '软件工程', className: '软工2401班', hometown: '', phone: '', email: '', surveyStatus: 'PENDING', matchStatus: 'NONE', isValid: true, isTestUser: true, createdAt: '2024-08-15T00:00:00' },
 ]
 
 export const mockSchoolConfig = {
