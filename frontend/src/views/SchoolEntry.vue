@@ -158,20 +158,49 @@ function demoAdminLogin(school: string, schoolName: string) {
   router.push(`/${school.toUpperCase()}/admin`)
 }
 
+const showDevPwd = ref(false)
+const devPassword = ref('')
+
 function enterAsDeveloper() {
-  userStore.demoDevLogin()
-  localStorage.removeItem('schoolCode')
-  localStorage.removeItem('schoolName')
-  router.push('/dev')
+  showDevPwd.value = true
+  devPassword.value = ''
+}
+
+function confirmDevAccess() {
+  if (devPassword.value === 'dev2024') {
+    showDevPwd.value = false
+    userStore.demoDevLogin()
+    localStorage.removeItem('schoolCode')
+    localStorage.removeItem('schoolName')
+    router.push('/dev')
+  } else {
+    ElMessage.error('开发者密码错误，访问被拒绝')
+  }
 }
 
 const showTestLogin = ref(false)
-const testLoginForm = reactive({ name: '', school: '示范大学', major: '' })
+const testLoginForm = reactive({ name: '', school: '示范大学', college: '', major: '' })
+
+const testColleges = [
+  { name: '计算机与信息工程学院', majors: ['计算机科学与技术', '软件工程', '人工智能'] },
+  { name: '数理学院', majors: ['数学与应用数学', '物理学', '统计学'] },
+  { name: '经济管理学院', majors: ['工商管理', '会计学', '金融学'] },
+]
+
+const testAvailableMajors = ref<string[]>([])
+
+function onTestCollegeChange() {
+  testLoginForm.major = ''
+  const college = testColleges.find(c => c.name === testLoginForm.college)
+  testAvailableMajors.value = college ? college.majors : []
+}
 
 function openTestLogin() {
   testLoginForm.name = ''
   testLoginForm.school = '示范大学'
+  testLoginForm.college = ''
   testLoginForm.major = ''
+  testAvailableMajors.value = []
   showTestLogin.value = true
 }
 
@@ -180,12 +209,12 @@ function handleTestLogin() {
   if (!testLoginForm.school.trim()) { ElMessage.warning('请输入院校名称'); return }
 
   const studentNo = 'TEST' + Date.now().toString(36).slice(-6).toUpperCase()
-  const userId = Math.floor(Math.random() * 90000) + 10000
   userStore.demoLogin(studentNo, testLoginForm.name.trim())
   userStore.setSchoolInfo('DEMO-UNI', testLoginForm.school.trim())
   localStorage.setItem('test_user_name', testLoginForm.name.trim())
   localStorage.setItem('test_user_school', testLoginForm.school.trim())
-  localStorage.setItem('test_user_major', testLoginForm.major.trim())
+  localStorage.setItem('test_user_college', testLoginForm.college)
+  localStorage.setItem('test_user_major', testLoginForm.major)
   localStorage.setItem('is_test_user', 'true')
   ElMessage.success(`测试登录成功，欢迎 ${testLoginForm.name}！`)
   showTestLogin.value = false
@@ -439,13 +468,33 @@ function onKeyUpRegister(e: KeyboardEvent) {
         <el-form-item label="院校名称">
           <el-input v-model="testLoginForm.school" placeholder="例如：示范大学" maxlength="30" />
         </el-form-item>
-        <el-form-item label="专业班级">
-          <el-input v-model="testLoginForm.major" placeholder="例如：计算机科学2401班（选填）" maxlength="30" />
+        <el-form-item label="学院">
+          <el-select v-model="testLoginForm.college" placeholder="选择学院" @change="onTestCollegeChange" style="width: 100%">
+            <el-option v-for="c in testColleges" :key="c.name" :label="c.name" :value="c.name" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="专业">
+          <el-select v-model="testLoginForm.major" placeholder="先选择学院" :disabled="!testLoginForm.college" style="width: 100%">
+            <el-option v-for="m in testAvailableMajors" :key="m" :label="m" :value="m" />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showTestLogin = false">取消</el-button>
         <el-button type="primary" @click="handleTestLogin">进入测试</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 开发者密码验证对话框 -->
+    <el-dialog v-model="showDevPwd" title="🔒 开发者验证" width="350px" :close-on-click-modal="false">
+      <el-form @submit.prevent="confirmDevAccess">
+        <el-form-item label="开发者密码">
+          <el-input v-model="devPassword" type="password" placeholder="请输入开发者密码" show-password />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showDevPwd = false">取消</el-button>
+        <el-button type="primary" @click="confirmDevAccess">验证进入</el-button>
       </template>
     </el-dialog>
     </div>

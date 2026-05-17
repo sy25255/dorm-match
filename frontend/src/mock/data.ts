@@ -161,51 +161,20 @@ export const mockSelfIntroTemplate = {
 
 export const mockStudents = [
   { id: 1, name: '张伟', studentNo: '20240001', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '北京', avatarUrl: '', bio: '热爱编程和篮球，希望找到志同道合的舍友', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 85, mayBeDormLeader: true, wechat: 'zhangwei_cs', phone: '13800000001', email: '20240001@demo-uni.edu.cn' },
-  { id: 2, name: '李明', studentNo: '20240002', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '上海', avatarUrl: '', bio: '喜欢安静的学习环境，作息规律', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 72, mayBeDormLeader: false, wechat: 'liming_sh', phone: '13800000002', email: '20240002@demo-uni.edu.cn' },
-  { id: 3, name: '王强', studentNo: '20240003', gender: 1, collegeName: '计算机学院', majorName: '软件工程', hometown: '广州', avatarUrl: '', bio: '重度游戏玩家，希望能找到一起开黑的舍友', smoking: '1', snoring: '3', smokingLabel: '抽烟', snoringLabel: '打呼噜严重', isValid: false, leaderScore: 30, mayBeDormLeader: false, wechat: 'wq_gamer', phone: '13800000003', email: '20240003@demo-uni.edu.cn' },
-  { id: 4, name: '赵刚', studentNo: '20240004', gender: 1, collegeName: '电子学院', majorName: '通信工程', hometown: '深圳', avatarUrl: '', bio: '喜欢运动和户外，性格开朗', smoking: '2', snoring: '2', smokingLabel: '不抽烟', snoringLabel: '打呼噜轻微', isValid: true, leaderScore: 78, mayBeDormLeader: true, wechat: 'zhaogang_sport', phone: '13800000004', email: '20240004@demo-uni.edu.cn' },
-  { id: 5, name: '孙磊', studentNo: '20240005', gender: 1, collegeName: '电子学院', majorName: '通信工程', hometown: '杭州', avatarUrl: '', bio: '性格内向，喜欢独处和阅读', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 40, mayBeDormLeader: false, wechat: 'sunlei_read', phone: '13800000005', email: '20240005@demo-uni.edu.cn' },
-  { id: 6, name: '刘洋', studentNo: '20240006', gender: 1, collegeName: '计算机学院', majorName: '人工智能', hometown: '成都', avatarUrl: '', bio: '音乐爱好者，会弹吉他', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 65, mayBeDormLeader: false, wechat: 'liuyang_music', phone: '13800000006', email: '20240006@demo-uni.edu.cn' },
-  { id: 7, name: '陈宇', studentNo: '20240007', gender: 1, collegeName: '理学院', majorName: '数学', hometown: '武汉', avatarUrl: '', bio: '喜欢整洁，希望舍友也有良好的卫生习惯', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 55, mayBeDormLeader: false, wechat: 'chenyu_math', phone: '13800000007', email: '20240007@demo-uni.edu.cn' },
-  { id: 8, name: '周杰', studentNo: '20240008', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '南京', avatarUrl: '', bio: '夜猫子，喜欢深夜学习和写代码', smoking: '3', snoring: '2', smokingLabel: '偶尔抽烟', snoringLabel: '打呼噜轻微', isValid: true, leaderScore: 48, mayBeDormLeader: false, wechat: 'zhoujie_night', phone: '13800000008', email: '20240008@demo-uni.edu.cn' },
-  { id: 9, name: '王芳', studentNo: '20240011', gender: 0, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '北京', avatarUrl: '', bio: '喜欢整洁安静的环境，作息规律', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 82, mayBeDormLeader: true, wechat: 'wangfang_bj', phone: '13800000011', email: '20240011@demo-uni.edu.cn' },
-  { id: 10, name: '李娜', studentNo: '20240012', gender: 0, collegeName: '计算机学院', majorName: '软件工程', hometown: '上海', avatarUrl: '', bio: '性格开朗，喜欢社交和集体活动', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 90, mayBeDormLeader: true, wechat: 'lina_social', phone: '13800000012', email: '20240012@demo-uni.edu.cn' },
-  { id: 11, name: '张雪', studentNo: '20240013', gender: 0, collegeName: '电子学院', majorName: '通信工程', hometown: '广州', avatarUrl: '', bio: '喜欢追剧和看综艺', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 50, mayBeDormLeader: false, wechat: 'zhangxue_tv', phone: '13800000013', email: '20240013@demo-uni.edu.cn' },
-  { id: 12, name: '刘婷', studentNo: '20240014', gender: 0, collegeName: '计算机学院', majorName: '人工智能', hometown: '杭州', avatarUrl: '', bio: '文艺青年，喜欢阅读和写作', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: false, leaderScore: 35, mayBeDormLeader: false, wechat: 'liuting_art', phone: '13800000014', email: '20240014@demo-uni.edu.cn' },
-  { id: 13, name: '陈静', studentNo: '20240015', gender: 0, collegeName: '理学院', majorName: '数学', hometown: '武汉', avatarUrl: '', bio: '性格比较内向，喜欢独处', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 42, mayBeDormLeader: false, wechat: 'chenjing_quiet', phone: '13800000015', email: '20240015@demo-uni.edu.cn' },
-  { id: 14, name: '赵敏', studentNo: '20240016', gender: 0, collegeName: '外语学院', majorName: '英语', hometown: '深圳', avatarUrl: '', bio: '热爱运动健身，每天跑步', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 68, mayBeDormLeader: false, wechat: 'zhaomin_fit', phone: '13800000016', email: '20240016@demo-uni.edu.cn' },
-  { id: 15, name: '周雨', studentNo: '20240017', gender: 0, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '成都', avatarUrl: '', bio: '喜欢游戏和动漫', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 38, mayBeDormLeader: false, wechat: 'zhouyu_acg', phone: '13800000017', email: '20240017@demo-uni.edu.cn' },
-  { id: 16, name: '吴桐', studentNo: '20240018', gender: 0, collegeName: '电子学院', majorName: '通信工程', hometown: '南京', avatarUrl: '', bio: '注重生活品质，爱干净', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 75, mayBeDormLeader: true, wechat: 'wutong_clean', phone: '13800000018', email: '20240018@demo-uni.edu.cn' },
-  { id: 17, name: '林思雨', studentNo: '20240019', gender: 0, collegeName: '外语学院', majorName: '日语', hometown: '厦门', avatarUrl: '', bio: '温柔细心，喜欢整理收纳和养多肉植物', smoking: '2', snoring: '1', smokingLabel: '不抽烟', snoringLabel: '不打呼噜', isValid: true, leaderScore: 88, mayBeDormLeader: true, wechat: 'linsiyu_garden', phone: '13800000019', email: '20240019@demo-uni.edu.cn' },
 ]
 
-export const mockRecommendations = [
-  { studentId: 2, name: '李明', avatarUrl: '', collegeName: '计算机学院', majorName: '计算机科学与技术', bio: '喜欢安静的学习环境，作息规律', matchScore: 88.5, dimensionScores: { LIFESTYLE: 95, SLEEP: 92, HYGIENE: 85, SOCIAL: 80, PERSONALITY: 88, STUDY: 90, HOBBY: 82, SPENDING: 78, PSYCHOLOGY: 90 }, commonTags: ['不抽烟', '不打呼噜', '跑步', '科技', '纪录片', '安静', '观点相似'], lifestyleCompat: { smoking: 'compatible', snoring: 'compatible' }, psychCompat: 90, leaderScore: 72, mayBeDormLeader: false, isValid: true },
-  { studentId: 4, name: '赵刚', avatarUrl: '', collegeName: '电子学院', majorName: '通信工程', bio: '喜欢运动和户外，性格开朗', matchScore: 81.2, dimensionScores: { LIFESTYLE: 75, SLEEP: 78, HYGIENE: 75, SOCIAL: 90, PERSONALITY: 85, STUDY: 70, HOBBY: 92, SPENDING: 75, PSYCHOLOGY: 78 }, commonTags: ['不抽烟', '篮球', '运动', '户外', '观点相似'], lifestyleCompat: { smoking: 'compatible', snoring: 'warning' }, psychCompat: 78, leaderScore: 78, mayBeDormLeader: true, isValid: true },
-  { studentId: 6, name: '刘洋', avatarUrl: '', collegeName: '计算机学院', majorName: '人工智能', bio: '音乐爱好者，会弹吉他', matchScore: 76.8, dimensionScores: { LIFESTYLE: 80, SLEEP: 72, HYGIENE: 75, SOCIAL: 82, PERSONALITY: 80, STUDY: 75, HOBBY: 88, SPENDING: 72, PSYCHOLOGY: 74 }, commonTags: ['不抽烟', '音乐', '电影', '民谣', '三观接近'], lifestyleCompat: { smoking: 'compatible', snoring: 'compatible' }, psychCompat: 74, leaderScore: 65, mayBeDormLeader: false, isValid: true },
-  { studentId: 7, name: '陈宇', avatarUrl: '', collegeName: '理学院', majorName: '数学', bio: '喜欢整洁，希望舍友也有良好的卫生习惯', matchScore: 74.0, dimensionScores: { LIFESTYLE: 85, SLEEP: 85, HYGIENE: 95, SOCIAL: 65, PERSONALITY: 72, STUDY: 78, HOBBY: 55, SPENDING: 60, PSYCHOLOGY: 68 }, commonTags: ['不抽烟', '整洁', '安静', '规律'], lifestyleCompat: { smoking: 'compatible', snoring: 'compatible' }, psychCompat: 68, leaderScore: 55, mayBeDormLeader: false, isValid: true },
-  { studentId: 5, name: '孙磊', avatarUrl: '', collegeName: '电子学院', majorName: '通信工程', bio: '性格内向，喜欢独处和阅读', matchScore: 68.3, dimensionScores: { LIFESTYLE: 78, SLEEP: 80, HYGIENE: 82, SOCIAL: 40, PERSONALITY: 55, STUDY: 85, HOBBY: 65, SPENDING: 70, PSYCHOLOGY: 62 }, commonTags: ['不抽烟', '阅读', '安静'], lifestyleCompat: { smoking: 'compatible', snoring: 'compatible' }, psychCompat: 62, leaderScore: 40, mayBeDormLeader: false, isValid: true },
-  { studentId: 3, name: '王强', avatarUrl: '', collegeName: '计算机学院', majorName: '软件工程', bio: '重度游戏玩家，希望能找到一起开黑的舍友', matchScore: 55.0, dimensionScores: { LIFESTYLE: 30, SLEEP: 30, HYGIENE: 45, SOCIAL: 70, PERSONALITY: 60, STUDY: 40, HOBBY: 75, SPENDING: 55, PSYCHOLOGY: 42 }, commonTags: ['篮球', '游戏'], lifestyleCompat: { smoking: 'conflict', snoring: 'conflict' }, psychCompat: 42, leaderScore: 30, mayBeDormLeader: false, isValid: false },
-]
+export const mockRecommendations: any[] = []
 
 export const mockQuota = { maxSent: 5, usedSent: 0, remainingSent: 5, maxReceived: 10, usedReceived: 0, remainingReceived: 10 }
 
-export const mockPairing = { id: 1, pairingCode: 'demo-pairing-000', groupSize: 2, status: 1, lockedAt: '2024-08-25T10:00:00', createdAt: '2024-08-25T09:30:00' }
+export const mockPairing = null
+export const mockPairingMembers: any[] = []
 
-export const mockPairingMembers = [
-  { studentId: 1, name: '张伟', avatarUrl: '', isInitiator: 0 },
-  { studentId: 2, name: '李明', avatarUrl: '', isInitiator: 0 },
-]
+export const mockAllocation = null
 
-export const mockAllocation = {
-  allocationId: 1, roomId: 1, roomNumber: 'M1-101', bedNo: 1,
-  allocationType: 'SELF_SELECT', status: 'CONFIRMED', confirmedByStudent: 1,
-  roommates: [
-    { studentId: 2, name: '李明', bedNo: 2, allocationType: 'SELF_SELECT', wechat: 'liming_sh', phone: '13800000002', email: '20240002@demo-uni.edu.cn', bio: '喜欢安静的学习环境，作息规律' },
-    { studentId: 6, name: '刘洋', bedNo: 3, allocationType: 'ALGORITHM', wechat: 'liuyang_music', phone: '13800000006', email: '20240006@demo-uni.edu.cn', bio: '音乐爱好者，会弹吉他' },
-    { studentId: 8, name: '周杰', bedNo: 4, allocationType: 'ALGORITHM', wechat: 'zhoujie_night', phone: '13800000008', email: '20240008@demo-uni.edu.cn', bio: '夜猫子，喜欢深夜学习和写代码' },
-  ]
-}
+export const mockSearchResults: any[] = []
+
+export const mockObjections: any[] = []
 
 export function getMockMatchDetail(targetId: number) {
   const rec = mockRecommendations.find(r => r.studentId === targetId)
@@ -221,30 +190,10 @@ export function getMockMatchDetail(targetId: number) {
   }
 }
 
-export const mockSearchResults = mockStudents.slice(2, 8).map(s => {
-  const rec = mockRecommendations.find(r => r.studentId === s.id)
-  return {
-    studentId: s.id,
-    name: s.name,
-    collegeName: s.collegeName,
-    majorName: s.majorName,
-    bio: s.bio,
-    matchScore: rec?.matchScore ?? Math.floor(50 + Math.random() * 40),
-    hometown: s.hometown,
-  }
-})
-
-export const mockObjections = [
-  { id: 1, reason: '希望能换到M1-201房间', status: 0, createdAt: '2024-08-26T09:00:00' },
-]
-
 // ========== 学校多租户数据 ==========
 
 export const mockSchools = [
   { code: 'DEMO-UNI', name: '示范大学', shortName: '示范大', adminEmail: 'admin@demo-uni.edu.cn', status: 1, description: '示范大学是一所综合性大学，设有6个学院，涵盖理工文管等多个学科。' },
-  { code: 'TEST', name: '测试学院', shortName: '测试院', adminEmail: 'admin@test.edu.cn', status: 1, description: '用于系统测试的虚拟学院。' },
-  { code: 'BJ-UNI', name: '北京大学', shortName: '北大', adminEmail: 'admin@pku.edu.cn', status: 1, description: '中国顶尖综合性研究型大学。' },
-  { code: 'SH-UNI', name: '上海大学', shortName: '上大', adminEmail: 'admin@shu.edu.cn', status: 1, description: '上海市属综合性大学。' },
 ]
 
 export function getSchoolByCode(code: string) {
@@ -254,21 +203,7 @@ export function getSchoolByCode(code: string) {
 // ========== 管理后台数据 ==========
 
 export const mockAllStudents = [
-  ...mockStudents.map((s, i) => ({
-    ...s,
-    email: `${s.studentNo}@school.edu.cn`,
-    phone: `138${String(10000000 + i).slice(0, 8)}`,
-    surveyStatus: i < 10 ? 2 : i < 13 ? 1 : 0,
-    matchStatus: i < 6 ? 2 : i < 8 ? 1 : 0,
-    status: i === 5 ? 0 : 1,
-    createdAt: `2024-08-${String(15 + Math.floor(i / 3)).padStart(2, '0')}T10:00:00`,
-  })),
-  { id: 17, studentNo: '20240020', name: '马超', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', hometown: '西安', bio: '', email: '20240020@school.edu.cn', phone: '13800000020', surveyStatus: 0, matchStatus: 0, status: 1, createdAt: '2024-08-28T10:00:00' },
-  { id: 18, studentNo: '20240021', name: '黄丽', gender: 0, collegeName: '外语学院', majorName: '英语', hometown: '长沙', bio: '', email: '20240021@school.edu.cn', phone: '13800000021', surveyStatus: 0, matchStatus: 0, status: 1, createdAt: '2024-08-28T10:00:00' },
-  { id: 19, studentNo: '20240022', name: '林涛', gender: 1, collegeName: '理学院', majorName: '物理', hometown: '济南', bio: '', email: '20240022@school.edu.cn', phone: '13800000022', surveyStatus: 0, matchStatus: 0, status: 1, createdAt: '2024-08-28T10:00:00' },
-  { id: 20, studentNo: '20240023', name: '何雪', gender: 0, collegeName: '电子学院', majorName: '电子信息', hometown: '郑州', bio: '', email: '20240023@school.edu.cn', phone: '13800000023', surveyStatus: 1, matchStatus: 0, status: 1, createdAt: '2024-08-28T10:00:00' },
-  { id: 21, studentNo: '20240024', name: '罗浩', gender: 1, collegeName: '计算机学院', majorName: '软件工程', hometown: '昆明', bio: '', email: '20240024@school.edu.cn', phone: '13800000024', surveyStatus: 0, matchStatus: 0, status: 1, createdAt: '2024-08-28T10:00:00' },
-  { id: 22, studentNo: '20240025', name: '谢雨', gender: 0, collegeName: '文学院', majorName: '汉语言文学', hometown: '南昌', bio: '', email: '20240025@school.edu.cn', phone: '13800000025', surveyStatus: 2, matchStatus: 0, status: 1, createdAt: '2024-08-28T10:00:00' },
+  { id: 1, name: '张伟', studentNo: '20240001', gender: 1, collegeName: '计算机学院', majorName: '计算机科学与技术', className: '计科2401班', hometown: '北京', phone: '13800000001', email: '20240001@demo-uni.edu.cn', surveyStatus: 'COMPLETED', matchStatus: 'PAIRED', isValid: true, createdAt: '2024-08-01T00:00:00' },
 ]
 
 export const mockSchoolConfig = {
@@ -343,79 +278,24 @@ export const mockDormRooms = [
   { id: 12, buildingId: 4, roomNumber: 'L2-101', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
 ]
 
-export const mockAllocations = [
-  { id: 1, studentId: 1, studentName: '张伟', roomId: 1, roomNumber: 'M1-101', bedNo: 1, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 2, studentId: 2, studentName: '李明', roomId: 1, roomNumber: 'M1-101', bedNo: 2, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 3, studentId: 6, studentName: '刘洋', roomId: 1, roomNumber: 'M1-101', bedNo: 3, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 4, studentId: 8, studentName: '周杰', roomId: 1, roomNumber: 'M1-101', bedNo: 4, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 5, studentId: 4, studentName: '赵刚', roomId: 2, roomNumber: 'M1-102', bedNo: 1, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 6, studentId: 5, studentName: '孙磊', roomId: 2, roomNumber: 'M1-102', bedNo: 2, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 7, studentId: 7, studentName: '陈宇', roomId: 2, roomNumber: 'M1-102', bedNo: 3, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 8, studentId: 17, studentName: '马超', roomId: 2, roomNumber: 'M1-102', bedNo: 4, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-2024-001' },
-  { id: 9, studentId: 3, studentName: '王强', roomId: 7, roomNumber: 'M2-101', bedNo: 1, allocationType: 'RANDOM', status: 'PENDING', batchCode: 'BATCH-2024-001' },
-  { id: 10, studentId: 9, studentName: '王芳', roomId: 3, roomNumber: 'L1-101', bedNo: 1, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 11, studentId: 10, studentName: '李娜', roomId: 3, roomNumber: 'L1-101', bedNo: 2, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 12, studentId: 14, studentName: '赵敏', roomId: 3, roomNumber: 'L1-101', bedNo: 3, allocationType: 'ALGORITHM', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 13, studentId: 11, studentName: '张雪', roomId: 3, roomNumber: 'L1-101', bedNo: 4, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-2024-001' },
-  { id: 14, studentId: 16, studentName: '吴桐', roomId: 4, roomNumber: 'L1-102', bedNo: 1, allocationType: 'SELF_SELECT', status: 'CONFIRMED', batchCode: 'BATCH-2024-001' },
-  { id: 15, studentId: 15, studentName: '周雨', roomId: 4, roomNumber: 'L1-102', bedNo: 2, allocationType: 'ALGORITHM', status: 'PENDING', batchCode: 'BATCH-2024-001' },
-]
+export const mockAllocations: any[] = []
 
-export const mockAllObjections = [
-  { id: 1, allocationId: 1, studentId: 5, studentName: '孙磊', reason: '希望能和同专业同学住一起', status: 'PENDING', currentHandler: null, reviewComment: '', createdAt: '2024-08-26T09:00:00' },
-  { id: 2, allocationId: 3, studentId: 7, studentName: '陈宇', reason: '宿舍楼层太高，希望换到低楼层', status: 'REVIEWING', currentHandler: 100, reviewComment: '已转宿舍管理处审核', createdAt: '2024-08-25T14:00:00' },
-  { id: 3, allocationId: 5, studentId: 11, studentName: '张雪', reason: '与舍友作息冲突严重', status: 'RESOLVED', currentHandler: null, reviewComment: '已调整至L1-103', createdAt: '2024-08-24T10:00:00', resolvedAt: '2024-08-25T10:00:00' },
-]
+export const mockAllObjections: any[] = []
 
-export const mockNotifications = [
-  { id: 1, studentId: 1, title: '新邀请', content: '李明向你发送了舍友邀请', type: 'INVITE', relatedId: 101, isRead: 0, createdAt: '2024-08-25T12:00:00' },
-  { id: 2, studentId: 1, title: '邀请被接受', content: '李明接受了你的舍友邀请，配对成功！', type: 'PAIRING', relatedId: 1, isRead: 0, createdAt: '2024-08-25T12:30:00' },
-  { id: 3, studentId: 1, title: '分配结果已发布', content: '你的宿舍分配结果为M1-101，请登录查看并确认', type: 'ALLOCATION', relatedId: 1, isRead: 0, createdAt: '2024-08-27T08:00:00' },
-  { id: 4, studentId: 1, title: '问卷完成提醒', content: '你还有未完成的问卷，请在截止日期前完成填写', type: 'SYSTEM', relatedId: 0, isRead: 1, createdAt: '2024-08-24T10:00:00' },
-  { id: 5, studentId: 1, title: '配对锁定成功', content: '你和李明的舍友配对已正式锁定', type: 'PAIRING', relatedId: 1, isRead: 1, createdAt: '2024-08-25T13:00:00' },
-  { id: 6, studentId: 2, title: '邀请已发送', content: '你向张伟发送了舍友邀请，等待对方回复', type: 'INVITE', relatedId: 101, isRead: 0, createdAt: '2024-08-25T12:00:00' },
-  { id: 7, studentId: 2, title: '配对成功', content: '你和张伟的舍友配对已建立', type: 'PAIRING', relatedId: 1, isRead: 0, createdAt: '2024-08-25T12:30:00' },
-  { id: 8, studentId: 3, title: '系统通知', content: '考试周即将来临，请合理安排学习时间', type: 'SYSTEM', relatedId: 0, isRead: 0, createdAt: '2024-08-26T10:00:00' },
-  { id: 9, studentId: 4, title: '新邀请', content: '王芳向你发送了舍友邀请', type: 'INVITE', relatedId: 102, isRead: 0, createdAt: '2024-08-25T14:00:00' },
-  { id: 10, studentId: 5, title: '分配结果已发布', content: '你的宿舍分配结果为M1-102，请登录查看', type: 'ALLOCATION', relatedId: 2, isRead: 0, createdAt: '2024-08-27T08:00:00' },
-  { id: 11, studentId: 6, title: '问卷完成提醒', content: '请尽快完成偏好问卷，截止日期为8月31日', type: 'SYSTEM', relatedId: 0, isRead: 0, createdAt: '2024-08-24T10:00:00' },
-  { id: 12, studentId: 7, title: '邀请被接受', content: '赵刚接受了你的舍友邀请，配对成功！', type: 'PAIRING', relatedId: 2, isRead: 0, createdAt: '2024-08-25T15:00:00' },
-]
+export const mockNotifications: any[] = []
 
-export const mockAuditLogs = [
-  { id: 1, username: 'admin', role: 'ADMIN', action: 'BATCH_ALLOCATION', targetType: 'ALLOCATION', targetId: 0, detail: '执行批量分配 BATCH-2024-001', ipAddress: '192.168.1.100', createdAt: '2024-08-27T08:00:00' },
-  { id: 2, username: 'admin', role: 'ADMIN', action: 'PUBLISH_RESULTS', targetType: 'ALLOCATION', targetId: 0, detail: '发布预分配结果 BATCH-2024-001', ipAddress: '192.168.1.100', createdAt: '2024-08-27T08:05:00' },
-  { id: 3, username: 'counselor01', role: 'COUNSELOR', action: 'REVIEW_OBJECTION', targetType: 'OBJECTION', targetId: 2, detail: '审核异议申诉，转宿舍管理处', ipAddress: '192.168.1.101', createdAt: '2024-08-26T10:00:00' },
-  { id: 4, username: 'admin', role: 'ADMIN', action: 'TOGGLE_STUDENT', targetType: 'STUDENT', targetId: 5, detail: '禁用学生账号 王强(20240003)', ipAddress: '192.168.1.100', createdAt: '2024-08-26T09:00:00' },
-  { id: 5, username: 'admin', role: 'ADMIN', action: 'IMPORT_STUDENTS', targetType: 'STUDENT', targetId: 0, detail: '批量导入5名学生数据', ipAddress: '192.168.1.100', createdAt: '2024-08-25T10:00:00' },
-  { id: 6, username: 'admin', role: 'ADMIN', action: 'UPDATE_SURVEY', targetType: 'SURVEY', targetId: 6, detail: '修改题目 HYGIENE_01 选项', ipAddress: '192.168.1.100', createdAt: '2024-08-24T15:00:00' },
-  { id: 7, username: 'admin', role: 'ADMIN', action: 'ADD_DORMITORY', targetType: 'DORMITORY', targetId: 5, detail: '添加宿舍楼 竹园1号楼', ipAddress: '192.168.1.100', createdAt: '2024-08-24T10:00:00' },
-]
+export const mockAuditLogs: any[] = []
 
 export const mockStatistics = {
-  totalStudents: 22,
-  completedSurvey: 12,
-  paired: 10,
-  allocated: 15,
-  pendingObjections: 2,
-  surveyStatus: { completed: 12, drafting: 4, notStarted: 6 },
-  matchStatus: { paired: 10, inviting: 3, waiting: 9 },
-  allocationByType: { SELF_SELECT: 7, ALGORITHM: 7, RANDOM: 1, MANUAL: 0 },
-  genderDistribution: { male: 12, female: 10 },
-  collegeDistribution: [
-    { name: '计算机学院', count: 9 },
-    { name: '电子学院', count: 5 },
-    { name: '理学院', count: 2 },
-    { name: '外语学院', count: 3 },
-    { name: '文学院', count: 2 },
-    { name: '经管学院', count: 1 },
-  ],
-  dailyRegistrations: [
-    { date: '08-20', count: 3 }, { date: '08-21', count: 5 }, { date: '08-22', count: 2 },
-    { date: '08-23', count: 6 }, { date: '08-24', count: 4 }, { date: '08-25', count: 3 }, { date: '08-26', count: 2 },
-  ],
-  dimensionAverages: { SLEEP: 3.2, HYGIENE: 3.5, STUDY: 3.0, HOBBY: 3.8, SOCIAL: 3.3, SPENDING: 2.8, PERSONALITY: 3.1, PSYCHOLOGY: 3.4 },
-  leaderScoreDistribution: { high: 5, medium: 12, low: 8 },
+  totalStudents: 1, completedSurveys: 0, pairedCount: 0, allocatedCount: 0,
+  allocationRate: 0, surveyCompletionRate: 0, pairingRate: 0,
+  genderRatio: { male: 100, female: 0 },
+  collegeDistribution: [] as { name: string; count: number }[],
+  dailyRegistrations: [] as { date: string; count: number }[],
+  dormUtilization: [] as { building: string; total: number; used: number; rate: number }[],
+  surveyDimensionAverages: {} as Record<string, number>,
+  surveyCompletionTrend: [] as { date: string; count: number }[],
+  allocationTrend: [] as { date: string; count: number }[],
 }
 
 export function generateInviteCode() {
