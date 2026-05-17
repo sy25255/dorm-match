@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { ArrowLeft } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -21,6 +21,13 @@ function handleLogout() {
 function goToStudent() {
   router.push(`${basePath.value}/`)
 }
+
+const isFromDev = ref(localStorage.getItem('dev_referrer') === 'true')
+
+function goToDev() {
+  localStorage.removeItem('dev_referrer')
+  router.push('/dev')
+}
 </script>
 
 <template>
@@ -29,6 +36,10 @@ function goToStudent() {
       <div class="admin-logo" @click="goToStudent">
         <el-icon :size="22"><ArrowLeft /></el-icon>
         <span>返回学生端</span>
+      </div>
+      <div v-if="isFromDev" class="admin-logo dev-return" @click="goToDev">
+        <el-icon :size="22"><ArrowLeft /></el-icon>
+        <span>返回开发者后台</span>
       </div>
       <div class="admin-title">
         <span>{{ userStore.schoolName || '学校' }}</span>
@@ -84,6 +95,8 @@ function goToStudent() {
 .admin-sidebar { background: #1a1a2e; display: flex; flex-direction: column; }
 .admin-logo { height: 48px; display: flex; align-items: center; justify-content: center; gap: 6px; color: #a0aec0; font-size: 13px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .admin-logo:hover { color: #fff; }
+.dev-return { background: rgba(102,126,234,0.15); color: #a0b8ff; }
+.dev-return:hover { background: rgba(102,126,234,0.25); color: #fff; }
 .admin-title { height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #e2e8f0; font-size: 14px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.08); }
 .admin-menu { flex: 1; border-right: none; background: transparent; }
 .admin-menu .el-menu-item { color: #a0aec0; }

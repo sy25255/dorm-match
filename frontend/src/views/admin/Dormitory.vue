@@ -106,6 +106,9 @@
         <el-button type="primary" size="small" @click="executeAlloc" :disabled="currentStep >= 1">
           <el-icon style="margin-right: 4px"><Cpu /></el-icon>执行分配
         </el-button>
+        <el-button type="primary" size="small" @click="openManualAlloc" v-if="currentStep >= 1">
+          <el-icon style="margin-right: 4px"><Edit /></el-icon>手动分配
+        </el-button>
         <el-button type="success" size="small" @click="publishResults" :disabled="currentStep < 1 || currentStep >= 2">
           <el-icon style="margin-right: 4px"><Present /></el-icon>发布公示
         </el-button>
@@ -224,13 +227,45 @@
         <el-button type="primary" @click="saveRoom">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 手动分配对话框 -->
+    <el-dialog v-model="manualAllocVisible" title="手动分配宿舍" width="550px">
+      <el-form :model="manualAllocForm" label-width="80px">
+        <el-form-item label="选择学生">
+          <el-select v-model="manualAllocForm.studentId" placeholder="搜索并选择学生" filterable style="width: 100%">
+            <el-option v-for="s in unallocatedStudents" :key="s.id" :label="`${s.name} (${s.studentNo}) - ${s.collegeName || ''}`" :value="s.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="选择楼栋">
+          <el-select v-model="manualAllocForm.buildingId" placeholder="选择宿舍楼" @change="onManualBuildingChange" style="width: 100%">
+            <el-option v-for="b in buildings" :key="b.id" :label="`${b.name} (${b.code})`" :value="b.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="选择房间">
+          <el-select v-model="manualAllocForm.roomId" placeholder="选择房间" @change="onManualRoomChange" style="width: 100%">
+            <el-option v-for="r in manualAllocRooms" :key="r.id" :label="`${r.roomNumber} (${r.occupied}/${r.capacity}人)`" :value="r.id">
+              <span>{{ r.roomNumber }}</span>
+              <span style="float:right; color:#909399; font-size:12px">{{ r.occupied }}/{{ r.capacity }}人</span>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="床位号">
+          <el-input-number v-model="manualAllocForm.bedNo" :min="1" :max="12" size="small" />
+          <span style="margin-left: 8px; font-size: 12px; color: #909399;">（当前房间已占 {{ manualRoomOccupied }} 人）</span>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="manualAllocVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveManualAlloc">确认分配</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Cpu, Present, Lock } from '@element-plus/icons-vue'
+import { Cpu, Present, Lock, Edit } from '@element-plus/icons-vue'
 import { adminApi } from '@/api/admin'
 import type { AxiosResponse } from 'axios'
 
@@ -674,6 +709,111 @@ function autoFillAll() {
   computeRemaining()
   ElMessage.success(`已自动补位 ${mergeCount} 名学生`)
   console.log('[Admin] Auto-filled:', mergeCount, 'students')
+}
+
+// ========== 手动分配 ==========
+const manualAllocVisible = ref(false)
+const manualAllocRooms = ref<Room[]>([])
+const manualRoomOccupied = ref(0)
+const manualAllocForm = reactive({
+  studentId: null as number | null,
+  buildingId: null as number | null,
+  roomId: null as number | null,
+  bedNo: 1,
+})
+
+interface UnallocStudent {
+  id: number
+  name: string
+  studentNo: string
+  collegeName?: string
+}
+
+const unallocatedStudents = ref<UnallocStudent[]>([])
+
+async function loadUnallocatedStudents() {
+  const { mockAllStudents } = await import('@/mock/data')
+  const allocatedIds = new Set(allocations.value.map(a => a.studentId))
+  unallocatedStudents.value = mockAllStudents
+    .filter((s: any) => !allocatedIds.has(s.id))
+    .map((s: any) => ({ id: s.id, name: s.name, studentNo: s.studentNo, collegeName: s.collegeName }))
+}
+
+async function openManualAlloc() {
+  await loadUnallocatedStudents()
+  manualAllocForm.studentId = null
+  manualAllocForm.buildingId = null
+  manualAllocForm.roomId = null
+  manualAllocForm.bedNo = 1
+  manualAllocRooms.value = []
+  manualRoomOccupied.value = 0
+  manualAllocVisible.value = true
+}
+
+async function onManualBuildingChange() {
+  manualAllocForm.roomId = null
+  manualRoomOccupied.value = 0
+  if (!manualAllocForm.buildingId) {
+    manualAllocRooms.value = []
+    return
+  }
+  const { mockDormRooms, schoolRoomsMap } = await import('@/mock/data')
+  const scCode = localStorage.getItem('schoolCode') || 'DEMO-UNI'
+  const allRooms: Room[] = (schoolRoomsMap[scCode] || mockDormRooms) as Room[]
+  // Compute actual occupancy from allocations
+  const roomOccMap = new Map<number, number>()
+  for (const a of allocations.value) {
+    roomOccMap.set(a.roomId, (roomOccMap.get(a.roomId) || 0) + 1)
+  }
+  manualAllocRooms.value = allRooms
+    .filter((r: Room) => r.buildingId === manualAllocForm.buildingId)
+    .map((r: Room) => ({ ...r, occupied: roomOccMap.get(r.id) ?? r.occupied }))
+}
+
+function onManualRoomChange() {
+  const room = manualAllocRooms.value.find(r => r.id === manualAllocForm.roomId)
+  if (room) {
+    manualRoomOccupied.value = room.occupied || 0
+    manualAllocForm.bedNo = (room.occupied || 0) + 1
+  }
+}
+
+function saveManualAlloc() {
+  if (!manualAllocForm.studentId) { ElMessage.warning('请选择学生'); return }
+  if (!manualAllocForm.roomId) { ElMessage.warning('请选择房间'); return }
+
+  const student = unallocatedStudents.value.find(s => s.id === manualAllocForm.studentId)
+  const room = manualAllocRooms.value.find(r => r.id === manualAllocForm.roomId)
+  if (!student || !room) return
+
+  // Remove any existing allocation for this student
+  const existIdx = allocations.value.findIndex(a => a.studentId === student.id)
+  if (existIdx >= 0) {
+    allocations.value.splice(existIdx, 1)
+  }
+
+  // Update room occupancy
+  room.occupied = (room.occupied || 0) + 1
+
+  allocations.value.push({
+    id: Date.now(),
+    studentId: student.id,
+    studentName: student.name,
+    studentNo: student.studentNo,
+    roomId: room.id,
+    roomNumber: room.roomNumber,
+    buildingName: buildings.value.find(b => b.id === room.buildingId)?.name || '',
+    bedNo: manualAllocForm.bedNo,
+    allocationType: 'MANUAL',
+    status: 'PENDING',
+    batchCode: batchCode.value,
+  })
+
+  if (currentStep.value < 1) currentStep.value = 1
+  saveAllocState()
+  computeRemaining()
+  ElMessage.success(`${student.name} 已手动分配到 ${room.roomNumber} ${manualAllocForm.bedNo}号床`)
+  manualAllocVisible.value = false
 }
 
 // ========== 辅助 ==========

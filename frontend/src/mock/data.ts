@@ -321,26 +321,26 @@ export const mockClasses = [
 ]
 
 export const mockDormBuildings = [
-  { id: 1, buildingName: '梅园1号楼', buildingCode: 'M1', gender: 1, floors: 6, status: 1 },
-  { id: 2, buildingName: '梅园2号楼', buildingCode: 'M2', gender: 1, floors: 6, status: 1 },
-  { id: 3, buildingName: '兰园1号楼', buildingCode: 'L1', gender: 0, floors: 6, status: 1 },
-  { id: 4, buildingName: '兰园2号楼', buildingCode: 'L2', gender: 0, floors: 6, status: 1 },
-  { id: 5, buildingName: '竹园1号楼', buildingCode: 'Z1', gender: 1, floors: 4, status: 1 },
+  { id: 1, name: '梅园1号楼', code: 'M1', gender: 1, floors: 6, status: 1 },
+  { id: 2, name: '梅园2号楼', code: 'M2', gender: 1, floors: 6, status: 1 },
+  { id: 3, name: '兰园1号楼', code: 'L1', gender: 0, floors: 6, status: 1 },
+  { id: 4, name: '兰园2号楼', code: 'L2', gender: 0, floors: 6, status: 1 },
+  { id: 5, name: '竹园1号楼', code: 'Z1', gender: 1, floors: 4, status: 1 },
 ]
 
 export const mockDormRooms = [
-  { id: 1, buildingId: 1, roomNumber: 'M1-101', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 1 },
-  { id: 2, buildingId: 1, roomNumber: 'M1-102', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 1 },
-  { id: 3, buildingId: 1, roomNumber: 'M1-103', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
-  { id: 4, buildingId: 1, roomNumber: 'M1-104', floor: 1, capacity: 2, occupied: 0, roomType: 'ACCESSIBLE', status: 0 },
-  { id: 5, buildingId: 1, roomNumber: 'M1-201', floor: 2, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
-  { id: 6, buildingId: 1, roomNumber: 'M1-202', floor: 2, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
-  { id: 7, buildingId: 2, roomNumber: 'M2-101', floor: 1, capacity: 4, occupied: 1, roomType: 'NORMAL', status: 1 },
-  { id: 8, buildingId: 2, roomNumber: 'M2-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
-  { id: 9, buildingId: 3, roomNumber: 'L1-101', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 1 },
-  { id: 10, buildingId: 3, roomNumber: 'L1-102', floor: 1, capacity: 4, occupied: 2, roomType: 'NORMAL', status: 1 },
-  { id: 11, buildingId: 3, roomNumber: 'L1-103', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
-  { id: 12, buildingId: 4, roomNumber: 'L2-101', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+  { id: 1, buildingId: 1, roomNumber: 'M1-101', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 'FULL' },
+  { id: 2, buildingId: 1, roomNumber: 'M1-102', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 'FULL' },
+  { id: 3, buildingId: 1, roomNumber: 'M1-103', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
+  { id: 4, buildingId: 1, roomNumber: 'M1-104', floor: 1, capacity: 2, occupied: 0, roomType: 'ACCESSIBLE', status: 'AVAILABLE' },
+  { id: 5, buildingId: 1, roomNumber: 'M1-201', floor: 2, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
+  { id: 6, buildingId: 1, roomNumber: 'M1-202', floor: 2, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
+  { id: 7, buildingId: 2, roomNumber: 'M2-101', floor: 1, capacity: 4, occupied: 1, roomType: 'NORMAL', status: 'PARTIAL' },
+  { id: 8, buildingId: 2, roomNumber: 'M2-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
+  { id: 9, buildingId: 3, roomNumber: 'L1-101', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 'FULL' },
+  { id: 10, buildingId: 3, roomNumber: 'L1-102', floor: 1, capacity: 4, occupied: 2, roomType: 'NORMAL', status: 'PARTIAL' },
+  { id: 11, buildingId: 3, roomNumber: 'L1-103', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
+  { id: 12, buildingId: 4, roomNumber: 'L2-101', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
 ]
 
 export const mockAllocations = [
@@ -866,41 +866,41 @@ export const schoolStudentsMap: Record<string, any[]> = {
 export const schoolBuildingsMap: Record<string, any[]> = {
   'DEMO-UNI': [...mockDormBuildings],
   'TEST': [
-    { id: 201, buildingName: '测试A栋', buildingCode: 'TA', gender: 1, floors: 5, status: 1 },
-    { id: 202, buildingName: '测试B栋', buildingCode: 'TB', gender: 0, floors: 5, status: 1 },
+    { id: 201, name: '测试A栋', code: 'TA', gender: 1, floors: 5, status: 1 },
+    { id: 202, name: '测试B栋', code: 'TB', gender: 0, floors: 5, status: 1 },
   ],
   'BJ-UNI': [
-    { id: 301, buildingName: '燕园1号楼', buildingCode: 'YY1', gender: 1, floors: 7, status: 1 },
-    { id: 302, buildingName: '燕园2号楼', buildingCode: 'YY2', gender: 0, floors: 7, status: 1 },
-    { id: 303, buildingName: '燕园3号楼', buildingCode: 'YY3', gender: 1, floors: 5, status: 1 },
+    { id: 301, name: '燕园1号楼', code: 'YY1', gender: 1, floors: 7, status: 1 },
+    { id: 302, name: '燕园2号楼', code: 'YY2', gender: 0, floors: 7, status: 1 },
+    { id: 303, name: '燕园3号楼', code: 'YY3', gender: 1, floors: 5, status: 1 },
   ],
   'SH-UNI': [
-    { id: 401, buildingName: '泮池1号楼', buildingCode: 'PC1', gender: 1, floors: 6, status: 1 },
-    { id: 402, buildingName: '泮池2号楼', buildingCode: 'PC2', gender: 0, floors: 6, status: 1 },
-    { id: 403, buildingName: '泮池3号楼', buildingCode: 'PC3', gender: 1, floors: 5, status: 0 },
+    { id: 401, name: '泮池1号楼', code: 'PC1', gender: 1, floors: 6, status: 1 },
+    { id: 402, name: '泮池2号楼', code: 'PC2', gender: 0, floors: 6, status: 1 },
+    { id: 403, name: '泮池3号楼', code: 'PC3', gender: 1, floors: 5, status: 0 },
   ],
 }
 
 export const schoolRoomsMap: Record<string, any[]> = {
   'DEMO-UNI': [...mockDormRooms],
   'TEST': [
-    { id: 201, buildingId: 201, roomNumber: 'TA-101', floor: 1, capacity: 4, occupied: 3, roomType: 'NORMAL', status: 1 },
-    { id: 202, buildingId: 201, roomNumber: 'TA-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
-    { id: 203, buildingId: 202, roomNumber: 'TB-101', floor: 1, capacity: 4, occupied: 2, roomType: 'NORMAL', status: 1 },
-    { id: 204, buildingId: 202, roomNumber: 'TB-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+    { id: 201, buildingId: 201, roomNumber: 'TA-101', floor: 1, capacity: 4, occupied: 3, roomType: 'NORMAL', status: 'PARTIAL' },
+    { id: 202, buildingId: 201, roomNumber: 'TA-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
+    { id: 203, buildingId: 202, roomNumber: 'TB-101', floor: 1, capacity: 4, occupied: 2, roomType: 'NORMAL', status: 'PARTIAL' },
+    { id: 204, buildingId: 202, roomNumber: 'TB-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
   ],
   'BJ-UNI': [
-    { id: 301, buildingId: 301, roomNumber: 'YY1-101', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 1 },
-    { id: 302, buildingId: 301, roomNumber: 'YY1-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
-    { id: 303, buildingId: 302, roomNumber: 'YY2-101', floor: 1, capacity: 4, occupied: 3, roomType: 'NORMAL', status: 1 },
-    { id: 304, buildingId: 302, roomNumber: 'YY2-102', floor: 1, capacity: 2, roomType: 'ACCESSIBLE', status: 0 },
-    { id: 305, buildingId: 303, roomNumber: 'YY3-101', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+    { id: 301, buildingId: 301, roomNumber: 'YY1-101', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 'FULL' },
+    { id: 302, buildingId: 301, roomNumber: 'YY1-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
+    { id: 303, buildingId: 302, roomNumber: 'YY2-101', floor: 1, capacity: 4, occupied: 3, roomType: 'NORMAL', status: 'PARTIAL' },
+    { id: 304, buildingId: 302, roomNumber: 'YY2-102', floor: 1, capacity: 2, roomType: 'ACCESSIBLE', status: 'AVAILABLE' },
+    { id: 305, buildingId: 303, roomNumber: 'YY3-101', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
   ],
   'SH-UNI': [
-    { id: 401, buildingId: 401, roomNumber: 'PC1-101', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 1 },
-    { id: 402, buildingId: 401, roomNumber: 'PC1-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
-    { id: 403, buildingId: 402, roomNumber: 'PC2-101', floor: 1, capacity: 4, occupied: 3, roomType: 'NORMAL', status: 1 },
-    { id: 404, buildingId: 402, roomNumber: 'PC2-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 0 },
+    { id: 401, buildingId: 401, roomNumber: 'PC1-101', floor: 1, capacity: 4, occupied: 4, roomType: 'NORMAL', status: 'FULL' },
+    { id: 402, buildingId: 401, roomNumber: 'PC1-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
+    { id: 403, buildingId: 402, roomNumber: 'PC2-101', floor: 1, capacity: 4, occupied: 3, roomType: 'NORMAL', status: 'PARTIAL' },
+    { id: 404, buildingId: 402, roomNumber: 'PC2-102', floor: 1, capacity: 4, occupied: 0, roomType: 'NORMAL', status: 'AVAILABLE' },
   ],
 }
 

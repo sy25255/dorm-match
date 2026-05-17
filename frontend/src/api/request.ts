@@ -503,7 +503,15 @@ async function handleMock(url: string, method: string, bodyData?: any, schoolCod
 
   // ========== Admin: Audit Logs ==========
   if (url.includes('/admin/audit-logs')) {
-    return makeMockResponse(m.mockAuditLogs)
+    let auditLogs = [...m.mockAuditLogs]
+    // Parse query string for action filter
+    const queryStr = url.split('?')[1] || ''
+    const params = new URLSearchParams(queryStr)
+    const actionFilter = params.get('action')
+    if (actionFilter) {
+      auditLogs = auditLogs.filter((l: any) => l.action === actionFilter)
+    }
+    return makeMockResponse(auditLogs)
   }
 
   // ========== Admin: Objections ==========
@@ -717,7 +725,7 @@ request.interceptors.response.use(
     const url: string = error.config?.url || ''
     const method = error.config?.method || 'get'
     const bodyData = error.config?.data
-    const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.code === 'ERR_BAD_RESPONSE' || !error.response
+    const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.code === 'ERR_BAD_RESPONSE' || error.code === 'ERR_CONNECTION_RESET' || !error.response
     const isHtmlError = error.response && typeof error.response.data === 'string' && (error.response.data.includes('<!DOCTYPE html>') || error.response.data.includes('<html'))
     const sc = (error.config?.headers as any)?.['X-School-Code'] || localStorage.getItem('schoolCode') || undefined
 

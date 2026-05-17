@@ -56,14 +56,13 @@ onMounted(loadUnread)
         </div>
       </div>
 
-      <el-menu :default-active="activeMenu" router class="side-menu" @select="closeMenu">
+      <el-menu :default-active="activeMenu" router class="side-menu">
         <el-menu-item :index="`${basePath}/`"><el-icon><HomeFilled /></el-icon><span>首页</span></el-menu-item>
         <el-menu-item :index="`${basePath}/survey`"><el-icon><Edit /></el-icon><span>偏好问卷</span></el-menu-item>
         <el-menu-item :index="`${basePath}/matches`"><el-icon><Connection /></el-icon><span>舍友推荐</span></el-menu-item>
         <el-menu-item :index="`${basePath}/pairing`"><el-icon><UserFilled /></el-icon><span>我的配对</span></el-menu-item>
         <el-menu-item :index="`${basePath}/allocation`"><el-icon><OfficeBuilding /></el-icon><span>分配结果</span></el-menu-item>
         <el-menu-item :index="`${basePath}/profile`"><el-icon><Setting /></el-icon><span>个人信息</span></el-menu-item>
-        <el-menu-item :index="`${basePath}/feedback`"><el-icon><ChatLineSquare /></el-icon><span>建议反馈</span></el-menu-item>
       </el-menu>
 
       <div class="user-info">

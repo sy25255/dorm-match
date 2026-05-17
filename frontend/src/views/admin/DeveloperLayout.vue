@@ -17,6 +17,7 @@ function handleLogout() {
 }
 
 function goToSchool(code: string) {
+  localStorage.setItem('dev_referrer', 'true')
   localStorage.setItem('schoolCode', code)
   const school = { 'DEMO-UNI': '示范大学', 'TEST': '测试学院', 'BJ-UNI': '北京大学', 'SH-UNI': '上海大学' } as Record<string, string>
   localStorage.setItem('schoolName', school[code] || code)

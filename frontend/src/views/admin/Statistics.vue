@@ -21,9 +21,26 @@ async function loadStats() {
   loading.value = true
   try {
     const res = await adminApi.getStatistics()
-    stats.value = res.data.data || {}
+    const data = res.data.data || {}
+    // Merge with editable overrides from localStorage
+    const editable = getEditableStats()
+    stats.value = { ...data, ...editable }
     buildCharts()
   } finally { loading.value = false }
+}
+
+function getEditableStats() {
+  try {
+    const raw = localStorage.getItem('demo_editable_stats')
+    return raw ? JSON.parse(raw) : {}
+  } catch { return {} }
+}
+
+function saveEditableStat(key: string, value: number) {
+  const current = getEditableStats()
+  current[key] = value
+  localStorage.setItem('demo_editable_stats', JSON.stringify(current))
+  stats.value[key] = value
 }
 
 function buildCharts() {
@@ -84,15 +101,23 @@ onMounted(loadStats)
 
     <el-row :gutter="16" style="margin-bottom:16px">
       <el-col :span="6" v-for="item in [
-        { label: '学生总数', value: stats.totalStudents, color: '#667eea' },
-        { label: '已完成问卷', value: stats.completedSurvey, color: '#52c41a' },
-        { label: '已配对', value: stats.paired, color: '#fa8c16' },
-        { label: '待处理异议', value: stats.pendingObjections, color: '#f5222d' },
+        { label: '学生总数', key: 'totalStudents', color: '#667eea' },
+        { label: '已完成问卷', key: 'completedSurvey', color: '#52c41a' },
+        { label: '已配对', key: 'paired', color: '#fa8c16' },
+        { label: '待处理异议', key: 'pendingObjections', color: '#f5222d' },
       ]" :key="item.label">
         <el-card shadow="hover">
           <div style="text-align:center">
-            <div :style="{ fontSize:'32px', fontWeight:'700', color:item.color }">{{ item.value }}</div>
-            <div style="color:#86909c;font-size:13px">{{ item.label }}</div>
+            <el-input-number
+              v-model="stats[item.key]"
+              :min="0"
+              :max="99999"
+              :controls="false"
+              style="width:100%"
+              size="large"
+              @change="saveEditableStat(item.key, $event)"
+            />
+            <div style="color:#86909c;font-size:13px;margin-top:4px">{{ item.label }}</div>
           </div>
         </el-card>
       </el-col>

@@ -1,0 +1,112 @@
+{
+  "total": 26,
+  "passed": 26,
+  "failed": 0,
+  "errors": [],
+  "results": [
+    {
+      "msg": "Login as 张伟",
+      "ok": true
+    },
+    {
+      "msg": "Page shows room capacity tag (X人间)",
+      "ok": true
+    },
+    {
+      "msg": "Page shows recommendations",
+      "ok": true
+    },
+    {
+      "msg": "Found 5 invite buttons on page",
+      "ok": true
+    },
+    {
+      "msg": "Clicked send invite button",
+      "ok": true
+    },
+    {
+      "msg": "localStorage 'demo_sent_invites' exists",
+      "ok": true
+    },
+    {
+      "msg": "localStorage 'demo_received_invites' exists",
+      "ok": true
+    },
+    {
+      "msg": "Sent invites count in localStorage: 1",
+      "ok": true
+    },
+    {
+      "msg": "All sent invites have schoolCode=DEMO-UNI",
+      "ok": true
+    },
+    {
+      "msg": "Login as 赵刚",
+      "ok": true
+    },
+    {
+      "msg": "Zhao Gang sent invite from matches page",
+      "ok": true
+    },
+    {
+      "msg": "Zhao's invites persisted in localStorage",
+      "ok": true
+    },
+    {
+      "msg": "Zhao's invite was sent to student id: 2",
+      "ok": true
+    },
+    {
+      "msg": "Login as 张伟",
+      "ok": true
+    },
+    {
+      "msg": "Pair groups in localStorage (may use defaults)",
+      "ok": true
+    },
+    {
+      "msg": "Sent invites all schoolCode=DEMO-UNI",
+      "ok": true
+    },
+    {
+      "msg": "Recommendations visible on page",
+      "ok": true
+    },
+    {
+      "msg": "Admin login",
+      "ok": true
+    },
+    {
+      "msg": "Has building management",
+      "ok": true
+    },
+    {
+      "msg": "Has capacity config",
+      "ok": true
+    },
+    {
+      "msg": "Has allocation section",
+      "ok": true
+    },
+    {
+      "msg": "Room capacity set to 8, stored=8",
+      "ok": true
+    },
+    {
+      "msg": "Allocation executed",
+      "ok": true
+    },
+    {
+      "msg": "Login as 王芳",
+      "ok": true
+    },
+    {
+      "msg": "Matches page shows 8人间 tag",
+      "ok": true
+    },
+    {
+      "msg": "Pairing page shows room info",
+      "ok": true
+    }
+  ]
+}

@@ -22,6 +22,7 @@ const activeTab = ref<'recommendations' | 'search' | 'invites'>('recommendations
 const list = ref<Recommendation[]>([])
 const loading = ref(false)
 const inviting = ref<number | null>(null)
+const surveyCompleted = ref(false)
 
 const roomCapacity = ref(8)
 try {
@@ -46,7 +47,16 @@ const headerDesc = computed(() => {
   }
 })
 
+function checkSurveyCompletion() {
+  const userId = localStorage.getItem('userId') || '0'
+  surveyCompleted.value = localStorage.getItem(`demo_survey_completed_${userId}`) === 'true'
+}
+
 async function loadRecommendations() {
+  if (!surveyCompleted.value) {
+    ElMessage.warning('请先完成偏好问卷再查看推荐')
+    return
+  }
   loading.value = true
   try {
     const res = await matchApi.getRecommendations()
@@ -66,7 +76,10 @@ async function sendInvite(targetId: number) {
   }
 }
 
-onMounted(loadRecommendations)
+onMounted(() => {
+  checkSurveyCompletion()
+  if (surveyCompleted.value) loadRecommendations()
+})
 </script>
 
 <template>
@@ -86,8 +99,12 @@ onMounted(loadRecommendations)
     </div>
 
     <div v-show="activeTab === 'recommendations'" v-loading="loading">
-      <el-empty v-if="list.length === 0 && !loading" description="暂无推荐，请先提交偏好问卷并触发匹配计算">
-        <el-button type="primary" @click="$router.push(`/${$route.params.schoolCode}/survey`)">去填写问卷</el-button>
+      <el-empty v-if="!surveyCompleted" description="请先完成偏好问卷，系统才能为你推荐匹配的舍友">
+        <template #extra>
+          <el-button type="primary" @click="$router.push(`/${$route.params.schoolCode}/survey`)">前往填写问卷</el-button>
+        </template>
+      </el-empty>
+      <el-empty v-else-if="list.length === 0 && !loading" description="暂无推荐，请先提交偏好问卷并触发匹配计算">
       </el-empty>
 
       <div class="card-grid">
