@@ -20,5 +20,15 @@ export function getCurrentSchool(): string {
 }
 
 export function getCurrentUserId(): string {
-  return localStorage.getItem('userId') || ''
+  return localStorage.getItem('supabase_user_id') || ''
+}
+
+export function setAuthState(userId: string, token: string, refreshToken: string) {
+  localStorage.setItem('supabase_user_id', userId)
+  localStorage.setItem('token', token)
+  localStorage.setItem('refreshToken', refreshToken)
+}
+
+export function clearAuthState() {
+  ['token', 'refreshToken', 'userId', 'username', 'role', 'supabase_user_id'].forEach(k => localStorage.removeItem(k))
 }

@@ -117,50 +117,100 @@ export const adminApi = {
   async executeAllocation(data: { type: string; gender?: number }) {
     const sc = getCurrentSchool()
 
-    // Get all completed-survey students without allocation
     let q = supabase.from('profiles').select('*').eq('school_code', sc).eq('survey_status', 'COMPLETED')
     if (data.gender !== undefined) q = q.eq('gender', data.gender)
 
     const { data: students } = await q
     if (!students || students.length === 0) return wrap({ allocated: 0 })
 
-    // Get available rooms
     const { data: rooms } = await supabase.from('dormitory_rooms').select('*').eq('school_code', sc).eq('status', 'AVAILABLE')
     if (!rooms || rooms.length === 0) return wrap({ allocated: 0 })
 
-    // Clear existing allocations for these students
     const studentIds = (students as any[]).map((s: any) => s.id)
     await supabase.from('allocations').delete().in('user_id', studentIds)
 
+    const roomCapacity = (rooms as any[])[0]?.capacity || 4
+
+    // Step 1: 拉取所有学生的问卷答案
+    const { data: allAnswers } = await supabase
+      .from('survey_answers')
+      .select('user_id, question_id, answer_value')
+      .in('user_id', studentIds)
+
+    const answerMap = new Map<string, Map<number, number>>()
+    for (const a of (allAnswers as any[]) || []) {
+      if (!answerMap.has(a.user_id)) answerMap.set(a.user_id, new Map())
+      answerMap.get(a.user_id)!.set(a.question_id, Number(a.answer_value))
+    }
+
+    // Step 2: 计算两个学生偏好相似度（0~1，越高越相似）
+    function calcSimilarity(a: Map<number, number>, b: Map<number, number>): number {
+      let totalDiff = 0, count = 0
+      for (const [qid, val] of a) {
+        const ov = b.get(qid)
+        if (ov !== undefined) { totalDiff += Math.abs(val - ov); count++ }
+      }
+      return count > 0 ? 1 - totalDiff / (count * 4) : 0
+    }
+
+    // Step 3: 贪心分组 — 每次选一个学生当"锚点"，拉最相似的 roomCapacity-1 人组队
+    const unassigned = [...(students as any[])]
+    const groups: any[][] = []
+
+    while (unassigned.length > 0) {
+      const anchor = unassigned.shift()!
+      const anchorAnswers = answerMap.get(anchor.id)
+      const group = [anchor]
+
+      if (anchorAnswers && unassigned.length > 0) {
+        const scored = unassigned.map(s => ({
+          student: s,
+          score: answerMap.has(s.id) ? calcSimilarity(anchorAnswers, answerMap.get(s.id)!) : 0,
+        }))
+        scored.sort((a, b) => b.score - a.score)
+        const need = roomCapacity - 1
+        for (let i = 0; i < Math.min(need, scored.length); i++) {
+          group.push(scored[i].student)
+          const idx = unassigned.indexOf(scored[i].student)
+          if (idx >= 0) unassigned.splice(idx, 1)
+        }
+      }
+
+      groups.push(group)
+    }
+
+    // Step 4: 按组分配到宿舍房间
     const batchCode = 'BATCH-' + Date.now()
     let allocated = 0
     let roomIdx = 0
 
-    for (const student of students as any[]) {
+    for (const group of groups) {
       if (roomIdx >= rooms.length) break
       const room = (rooms as any[])[roomIdx]
-      const occupied = (room.occupied || 0) + 1
+      let bedNo = (room.occupied || 0)
 
-      await supabase.from('allocations').insert({
-        school_code: sc,
-        user_id: student.id,
-        room_id: room.id,
-        room_number: room.room_number,
-        bed_no: occupied,
-        allocation_type: data.type || 'ALGORITHM',
-        batch_code: batchCode,
-      })
-      await supabase.from('dormitory_rooms').update({ occupied }).eq('id', room.id)
-
-      if (occupied >= room.capacity) {
-        await supabase.from('dormitory_rooms').update({ status: 'FULL' }).eq('id', room.id)
-        roomIdx++
-      } else if (occupied > 0) {
-        await supabase.from('dormitory_rooms').update({ status: 'PARTIAL' }).eq('id', room.id)
+      for (const student of group) {
+        bedNo++
+        await supabase.from('allocations').insert({
+          school_code: sc,
+          user_id: student.id,
+          room_id: room.id,
+          room_number: room.room_number,
+          bed_no: bedNo,
+          allocation_type: data.type || 'ALGORITHM',
+          batch_code: batchCode,
+        })
+        await supabase.from('profiles').update({ match_status: 'ALLOCATED' }).eq('id', student.id)
+        allocated++
       }
 
-      await supabase.from('profiles').update({ match_status: 'ALLOCATED' }).eq('id', student.id)
-      allocated++
+      // 更新房间状态
+      if (bedNo >= room.capacity) {
+        await supabase.from('dormitory_rooms').update({ occupied: bedNo, status: 'FULL' }).eq('id', room.id)
+        roomIdx++
+      } else {
+        await supabase.from('dormitory_rooms').update({ occupied: bedNo, status: 'PARTIAL' }).eq('id', room.id)
+      }
     }
 
     return wrap({ allocated, batchCode })

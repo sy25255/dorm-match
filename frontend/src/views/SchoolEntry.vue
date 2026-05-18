@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { supabase } from '@/lib/supabase'
@@ -12,14 +12,6 @@ const schoolCode = ref('')
 const validating = ref(false)
 const validatedSchool = ref<{ code: string; name: string } | null>(null)
 const codeTouched = ref(false)
-
-const demoStudents = [
-  { name: '张伟', studentNo: '20240001', school: 'DEMO-UNI', schoolName: '示范大学' },
-]
-
-const demoAdmins = [
-  { label: '示范大学', school: 'DEMO-UNI', schoolName: '示范大学' },
-]
 
 async function validateSchoolCode() {
   const code = schoolCode.value.trim().toUpperCase()
@@ -38,15 +30,10 @@ async function validateSchoolCode() {
       .single()
 
     if (error) {
-      // Fallback: try mock if Supabase not yet set up
       try {
         const mod = await import('@/mock/data')
         const school = mod.getSchoolByCode(code)
-        if (school) {
-          validatedSchool.value = school
-        } else {
-          validatedSchool.value = null
-        }
+        validatedSchool.value = school || null
       } catch {
         validatedSchool.value = null
       }
@@ -82,121 +69,10 @@ async function enterSchool() {
 function onKeyUp(e: KeyboardEvent) {
   if (e.key === 'Enter') enterSchool()
 }
-
-function demoLogin(studentNo: string, name: string, school: string, schoolName: string) {
-  userStore.demoLogin(studentNo, name)
-  userStore.setSchoolInfo(school.toUpperCase(), schoolName)
-  router.push(`/${school.toUpperCase()}/`)
-}
-
-function demoAdminLogin(school: string, schoolName: string) {
-  userStore.logout()
-  userStore.role = 'ADMIN'
-  userStore.token = 'demo-admin-token'
-  userStore.userId = 99
-  userStore.username = '系统管理员'
-  localStorage.setItem('token', 'demo-admin-token')
-  localStorage.setItem('refreshToken', 'demo-admin-refresh')
-  localStorage.setItem('userId', '99')
-  localStorage.setItem('username', '系统管理员')
-  localStorage.setItem('role', 'ADMIN')
-  userStore.setSchoolInfo(school.toUpperCase(), schoolName)
-  router.push(`/${school.toUpperCase()}/admin`)
-}
-
-// ========== 开发者入口 ==========
-const showDevPwd = ref(false)
-const devPassword = ref('')
-
-function enterAsDeveloper() {
-  showDevPwd.value = true
-  devPassword.value = ''
-}
-
-function confirmDevAccess() {
-  if (devPassword.value === 'dev2024') {
-    showDevPwd.value = false
-    userStore.demoDevLogin()
-    localStorage.removeItem('schoolCode')
-    localStorage.removeItem('schoolName')
-    router.push('/dev')
-  } else {
-    ElMessage.error('开发者密码错误，访问被拒绝')
-  }
-}
-
-// ========== 测试登录 ==========
-const showTestLogin = ref(false)
-const testLoginForm = reactive({ name: '', school: '示范大学', college: '', major: '' })
-
-const testColleges = [
-  { name: '计算机与信息工程学院', majors: ['计算机科学与技术', '软件工程', '人工智能'] },
-  { name: '数理学院', majors: ['数学与应用数学', '物理学', '统计学'] },
-  { name: '经济管理学院', majors: ['工商管理', '会计学', '金融学'] },
-]
-
-const testAvailableMajors = ref<string[]>([])
-
-function onTestCollegeChange() {
-  testLoginForm.major = ''
-  const college = testColleges.find(c => c.name === testLoginForm.college)
-  testAvailableMajors.value = college ? college.majors : []
-}
-
-function openTestLogin() {
-  testLoginForm.name = ''
-  testLoginForm.school = '示范大学'
-  testLoginForm.college = ''
-  testLoginForm.major = ''
-  testAvailableMajors.value = []
-  showTestLogin.value = true
-}
-
-function handleTestLogin() {
-  if (!testLoginForm.name.trim()) { ElMessage.warning('请输入姓名'); return }
-  if (!testLoginForm.school.trim()) { ElMessage.warning('请输入院校名称'); return }
-
-  const studentNo = 'TEST' + Date.now().toString(36).slice(-6).toUpperCase()
-  userStore.demoLogin(studentNo, testLoginForm.name.trim())
-  userStore.setSchoolInfo('DEMO-UNI', testLoginForm.school.trim())
-  localStorage.setItem('test_user_name', testLoginForm.name.trim())
-  localStorage.setItem('test_user_school', testLoginForm.school.trim())
-  localStorage.setItem('test_user_college', testLoginForm.college)
-  localStorage.setItem('test_user_major', testLoginForm.major)
-  localStorage.setItem('is_test_user', 'true')
-
-  const registryKey = 'demo_registered_test_users'
-  const raw = localStorage.getItem(registryKey)
-  const registry: any[] = raw ? JSON.parse(raw) : []
-  registry.push({
-    id: Date.now(),
-    name: testLoginForm.name.trim(),
-    studentNo,
-    gender: 1,
-    collegeName: testLoginForm.college,
-    majorName: testLoginForm.major,
-    className: testLoginForm.major ? testLoginForm.major + '2401班' : '',
-    hometown: '',
-    phone: '',
-    email: '',
-    surveyStatus: 'PENDING',
-    matchStatus: 'NONE',
-    isValid: true,
-    isTestUser: true,
-  })
-  localStorage.setItem(registryKey, JSON.stringify(registry))
-
-  ElMessage.success(`测试登录成功，欢迎 ${testLoginForm.name}！`)
-  showTestLogin.value = false
-  router.push('/DEMO-UNI/')
-}
 </script>
 
 <template>
   <div class="entry-root">
-    <div class="entry-banner">
-      <span>🧪 测试环境 — 非最终交付版本，仅用于功能验证</span>
-    </div>
     <div class="entry-container">
     <div class="entry-card">
       <div class="entry-header">
@@ -246,114 +122,20 @@ function handleTestLogin() {
         </el-button>
       </div>
 
-      <el-divider style="margin: 24px 0 16px;">
-        <span style="color:#c9cdd4;font-size:12px;">— 演示模式（无需注册）—</span>
-      </el-divider>
-
-      <div class="demo-section">
-        <p class="demo-label">👨‍🎓 学生演示账号</p>
-        <div class="demo-grid">
-          <el-button
-            v-for="s in demoStudents" :key="s.studentNo"
-            size="small"
-            class="demo-btn"
-            @click="demoLogin(s.studentNo, s.name, s.school, s.schoolName)"
-          >
-            {{ s.name }}
-            <span class="demo-no">{{ s.studentNo }}</span>
-          </el-button>
+      <div class="known-codes">
+        <p class="codes-label">已知学校编码</p>
+        <div class="codes-list">
+          <span class="code-tag" @click="schoolCode = 'DEMO-UNI'">DEMO-UNI 示范大学</span>
+          <span class="code-tag" @click="schoolCode = 'TEST'">TEST 测试学院</span>
         </div>
-
-        <el-divider style="margin: 10px 0;" />
-
-        <p class="demo-label">🔧 管理员演示（各学校后台）</p>
-        <div class="demo-grid">
-          <el-button
-            v-for="a in demoAdmins" :key="a.school"
-            size="small"
-            class="demo-btn admin-demo-btn"
-            @click="demoAdminLogin(a.school, a.schoolName)"
-          >
-            {{ a.label }}
-          </el-button>
-        </div>
-      </div>
-
-      <div class="dev-entry">
-        <el-button
-          class="dev-btn-main"
-          @click="enterAsDeveloper"
-        >
-          <el-icon :size="16"><Monitor /></el-icon>
-          <span>系统开发者后台</span>
-        </el-button>
-        <p class="dev-hint">查看全部学校数据 · 管理管理员账号 · 处理用户反馈</p>
-      </div>
-
-      <div class="test-entry">
-        <el-button
-          class="test-btn-main"
-          @click="openTestLogin"
-        >
-          <el-icon :size="16"><Key /></el-icon>
-          <span>🔬 测试登录</span>
-        </el-button>
-        <p class="test-hint">输入姓名及院校即可登录，用于功能验证测试</p>
       </div>
     </div>
-
-    <el-dialog v-model="showTestLogin" title="🔬 测试登录" width="420px" :close-on-click-modal="false">
-      <el-form :model="testLoginForm" label-width="80px">
-        <el-form-item label="姓名">
-          <el-input v-model="testLoginForm.name" placeholder="输入任意姓名" maxlength="20" />
-        </el-form-item>
-        <el-form-item label="院校名称">
-          <el-input v-model="testLoginForm.school" placeholder="例如：示范大学" maxlength="30" />
-        </el-form-item>
-        <el-form-item label="学院">
-          <el-select v-model="testLoginForm.college" placeholder="选择学院" @change="onTestCollegeChange" style="width: 100%">
-            <el-option v-for="c in testColleges" :key="c.name" :label="c.name" :value="c.name" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="专业">
-          <el-select v-model="testLoginForm.major" placeholder="先选择学院" :disabled="!testLoginForm.college" style="width: 100%">
-            <el-option v-for="m in testAvailableMajors" :key="m" :label="m" :value="m" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showTestLogin = false">取消</el-button>
-        <el-button type="primary" @click="handleTestLogin">进入测试</el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="showDevPwd" title="🔒 开发者验证" width="350px" :close-on-click-modal="false">
-      <el-form @submit.prevent="confirmDevAccess">
-        <el-form-item label="开发者密码">
-          <el-input v-model="devPassword" type="password" placeholder="请输入开发者密码" show-password />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showDevPwd = false">取消</el-button>
-        <el-button type="primary" @click="confirmDevAccess">验证进入</el-button>
-      </template>
-    </el-dialog>
     </div>
   </div>
 </template>
 
 <style scoped>
 .entry-root { min-height: 100vh; display: flex; flex-direction: column; }
-.entry-banner {
-  background: linear-gradient(90deg, #ffc069, #fa8c16);
-  color: #fff;
-  text-align: center;
-  padding: 4px 0;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 1px;
-  flex-shrink: 0;
-}
 .entry-container {
   flex: 1;
   min-height: 0;
@@ -388,18 +170,16 @@ function handleTestLogin() {
 
 .entry-card {
   width: 460px;
-  max-height: 90vh;
-  overflow-y: auto;
   background: rgba(255,255,255,0.97);
   border-radius: 20px;
-  padding: 32px 36px;
+  padding: 36px 36px 28px;
   box-shadow: 0 24px 80px rgba(0,0,0,0.25);
   position: relative;
   z-index: 1;
   backdrop-filter: blur(10px);
 }
 
-.entry-header { text-align: center; margin-bottom: 24px; }
+.entry-header { text-align: center; margin-bottom: 28px; }
 .entry-icon { margin-bottom: 8px; }
 .entry-title { font-size: 20px; font-weight: 700; color: #1a1a2e; margin: 0 0 4px; }
 .entry-subtitle { font-size: 13px; color: #86909c; margin: 0; }
@@ -419,33 +199,19 @@ function handleTestLogin() {
 
 .submit-btn { width: 100%; height: 46px; font-size: 16px; border-radius: 10px; }
 
-.demo-section { margin-top: 4px; }
-.demo-label { font-size: 12px; color: #86909c; margin: 0 0 8px; text-align: center; }
-.demo-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-.demo-btn {
-  border-color: #e5e6eb; color: #4e5969;
-  font-size: 12px; transition: all 0.2s;
+.known-codes { margin-top: 24px; padding-top: 20px; border-top: 1px solid #f0f0f0; text-align: center; }
+.codes-label { font-size: 12px; color: #86909c; margin: 0 0 10px; }
+.codes-list { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.code-tag {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: #f5f3ff;
+  color: #667eea;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e8e0ff;
 }
-.demo-btn:hover { border-color: #667eea; color: #667eea; background: #f5f3ff; }
-.demo-no { color: #86909c; font-size: 10px; margin-left: 4px; }
-.admin-demo-btn { border-color: #ffd666; color: #d48806; }
-.admin-demo-btn:hover { border-color: #faad14; color: #d48806; background: #fffbe6; }
-
-.dev-entry { text-align: center; padding: 10px 0 0; margin-top: 12px; border-top: 1px solid #f0f0f0; }
-.dev-btn-main {
-  width: 100%; height: 38px; font-size: 13px;
-  border-radius: 8px; border: 1.5px dashed #b37feb;
-  color: #722ed1; background: #f9f0ff;
-}
-.dev-btn-main:hover { background: #9254de; color: #fff; border-color: #9254de; }
-.dev-hint { margin: 6px 0 0; font-size: 11px; color: #b0b8c0; }
-
-.test-entry { text-align: center; padding: 10px 0 0; margin-top: 8px; border-top: 1.5px solid #ffe58f; }
-.test-btn-main {
-  width: 100%; height: 38px; font-size: 13px;
-  border-radius: 8px; border: 1.5px dashed #ffc069;
-  color: #d46b08; background: #fff7e6;
-}
-.test-btn-main:hover { background: #fa8c16; color: #fff; border-color: #fa8c16; }
-.test-hint { margin: 6px 0 0; font-size: 11px; color: #d89614; }
+.code-tag:hover { background: #667eea; color: #fff; }
 </style>
