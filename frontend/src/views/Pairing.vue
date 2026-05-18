@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { inviteApi } from '@/api/invite'
 import { matchApi } from '@/api/match'
+import { supabase } from '@/lib/supabase'
+import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 
@@ -14,6 +16,7 @@ interface Member {
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 const roomCapacity = ref(8)
 try {
@@ -24,9 +27,13 @@ console.log('[Pairing] Room capacity:', roomCapacity.value)
 
 const surveyCompleted = ref(false)
 
-function checkSurveyCompletion() {
-  const userId = localStorage.getItem('userId') || '0'
-  surveyCompleted.value = localStorage.getItem(`demo_survey_completed_${userId}`) === 'true'
+async function checkSurveyCompletion() {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('survey_status')
+    .eq('id', userStore.userId)
+    .single()
+  surveyCompleted.value = profile?.survey_status === 'COMPLETED'
 }
 
 const pairing = ref<any>(null)
@@ -75,8 +82,8 @@ async function sendGroupInvite(targetId: number, targetName: string) {
 
 const statusLabels: Record<number, string> = { 0: '组建中', 1: '已锁定', 2: '已分配' }
 
-onMounted(() => {
-  checkSurveyCompletion()
+onMounted(async () => {
+  await checkSurveyCompletion()
   if (surveyCompleted.value) loadData()
 })
 </script>

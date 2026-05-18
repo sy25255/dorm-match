@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import { surveyApi, type AnswerItem } from '@/api/survey'
 import { matchApi } from '@/api/match'
+import { supabase, getCurrentUserId } from '@/lib/supabase'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 
@@ -119,9 +120,15 @@ const bioStatus = computed(() => {
   return 'ok'
 })
 
-function checkCompleted() {
-  const userId = localStorage.getItem('userId') || '0'
-  if (localStorage.getItem(`demo_survey_completed_${userId}`) === 'true') {
+async function checkCompleted() {
+  const uid = getCurrentUserId()
+  if (!uid) return
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('survey_status')
+    .eq('id', uid)
+    .single()
+  if (profile?.survey_status === 'COMPLETED') {
     submitted.value = true
   }
 }

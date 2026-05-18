@@ -13,9 +13,14 @@ const route = useRoute()
 
 const surveyCompleted = ref(false)
 
-function checkSurveyCompletion() {
-  const userId = localStorage.getItem('userId') || '0'
-  surveyCompleted.value = localStorage.getItem(`demo_survey_completed_${userId}`) === 'true'
+async function checkSurveyCompletion() {
+  const { supabase } = await import('@/lib/supabase')
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('survey_status')
+    .eq('id', userStore.userId)
+    .single()
+  surveyCompleted.value = profile?.survey_status === 'COMPLETED'
 }
 
 const allocation = ref<any>(null)
@@ -69,7 +74,7 @@ function formatTime(iso: string) {
 }
 
 onMounted(async () => {
-  checkSurveyCompletion()
+  await checkSurveyCompletion()
   if (!surveyCompleted.value) return
 
   currentUserId.value = userStore.userId

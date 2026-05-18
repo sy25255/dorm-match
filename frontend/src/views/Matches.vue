@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { matchApi } from '@/api/match'
 import { inviteApi } from '@/api/invite'
+import { supabase } from '@/lib/supabase'
+import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
 import SearchView from './Search.vue'
 import InvitesView from './Invites.vue'
@@ -23,6 +25,7 @@ const list = ref<Recommendation[]>([])
 const loading = ref(false)
 const inviting = ref<number | null>(null)
 const surveyCompleted = ref(false)
+const userStore = useUserStore()
 
 const roomCapacity = ref(8)
 try {
@@ -47,9 +50,13 @@ const headerDesc = computed(() => {
   }
 })
 
-function checkSurveyCompletion() {
-  const userId = localStorage.getItem('userId') || '0'
-  surveyCompleted.value = localStorage.getItem(`demo_survey_completed_${userId}`) === 'true'
+async function checkSurveyCompletion() {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('survey_status')
+    .eq('id', userStore.userId)
+    .single()
+  surveyCompleted.value = profile?.survey_status === 'COMPLETED'
 }
 
 async function loadRecommendations() {
@@ -76,8 +83,8 @@ async function sendInvite(targetId: number) {
   }
 }
 
-onMounted(() => {
-  checkSurveyCompletion()
+onMounted(async () => {
+  await checkSurveyCompletion()
   if (surveyCompleted.value) loadRecommendations()
 })
 </script>

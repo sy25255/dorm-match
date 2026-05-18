@@ -21,26 +21,9 @@ async function loadStats() {
   loading.value = true
   try {
     const res = await adminApi.getStatistics()
-    const data = res.data.data || {}
-    // Merge with editable overrides from localStorage
-    const editable = getEditableStats()
-    stats.value = { ...data, ...editable }
+    stats.value = res.data.data || {}
     buildCharts()
   } finally { loading.value = false }
-}
-
-function getEditableStats() {
-  try {
-    const raw = localStorage.getItem('demo_editable_stats')
-    return raw ? JSON.parse(raw) : {}
-  } catch { return {} }
-}
-
-function saveEditableStat(key: string, value: number) {
-  const current = getEditableStats()
-  current[key] = value
-  localStorage.setItem('demo_editable_stats', JSON.stringify(current))
-  stats.value[key] = value
 }
 
 function buildCharts() {
@@ -108,15 +91,7 @@ onMounted(loadStats)
       ]" :key="item.label">
         <el-card shadow="hover">
           <div style="text-align:center">
-            <el-input-number
-              v-model="stats[item.key]"
-              :min="0"
-              :max="99999"
-              :controls="false"
-              style="width:100%"
-              size="large"
-              @change="saveEditableStat(item.key, $event)"
-            />
+            <div class="stat-number">{{ stats[item.key] ?? 0 }}</div>
             <div style="color:#86909c;font-size:13px;margin-top:4px">{{ item.label }}</div>
           </div>
         </el-card>
@@ -146,4 +121,5 @@ onMounted(loadStats)
 <style scoped>
 .page-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .page-toolbar h2 { margin: 0; font-size: 18px; }
+.stat-number { font-size: 32px; font-weight: 700; color: #1a1a2e; line-height: 1.2; }
 </style>
