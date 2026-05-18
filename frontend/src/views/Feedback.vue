@@ -3,8 +3,8 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { feedbackApi } from '@/api/feedback'
+import { schoolApi } from '@/api/school'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import request from '@/api/request'
 
 interface College { id: number; name: string; code: string }
 interface Major { id: number; name: string; code: string; collegeId?: number }
@@ -112,20 +112,20 @@ async function loadFeedbacks() {
 }
 
 async function loadColleges() {
-  try { const res = await request.get('/school/colleges'); colleges.value = res.data.data || [] } catch {}
+  try { const res = await schoolApi.getColleges(); colleges.value = res.data.data || [] } catch {}
 }
 
 watch(() => form.value.collegeId, async (cid) => {
   form.value.majorId = null
   form.value.classId = null
   if (!cid) { majors.value = []; classes.value = []; return }
-  try { const res = await request.get('/school/majors', { params: { collegeId: cid } }); majors.value = res.data.data || [] } catch {}
+  try { const res = await schoolApi.getMajors(cid); majors.value = res.data.data || [] } catch {}
 })
 
 watch(() => form.value.majorId, async (mid) => {
   form.value.classId = null
   if (!mid) { classes.value = []; return }
-  try { const res = await request.get('/school/classes', { params: { majorId: mid } }); classes.value = res.data.data || [] } catch {}
+  try { const res = await schoolApi.getClasses(mid); classes.value = res.data.data || [] } catch {}
 })
 
 watch(() => form.value.targetRole, () => {

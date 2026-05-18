@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { useUserStore } from '@/store/user'
 import { surveyApi } from '@/api/survey'
-import { inviteApi } from '@/api/invite'
-import request from '@/api/request'
+import { inviteApi, allocationApi } from '@/api/invite'
 import { onMounted, ref } from 'vue'
 
 const userStore = useUserStore()
@@ -25,7 +24,7 @@ onMounted(async () => {
     console.error('加载配对信息失败')
   }
   try {
-    const res = await request.get('/allocation/my')
+    const res = await allocationApi.getMyAllocation()
     hasAllocation.value = !!res.data.data
   } catch {
     console.error('加载分配信息失败')

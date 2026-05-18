@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { adminApi } from '@/api/admin'
+import { schoolApi } from '@/api/school'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import request from '@/api/request'
 
 interface College { id: number; name: string }
 interface Major { id: number; name: string; code: string; collegeId?: number }
@@ -41,13 +41,13 @@ watch(filterCollegeId, async (cid) => {
   filterMajorId.value = null
   filterClassId.value = null
   if (!cid) { availableMajors.value = []; availableClasses.value = []; return }
-  try { const res = await request.get('/school/majors', { params: { collegeId: cid } }); availableMajors.value = res.data.data || [] } catch { ElMessage.error('加载专业列表失败') }
+  try { const res = await schoolApi.getMajors(cid); availableMajors.value = res.data.data || [] } catch { ElMessage.error('加载专业列表失败') }
 })
 
 watch(filterMajorId, async (mid) => {
   filterClassId.value = null
   if (!mid) { availableClasses.value = []; return }
-  try { const res = await request.get('/school/classes', { params: { majorId: mid } }); availableClasses.value = res.data.data || [] } catch { ElMessage.error('加载班级列表失败') }
+  try { const res = await schoolApi.getClasses(mid); availableClasses.value = res.data.data || [] } catch { ElMessage.error('加载班级列表失败') }
 })
 
 watch(() => form.value.collegeId, async (cid) => {
@@ -58,7 +58,7 @@ watch(() => form.value.collegeId, async (cid) => {
 watch(() => form.value.majorId, async (mid) => {
   form.value.classId = null
   if (mid && form.value.collegeId) {
-    try { const res = await request.get('/school/majors', { params: { collegeId: form.value.collegeId } })
+    try { const res = await schoolApi.getMajors(form.value.collegeId)
       const list = res.data.data || []
       form.value.majorName = list.find((m: any) => m.id === mid)?.name || ''
     } catch { ElMessage.error('加载院系列表失败') }
@@ -80,7 +80,7 @@ const matchStatusMap: Record<number, string> = { 0: '待匹配', 1: '邀请中',
 
 async function loadColleges() {
   try {
-    const res = await request.get('/school/colleges')
+    const res = await schoolApi.getColleges()
     allColleges.value = res.data.data || []
   } catch { ElMessage.error('加载院系列表失败') }
 }

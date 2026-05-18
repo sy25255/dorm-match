@@ -2,8 +2,8 @@
 import { ref, watch } from 'vue'
 import { matchApi } from '@/api/match'
 import { inviteApi } from '@/api/invite'
+import { schoolApi } from '@/api/school'
 import { ElMessage } from 'element-plus'
-import request from '@/api/request'
 
 interface College { id: number; name: string; code: string }
 interface Major { id: number; name: string; code: string; collegeId?: number }
@@ -23,7 +23,7 @@ const loading = ref(false)
 const searched = ref(false)
 
 async function loadColleges() {
-  try { const res = await request.get('/school/colleges'); colleges.value = res.data.data || [] } catch {}
+  try { const res = await schoolApi.getColleges(); colleges.value = res.data.data || [] } catch {}
 }
 loadColleges()
 
@@ -31,13 +31,13 @@ watch(collegeId, async (cid) => {
   majorId.value = null
   classId.value = null
   if (!cid) { majors.value = []; classes.value = []; return }
-  try { const res = await request.get('/school/majors', { params: { collegeId: cid } }); majors.value = res.data.data || [] } catch {}
+  try { const res = await schoolApi.getMajors(cid); majors.value = res.data.data || [] } catch {}
 })
 
 watch(majorId, async (mid) => {
   classId.value = null
   if (!mid) { classes.value = []; return }
-  try { const res = await request.get('/school/classes', { params: { majorId: mid } }); classes.value = res.data.data || [] } catch {}
+  try { const res = await schoolApi.getClasses(mid); classes.value = res.data.data || [] } catch {}
 })
 
 async function handleSearch() {

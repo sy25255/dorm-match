@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import request from '@/api/request'
+import { adminApi } from '@/api/admin'
 
 interface Objection {
   id: number
@@ -46,7 +46,7 @@ async function loadData() {
   console.log('[AdminObjections] 加载异议列表 - 筛选状态:', statusFilter.value || '全部')
   loading.value = true
   try {
-    const res = await request.get('/admin/objections')
+    const res = await adminApi.getObjections()
     objections.value = res.data.data || []
     console.log('[AdminObjections] 异议列表加载成功 - 共', objections.value.length, '条, 筛选后', filteredList.value.length, '条')
   } catch (e: any) {
@@ -79,7 +79,7 @@ async function submitReply() {
   })
   submitting.value = true
   try {
-    await request.put(`/admin/objections/${currentItem.value.id}`, {
+    await adminApi.handleObjection(currentItem.value.id, {
       status: replyForm.value.status,
       reviewComment: replyForm.value.comment,
     })

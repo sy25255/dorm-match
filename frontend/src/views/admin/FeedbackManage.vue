@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { feedbackApi } from '@/api/feedback'
-import request from '@/api/request'
+import { adminApi } from '@/api/admin'
 import { ElMessage, type FormInstance } from 'element-plus'
 
 const route = useRoute()
@@ -126,7 +126,7 @@ const pendingObjectionCount = computed(() =>
 async function loadObjections() {
   loadingObjections.value = true
   try {
-    const res = await request.get('/admin/objections')
+    const res = await adminApi.getObjections()
     objections.value = res.data.data || []
   } catch {
     objections.value = []
@@ -148,7 +148,7 @@ async function submitObjectionReply() {
   if (!currentObjection.value) return
   submittingObjection.value = true
   try {
-    await request.put(`/admin/objections/${currentObjection.value.id}`, {
+    await adminApi.handleObjection(currentObjection.value.id, {
       status: objectionForm.value.status,
       reviewComment: objectionForm.value.comment,
     })

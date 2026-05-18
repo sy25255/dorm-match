@@ -1,20 +1,6 @@
-import request from './request'
 import { supabase } from '@/lib/supabase'
 
 export const authApi = {
-  login(data: { studentNo: string; password: string; schoolCode?: string }) {
-    return request.post('/auth/login', data)
-  },
-  register(data: { schoolCode: string; studentNo: string; realName: string; password: string }) {
-    return request.post('/auth/register', data)
-  },
-  refreshToken(token: string) {
-    return request.post('/auth/refresh', null, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-  },
-
-  // ========== Supabase 真实认证 ==========
   async signUp(email: string, password: string, name: string, schoolCode: string, studentNo: string) {
     const { data, error } = await supabase.auth.signUp({
       email,

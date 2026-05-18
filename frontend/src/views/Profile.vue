@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useUserStore } from '@/store/user'
 import { ref, reactive, onMounted } from 'vue'
+import { studentApi } from '@/api/student'
 import { ElMessage } from 'element-plus'
-import request from '@/api/request'
 
 const userStore = useUserStore()
 
@@ -27,7 +27,7 @@ const loading = ref(true)
 async function loadProfile() {
   loading.value = true
   try {
-    const res = await request.get(`/student/${userStore.userId}`)
+    const res = await studentApi.getStudent(userStore.userId)
     const data = res.data.data
     if (data) {
       form.bio = data.bio || ''
@@ -44,7 +44,7 @@ async function loadProfile() {
 async function saveProfile() {
   saving.value = true
   try {
-    await request.put('/student/profile', {
+    await studentApi.updateProfile({
       bio: form.bio,
       hometown: form.hometown,
       className: form.className,

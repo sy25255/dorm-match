@@ -113,39 +113,7 @@ export const useUserStore = defineStore('user', () => {
     return false
   }
 
-  // ========== 旧版 mock/demo 登录（保留兼容） ==========
-  async function login(studentNo: string, password: string, schoolCodeParam?: string) {
-    const res = await authApi.login({ studentNo, password, schoolCode: schoolCodeParam })
-    const data = res.data.data || res.data
-    token.value = data.token
-    refreshToken.value = data.refreshToken
-    userId.value = data.userId
-    username.value = data.username
-    role.value = data.role
-    localStorage.setItem('token', data.token)
-    localStorage.setItem('refreshToken', data.refreshToken)
-    localStorage.setItem('userId', String(data.userId))
-    localStorage.setItem('username', data.username)
-    localStorage.setItem('role', data.role)
-    saveRememberedAccount(studentNo)
-  }
-
-  async function register(schoolCodeParam: string, studentNo: string, realName: string, password: string) {
-    const res = await authApi.register({ schoolCode: schoolCodeParam, studentNo, realName, password })
-    const data = res.data.data || res.data
-    token.value = data.token
-    refreshToken.value = data.refreshToken
-    userId.value = data.userId
-    username.value = data.username || realName
-    role.value = data.role || 'STUDENT'
-    localStorage.setItem('token', data.token)
-    localStorage.setItem('refreshToken', data.refreshToken)
-    localStorage.setItem('userId', String(data.userId))
-    localStorage.setItem('username', data.username || realName)
-    localStorage.setItem('role', data.role || 'STUDENT')
-    saveRememberedAccount(studentNo)
-  }
-
+  // ========== 演示模式（仅 localStorage，无 Supabase） ==========
   function demoLogin(studentNo: string, name: string) {
     const fakeToken = 'demo-token-' + Date.now()
     token.value = fakeToken
@@ -195,7 +163,7 @@ export const useUserStore = defineStore('user', () => {
     schoolCode, schoolName, supabaseUserId, isLoggedIn,
     setSchoolInfo,
     getRememberedAccount, saveRememberedAccount, clearRememberedAccount,
-    login, register, demoLogin, demoDevLogin, logout,
+    demoLogin, demoDevLogin, logout,
     supabaseLogin, supabaseRegister, restoreSession,
   }
 })
