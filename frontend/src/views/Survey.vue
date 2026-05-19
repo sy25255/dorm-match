@@ -43,7 +43,7 @@ interface Question {
   dimension: string
   questionText: string
   questionType: string
-  optionsJson: string | null
+  optionsJson: string | Record<string, any>[] | null
   isRequired: number
   isAttentionCheck: number
   hasSupplement?: boolean
@@ -236,7 +236,10 @@ interface OptionItem { label: string; value: string; text: string; trait?: strin
 function getOption(q: Question): OptionItem[] {
   if (!q.optionsJson) return []
   try {
-    return JSON.parse(q.optionsJson)
+    if (typeof q.optionsJson === 'string') {
+      return JSON.parse(q.optionsJson)
+    }
+    return q.optionsJson as unknown as OptionItem[]
   } catch {
     return []
   }
