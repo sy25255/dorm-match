@@ -33,7 +33,7 @@ const statusOptions = [
 
 const filteredList = computed(() => {
   if (!statusFilter.value) return objections.value
-  return objections.value.filter(o => o.status === statusFilter.value)
+  return (objections.value || []).filter(o => o.status === statusFilter.value)
 })
 
 const statusMap: Record<string, { text: string; type: 'warning' | 'info' | 'success' }> = {

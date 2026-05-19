@@ -41,11 +41,11 @@ const targetMap: Record<string, string> = {
 
 const filteredFeedbacks = computed(() => {
   if (activeTab.value === 'all') return feedbacks.value
-  return feedbacks.value.filter((f: any) => f.targetRole === activeTab.value)
+  return (feedbacks.value || []).filter((f: any) => f.targetRole === activeTab.value)
 })
 
 const unreadCount = computed(() =>
-  feedbacks.value.filter((f: any) => f.status === 'PENDING' && f.targetRole === 'ADMIN').length
+  (feedbacks.value || []).filter((f: any) => f.status === 'PENDING' && f.targetRole === 'ADMIN').length
 )
 
 async function loadFeedbacks() {
@@ -116,11 +116,11 @@ const objectionStatusOptions = [
 
 const filteredObjections = computed(() => {
   if (!objectionStatusFilter.value) return objections.value
-  return objections.value.filter(o => o.status === objectionStatusFilter.value)
+  return (objections.value || []).filter(o => o.status === objectionStatusFilter.value)
 })
 
 const pendingObjectionCount = computed(() =>
-  objections.value.filter(o => o.status === 'PENDING').length
+  (objections.value || []).filter(o => o.status === 'PENDING').length
 )
 
 async function loadObjections() {

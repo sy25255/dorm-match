@@ -66,7 +66,7 @@ watch(() => form.value.majorId, async (mid) => {
 })
 
 const filteredStudents = computed(() => {
-  return students.value.filter(s => {
+  return (students.value || []).filter(s => {
     if (searchKeyword.value && !s.name.includes(searchKeyword.value) && !s.studentNo.includes(searchKeyword.value)) return false
     if (filterCollegeId.value && s.collegeName !== allColleges.value.find(c => c.id === filterCollegeId.value)?.name) return false
     if (filterClassId.value && s.className !== availableClasses.value.find(c => c.id === filterClassId.value)?.name) return false
