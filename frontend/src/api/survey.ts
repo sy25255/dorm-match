@@ -14,7 +14,25 @@ export const surveyApi = {
       .select('*')
       .eq('status', 1)
       .order('sort_order')
-    return wrap(data || [])
+    const items = (data || []).map((q: any) => ({
+      id: q.id,
+      questionCode: q.question_code,
+      dimension: q.dimension,
+      questionText: q.question_text,
+      questionType: q.question_type,
+      optionsJson: q.options_json,
+      isRequired: q.is_required ?? 1,
+      isAttentionCheck: q.is_attention_check ?? 0,
+      hasSupplement: q.has_supplement ?? false,
+      supplementPlaceholder: q.supplement_placeholder,
+      scenarioCategory: q.scenario_category,
+      placeholder: q.placeholder,
+      trapAnswer: q.trap_answer,
+      trapSection: q.trap_section,
+      leaderWeight: q.leader_weight,
+      dropdownPlaceholder: q.dropdown_placeholder,
+    }))
+    return wrap(items)
   },
 
   async getProgress() {
