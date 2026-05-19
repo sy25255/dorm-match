@@ -3,7 +3,7 @@ import { reactive, ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft, UserFilled } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -113,6 +113,17 @@ function backToSchoolEntry() {
   userStore.logout()
   router.push('/')
 }
+
+async function handleGuestLogin() {
+  loading.value = true
+  try {
+    await userStore.guestLogin(userStore.schoolCode || schoolCode.value)
+    ElMessage.success('已进入测试模式，请先完成偏好问卷')
+    router.push(`/${schoolCode.value}/survey`)
+  } catch (err: any) {
+    ElMessage.error(err?.message || '免登录失败，请重试')
+  } finally { loading.value = false }
+}
 </script>
 
 <template>
@@ -162,6 +173,14 @@ function backToSchoolEntry() {
         </el-tab-pane>
       </el-tabs>
 
+      <div class="guest-section">
+        <el-divider><span style="color:#a0aec0;font-size:12px">快速测试入口</span></el-divider>
+        <el-button size="large" :loading="loading" class="guest-btn" @click="handleGuestLogin">
+          <el-icon :size="16"><UserFilled /></el-icon>
+          免登录测试进入
+        </el-button>
+      </div>
+
       <div class="switch-school" @click="backToSchoolEntry">
         <el-icon :size="14"><ArrowLeft /></el-icon>
         <span>切换学校</span>
@@ -196,4 +215,7 @@ function backToSchoolEntry() {
 .login-btn { width: 100%; margin-top: 4px; }
 .switch-school { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; font-size: 13px; color: #a0aec0; cursor: pointer; }
 .switch-school:hover { color: #667eea; }
+.guest-section { text-align: center; }
+.guest-btn { width: 100%; border: 2px dashed #c0c4cc; color: #606266; background: #fafafa; }
+.guest-btn:hover { border-color: #667eea; color: #667eea; background: #f0f0ff; }
 </style>

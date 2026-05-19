@@ -294,6 +294,13 @@ export const adminApi = {
     return wrap(null)
   },
 
+  // ========== 清理测试账号 ==========
+  async cleanupGuests() {
+    const { data, error } = await supabase.rpc('cleanup_guest_users')
+    if (error) throw error
+    return wrap(data?.[0] || { deleted_users: 0, deleted_profiles: 0, deleted_answers: 0, deleted_allocations: 0 })
+  },
+
   // ========== 统计 ==========
   async getStatistics() {
     const sc = getCurrentSchool()

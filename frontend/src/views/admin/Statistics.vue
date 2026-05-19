@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { adminApi } from '@/api/admin'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -11,6 +12,29 @@ use([CanvasRenderer, PieChart, BarChart, LineChart, RadarChart, TitleComponent, 
 
 const stats = ref<any>({})
 const loading = ref(false)
+const cleanupLoading = ref(false)
+
+async function handleCleanup() {
+  try {
+    await ElMessageBox.confirm(
+      '此操作将删除所有免登录测试账号及其问卷答案、分配记录等全部数据，此操作不可撤销！',
+      '确认清理测试账号',
+      { confirmButtonText: '确认清理', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch { return }
+
+  cleanupLoading.value = true
+  try {
+    const res = await adminApi.cleanupGuests()
+    const result = res.data?.data || {}
+    ElMessage.success(
+      `已清理: ${result.deleted_users || 0} 用户、${result.deleted_profiles || 0} 档案、${result.deleted_answers || 0} 答案、${result.deleted_allocations || 0} 分配`
+    )
+    await loadStats()
+  } catch (err: any) {
+    ElMessage.error(err?.message || '清理失败')
+  } finally { cleanupLoading.value = false }
+}
 
 const pieOption = ref({})
 const barOption = ref({})
@@ -97,6 +121,12 @@ onMounted(loadStats)
         </el-card>
       </el-col>
     </el-row>
+
+    <div v-if="stats.totalStudents > 0" style="margin-bottom:16px;text-align:right">
+      <el-button type="warning" :loading="cleanupLoading" @click="handleCleanup" plain>
+        清理测试账号
+      </el-button>
+    </div>
 
     <el-row :gutter="16" style="margin-bottom:16px">
       <el-col :span="12">

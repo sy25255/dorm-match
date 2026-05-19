@@ -98,6 +98,47 @@ export const useUserStore = defineStore('user', () => {
     return false
   }
 
+  // ======================== 免登录测试 ========================
+  async function guestLogin(schoolCode: string) {
+    const ts = Date.now()
+    const rnd = Math.random().toString(36).slice(2, 6)
+    const email = `guest_${ts}_${rnd}@test.guest`
+    const password = 'GuestTest123!'
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name: `Guest-${ts}`, school_code: schoolCode, role: 'STUDENT', is_guest: true }
+      }
+    })
+
+    if (error) throw error
+    if (!data.user) throw new Error('免登录注册失败')
+
+    // 创建带 is_guest 标记的 profile
+    await supabase.from('profiles').upsert({
+      id: data.user.id,
+      school_code: schoolCode,
+      name: `Guest-${ts}`,
+      role: 'STUDENT',
+      gender: 1,
+      is_guest: true
+    })
+
+    // 设置登录状态
+    const uid = data.user.id
+    const t = data.session?.access_token || ''
+    const r = data.session?.refresh_token || ''
+    userId.value = uid
+    token.value = t
+    refreshToken.value = r
+    username.value = `Guest-${ts}`
+    role.value = 'STUDENT'
+    setAuthState(uid, t, r)
+    return true
+  }
+
   async function logout() {
     await authApi.signOut().catch(() => {})
     token.value = ''
@@ -113,6 +154,6 @@ export const useUserStore = defineStore('user', () => {
     schoolCode, schoolName, isLoggedIn,
     setSchoolInfo,
     getRememberedAccount, saveRememberedAccount,
-    logout, supabaseLogin, supabaseRegister, restoreSession,
+    logout, supabaseLogin, supabaseRegister, restoreSession, guestLogin,
   }
 })
