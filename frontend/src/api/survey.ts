@@ -54,14 +54,14 @@ export const surveyApi = {
 
   async saveDraft(answers: AnswerItem[]) {
     const uid = getCurrentUserId()
-    for (const a of answers) {
-      await supabase.from('survey_answers').upsert({
-        user_id: uid,
-        question_id: a.questionId,
-        answer_value: a.answerValue,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,question_id' })
-    }
+    if (answers.length === 0) return wrap(null)
+    const rows = answers.map(a => ({
+      user_id: uid,
+      question_id: a.questionId,
+      answer_value: a.answerValue,
+      updated_at: new Date().toISOString(),
+    }))
+    await supabase.from('survey_answers').upsert(rows, { onConflict: 'user_id,question_id' })
     return wrap(null)
   },
 
@@ -80,13 +80,14 @@ export const surveyApi = {
 
   async submit(answers: AnswerItem[]) {
     const uid = getCurrentUserId()
-    for (const a of answers) {
-      await supabase.from('survey_answers').upsert({
+    if (answers.length > 0) {
+      const rows = answers.map(a => ({
         user_id: uid,
         question_id: a.questionId,
         answer_value: a.answerValue,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,question_id' })
+      }))
+      await supabase.from('survey_answers').upsert(rows, { onConflict: 'user_id,question_id' })
     }
     await supabase.from('profiles').update({ survey_status: 'COMPLETED' }).eq('id', uid)
     return wrap(null)

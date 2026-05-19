@@ -301,11 +301,9 @@ async function saveDraft() {
   const items: AnswerItem[] = currentQuestions.value
     .filter(q => answers.value[q.id])
     .map(q => ({ questionId: q.id, answerValue: answers.value[q.id] }))
-  if (items.length === 0) return
-  try {
-    await surveyApi.saveDraft(items)
-  } catch {}
   localStorage.setItem('demo_survey_supplements', JSON.stringify(supplements.value))
+  if (items.length === 0) return
+  surveyApi.saveDraft(items).catch(() => {})
 }
 
 function saveIntroDraft() {
