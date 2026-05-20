@@ -50,7 +50,15 @@ const registerRules = {
   realName: [{ required: true, message: '请填写真实姓名', trigger: 'blur' }],
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 尝试从 Supabase 恢复已有会话
+  if (!userStore.token) {
+    const restored = await userStore.restoreSession()
+    if (restored) {
+      router.push(`/${schoolCode.value}/`)
+      return
+    }
+  }
   if (userStore.token) {
     router.push(`/${schoolCode.value}/`)
     return
@@ -60,13 +68,18 @@ onMounted(() => {
     userStore.schoolName = name
   }
   const remembered = userStore.getRememberedAccount()
-  if (remembered) loginForm.email = remembered
+  if (remembered) {
+    loginForm.email = remembered
+    registerForm.email = remembered
+    activeTab.value = 'login'
+  }
 })
 
 async function handleLogin() {
   loading.value = true
   try {
     await userStore.supabaseLogin(loginForm.email, loginForm.password)
+    userStore.saveRememberedAccount(loginForm.email)
     ElMessage.success('登录成功')
     router.push(`/${schoolCode.value}/`)
   } catch (err: any) {
@@ -99,6 +112,7 @@ async function handleRegister() {
       userStore.schoolCode || schoolCode.value,
       registerForm.studentNo || ''
     )
+    userStore.saveRememberedAccount(registerForm.email)
     ElMessage.success('注册成功！请先完成偏好问卷')
     router.push(`/${schoolCode.value}/survey`)
   } catch (err: any) {
