@@ -126,7 +126,6 @@ function onKeyUp(e: KeyboardEvent) {
         <p class="codes-label">已知学校编码</p>
         <div class="codes-list">
           <span class="code-tag" @click="schoolCode = 'DEMO-UNI'">DEMO-UNI 示范大学</span>
-          <span class="code-tag" @click="schoolCode = 'TEST'">TEST 测试学院</span>
         </div>
       </div>
     </div>

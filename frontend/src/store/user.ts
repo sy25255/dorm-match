@@ -99,31 +99,33 @@ export const useUserStore = defineStore('user', () => {
   }
 
   // ======================== 免登录测试 ========================
-  async function guestLogin(schoolCode: string) {
+  async function guestLogin(schoolCode: string, name: string, major: string) {
     const ts = Date.now()
     const rnd = Math.random().toString(36).slice(2, 6)
     const email = `guest_${ts}_${rnd}@test.guest`
     const password = 'GuestTest123!'
+    const displayName = name.trim() || `Guest-${ts}`
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { name: `Guest-${ts}`, school_code: schoolCode, role: 'STUDENT', is_guest: true }
+        data: { name: displayName, school_code: schoolCode, role: 'STUDENT', is_guest: true }
       }
     })
 
     if (error) throw error
     if (!data.user) throw new Error('免登录注册失败')
 
-    // 创建带 is_guest 标记的 profile
+    // 创建带 is_guest 标记的 profile，含姓名和专业
     await supabase.from('profiles').upsert({
       id: data.user.id,
       school_code: schoolCode,
-      name: `Guest-${ts}`,
+      name: displayName,
       role: 'STUDENT',
       gender: 1,
-      is_guest: true
+      is_guest: true,
+      major_name: major.trim() || null,
     })
 
     // 设置登录状态
@@ -133,7 +135,7 @@ export const useUserStore = defineStore('user', () => {
     userId.value = uid
     token.value = t
     refreshToken.value = r
-    username.value = `Guest-${ts}`
+    username.value = displayName
     role.value = 'STUDENT'
     setAuthState(uid, t, r)
     return true

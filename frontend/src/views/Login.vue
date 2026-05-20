@@ -9,6 +9,8 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const loading = ref(false)
+const guestDialogVisible = ref(false)
+const guestForm = reactive({ name: '', major: '' })
 const activeTab = ref('register')
 const schoolCode = computed(() => route.params.schoolCode as string)
 
@@ -115,10 +117,25 @@ function backToSchoolEntry() {
 }
 
 async function handleGuestLogin() {
+  guestForm.name = ''
+  guestForm.major = ''
+  guestDialogVisible.value = true
+}
+
+async function confirmGuestLogin() {
+  if (!guestForm.name.trim()) {
+    ElMessage.warning('请输入姓名')
+    return
+  }
   loading.value = true
   try {
-    await userStore.guestLogin(userStore.schoolCode || schoolCode.value)
-    ElMessage.success('已进入测试模式，请先完成偏好问卷')
+    await userStore.guestLogin(
+      userStore.schoolCode || schoolCode.value,
+      guestForm.name.trim(),
+      guestForm.major.trim(),
+    )
+    guestDialogVisible.value = false
+    ElMessage.success(`欢迎 ${guestForm.name.trim()}！请先完成偏好问卷`)
     router.push(`/${schoolCode.value}/survey`)
   } catch (err: any) {
     ElMessage.error(err?.message || '免登录失败，请重试')
@@ -174,12 +191,28 @@ async function handleGuestLogin() {
       </el-tabs>
 
       <div class="guest-section">
-        <el-divider><span style="color:#a0aec0;font-size:12px">快速测试入口</span></el-divider>
-        <el-button size="large" :loading="loading" class="guest-btn" @click="handleGuestLogin">
+        <el-divider><span style="color:#a0aec0;font-size:12px">快速测试入口（多人可同时使用）</span></el-divider>
+        <el-button size="large" class="guest-btn" @click="handleGuestLogin">
           <el-icon :size="16"><UserFilled /></el-icon>
           免登录测试进入
         </el-button>
       </div>
+
+      <!-- 免登录弹窗 -->
+      <el-dialog v-model="guestDialogVisible" title="测试信息填写" width="380px" :close-on-click-modal="false">
+        <el-form label-position="top" @submit.prevent="confirmGuestLogin">
+          <el-form-item label="姓名" required>
+            <el-input v-model="guestForm.name" placeholder="请输入你的姓名（如：张三）" size="large" maxlength="20" />
+          </el-form-item>
+          <el-form-item label="专业">
+            <el-input v-model="guestForm.major" placeholder="请输入你的专业（如：计算机科学）" size="large" maxlength="30" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="guestDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="loading" @click="confirmGuestLogin">进入系统</el-button>
+        </template>
+      </el-dialog>
 
       <div class="switch-school" @click="backToSchoolEntry">
         <el-icon :size="14"><ArrowLeft /></el-icon>
