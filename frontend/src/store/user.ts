@@ -138,6 +138,7 @@ export const useUserStore = defineStore('user', () => {
     username.value = displayName
     role.value = 'STUDENT'
     setAuthState(uid, t, r)
+    saveRememberedAccount(email)
     return true
   }
 
