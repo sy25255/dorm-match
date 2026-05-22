@@ -267,7 +267,6 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Cpu, Present, Lock, Edit } from '@element-plus/icons-vue'
 import { adminApi } from '@/api/admin'
-import type { AxiosResponse } from 'axios'
 
 interface Building {
   id: number
@@ -356,15 +355,15 @@ function saveRoomCapacity() {
 
 // ========== 楼栋管理 ==========
 async function loadBuildings() {
-  const res: AxiosResponse = await adminApi.getBuildings()
-  buildings.value = res.data?.data ?? res.data ?? []
+  const res = await adminApi.getBuildings()
+  buildings.value = (res.data?.data ?? res.data ?? []) as Building[]
   console.log('[Admin] Buildings loaded:', buildings.value.length)
 }
 
 async function loadRooms(row: Building) {
   activeBuilding.value = row
-  const res: AxiosResponse = await adminApi.getRooms(row.id)
-  const all = res.data?.data ?? res.data ?? []
+  const res = await adminApi.getRooms(row.id)
+  const all = (res.data?.data ?? res.data ?? []) as Room[]
   rooms.value = all.filter((r: Room) => r.buildingId === row.id)
   console.log('[Admin] Rooms loaded for building', row.id, ':', rooms.value.length)
 }

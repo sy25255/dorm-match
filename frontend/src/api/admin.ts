@@ -66,6 +66,57 @@ export const adminApi = {
     return wrap(null)
   },
 
+  async toggleStudent(id: string, newStatus: number) {
+    await supabase.from('profiles').update({ is_valid: newStatus === 1 }).eq('id', id)
+    return wrap(null)
+  },
+
+  async createStudent(data: any) {
+    const sc = getCurrentSchool()
+    await supabase.from('profiles').insert({
+      school_code: sc,
+      student_no: data.studentNo || '',
+      name: data.name,
+      role: 'STUDENT',
+      gender: data.gender ?? 1,
+      college_name: data.collegeName || '',
+      major_name: data.majorName || '',
+      class_name: data.className || '',
+      hometown: data.hometown || '',
+    })
+    return wrap(null)
+  },
+
+  async updateStudent(id: number, data: any) {
+    await supabase.from('profiles').update({
+      student_no: data.studentNo,
+      name: data.name,
+      gender: data.gender,
+      college_name: data.collegeName || '',
+      major_name: data.majorName || '',
+      class_name: data.className || '',
+      hometown: data.hometown || '',
+    }).eq('id', id)
+    return wrap(null)
+  },
+
+  async getInviteCodes() {
+    const sc = getCurrentSchool()
+    const { data } = await supabase.from('invite_codes').select('*').eq('school_code', sc).order('created_at', { ascending: false })
+    return wrap(data || [])
+  },
+
+  async generateInviteCode() {
+    const sc = getCurrentSchool()
+    const code = 'INV' + Math.random().toString(36).slice(2, 10).toUpperCase() + Date.now().toString(36).slice(-4).toUpperCase()
+    const { data } = await supabase.from('invite_codes').insert({
+      school_code: sc,
+      code,
+      is_used: false,
+    }).select('code, is_used, created_at').single()
+    return wrap(data || { code, is_used: false })
+  },
+
   // ========== 宿舍管理 ==========
   async getBuildings() {
     const sc = getCurrentSchool()
@@ -114,7 +165,11 @@ export const adminApi = {
   },
 
   // ========== 分配管理 ==========
-  async executeAllocation(data: { type: string; gender?: number }) {
+  async executeAllocation(data: { type: string; gender?: number } | string) {
+    // 兼容 AllocationManage.vue 直接传 batchCode 字符串的情况
+    if (typeof data === 'string') {
+      data = { type: 'ALGORITHM' }
+    }
     const sc = getCurrentSchool()
 
     let q = supabase.from('profiles').select('*').eq('school_code', sc).eq('survey_status', 'COMPLETED')
@@ -221,7 +276,45 @@ export const adminApi = {
     let q = supabase.from('allocations').select('*, profiles(name, student_no, gender, college_name, major_name, class_name)').eq('school_code', sc)
     if (params?.allocationType) q = q.eq('allocation_type', params.allocationType)
     const { data } = await q.order('room_number').order('bed_no')
-    return wrap(data || [])
+    return wrap((data || []).map((a: any) => {
+      const p = a.profiles
+      return {
+        ...a,
+        studentName: p?.name || a.student_name || '',
+        studentNo: p?.student_no || a.student_no || '',
+        collegeName: p?.college_name || a.college_name || '',
+        majorName: p?.major_name || a.major_name || '',
+      }
+    }))
+  },
+
+  // AllocationManage.vue 兼容别名
+  async getAllocationResults(batchCode: string) {
+    const sc = getCurrentSchool()
+    let q = supabase.from('allocations').select('*, profiles!inner(name, student_no, gender, college_name, major_name, class_name)').eq('school_code', sc)
+    if (batchCode) q = q.eq('batch_code', batchCode)
+    const { data } = await q.order('room_number').order('bed_no')
+    return wrap((data || []).map((a: any) => {
+      const p = a.profiles || {}
+      return {
+        ...a,
+        studentName: p?.name || a.user_id || '',
+        roomNumber: a.room_number || '',
+        bedNo: a.bed_no || 0,
+        allocationType: a.allocation_type || 'ALGORITHM',
+        status: a.status || 'PENDING',
+      }
+    }))
+  },
+
+  async publishResults(batchCode: string) {
+    await supabase.from('allocations').update({ status: 'PUBLISHED' }).eq('batch_code', batchCode)
+    return wrap(null)
+  },
+
+  async finalizeResults(batchCode: string) {
+    await supabase.from('allocations').update({ status: 'FINALIZED' }).eq('batch_code', batchCode)
+    return wrap(null)
   },
 
   async manualAllocate(studentId: string, roomId: number, bedNo: number) {
@@ -282,10 +375,29 @@ export const adminApi = {
     return wrap(null)
   },
 
-  async toggleQuestionStatus(id: number) {
-    const { data } = await supabase.from('survey_questions').select('status').eq('id', id).single()
-    const newStatus = data?.status === 1 ? 0 : 1
-    await supabase.from('survey_questions').update({ status: newStatus }).eq('id', id)
+  async createQuestion(data: any) {
+    await supabase.from('survey_questions').insert({
+      question_code: data.questionCode || '',
+      dimension: data.dimension || '',
+      question_text: data.questionText || '',
+      question_type: data.questionType || 'SINGLE_CHOICE',
+      options_json: data.optionsJson || null,
+      sort_order: data.sortOrder ?? 0,
+      is_required: data.isRequired ?? 1,
+      is_attention_check: data.isAttentionCheck ?? 0,
+      status: data.status ?? 1,
+    })
+    return wrap(null)
+  },
+
+  async toggleQuestionStatus(id: number, newStatus?: number) {
+    if (newStatus !== undefined) {
+      await supabase.from('survey_questions').update({ status: newStatus }).eq('id', id)
+    } else {
+      const { data } = await supabase.from('survey_questions').select('status').eq('id', id).single()
+      const status = data?.status === 1 ? 0 : 1
+      await supabase.from('survey_questions').update({ status }).eq('id', id)
+    }
     return wrap(null)
   },
 

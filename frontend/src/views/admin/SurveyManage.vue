@@ -121,7 +121,7 @@ async function toggleQuestion(row: any) {
   const actionText = newStatus === 0 ? '停用' : '启用'
   try {
     await ElMessageBox.confirm(`确认${actionText}题目"${row.questionText.slice(0, 20)}..."吗？`, '提示', { type: 'warning' })
-    await adminApi.toggleQuestion(row.id, newStatus)
+    await adminApi.toggleQuestionStatus(row.id, newStatus)
     row.status = newStatus
     ElMessage.success(`题目已${actionText}`)
   } catch {}
