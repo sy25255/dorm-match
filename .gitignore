@@ -12,6 +12,10 @@ nodejs/
 bore/
 ngrok/
 push-to-github.bat
+# 环境变量（含 Supabase 密钥）
+.env
+.env.local
+.env.*.local
 # 本地测试/调试脚本（包含密钥）
 *.ps1
 *.py

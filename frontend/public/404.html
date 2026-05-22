@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>跳转中...</title>
+  <script>
+    // GitHub Pages SPA 回退：将 404 页面重定向到主页，保留 hash 路由
+    const path = sessionStorage.getItem('redirect') || ''
+    sessionStorage.removeItem('redirect')
+    const base = '/dorm-match/'
+    const target = path ? base + '#/' + path.replace(base, '') : base
+    window.location.replace(target)
+  </script>
+</head>
+<body>
+  <p>正在跳转到新生宿舍舍友选择系统...</p>
+  <p><a href="/dorm-match/">点击此处</a></p>
+</body>
+</html>
