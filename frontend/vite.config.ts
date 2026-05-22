@@ -18,6 +18,15 @@ export default defineConfig({
       resolvers: [ElementPlusResolver()],
       dts: 'src/components.d.ts',
     }),
+    {
+      name: 'build-timestamp',
+      transformIndexHtml(html) {
+        return html.replace(
+          '</head>',
+          `  <meta name="build-time" content="${new Date().toISOString()}" />\n  </head>`
+        )
+      },
+    },
   ],
   resolve: {
     alias: {
