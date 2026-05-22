@@ -99,16 +99,17 @@ export const useUserStore = defineStore('user', () => {
   }
 
   // ======================== 免登录测试 ========================
-  async function guestLogin(schoolCode: string, name: string, major: string) {
-    const ts = Date.now()
-    const rnd = Math.random().toString(36).slice(2, 6)
-    const email = `guest_${ts}_${rnd}@test.guest`
-    const password = 'GuestTest123!'
-    const displayName = name.trim() || `Guest-${ts}`
+  const GUEST_PASSWORD = 'Guest2024!'
+
+  async function guestLogin(schoolCode: string, name: string, collegeName: string, majorName: string) {
+    const displayName = name.trim() || `Guest-${Date.now().toString(36)}`
+    // 使用确定性邮箱，方便下次免密码重新登录
+    const safeName = displayName.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '').slice(0, 10)
+    const email = `guest_${schoolCode.toLowerCase()}_${safeName}_${Date.now().toString(36)}@test.local`
 
     const { data, error } = await supabase.auth.signUp({
       email,
-      password,
+      password: GUEST_PASSWORD,
       options: {
         data: { name: displayName, school_code: schoolCode, role: 'STUDENT', is_guest: true }
       }
@@ -117,7 +118,7 @@ export const useUserStore = defineStore('user', () => {
     if (error) throw error
     if (!data.user) throw new Error('免登录注册失败')
 
-    // 创建带 is_guest 标记的 profile，含姓名和专业
+    // 创建带 is_guest 标记的 profile，含姓名、学院、专业
     await supabase.from('profiles').upsert({
       id: data.user.id,
       school_code: schoolCode,
@@ -125,7 +126,8 @@ export const useUserStore = defineStore('user', () => {
       role: 'STUDENT',
       gender: 1,
       is_guest: true,
-      major_name: major.trim() || null,
+      college_name: collegeName || null,
+      major_name: majorName || null,
     })
 
     // 设置登录状态
@@ -139,7 +141,47 @@ export const useUserStore = defineStore('user', () => {
     role.value = 'STUDENT'
     setAuthState(uid, t, r)
     saveRememberedAccount(email)
+    // 记住免登录账号，方便下次免密码重新登录
+    localStorage.setItem('guest_account', JSON.stringify({
+      email, name: displayName, schoolCode, collegeName, majorName,
+    }))
+    return { email }
+  }
+
+  function getGuestAccount(): { email: string; name: string; schoolCode: string; collegeName: string; majorName: string } | null {
+    try {
+      const raw = localStorage.getItem('guest_account')
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  }
+
+  async function guestReLogin(email: string) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: GUEST_PASSWORD })
+    if (error) throw error
+    if (!data.user || !data.session) throw new Error('免登录恢复失败')
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single()
+
+    userId.value = data.user.id
+    token.value = data.session.access_token
+    refreshToken.value = data.session.refresh_token || ''
+    username.value = profile?.name || data.user.email || ''
+    role.value = profile?.role || 'STUDENT'
+    if (profile?.school_code) {
+      schoolCode.value = profile.school_code
+      localStorage.setItem('schoolCode', profile.school_code)
+    }
+    setAuthState(data.user.id, data.session.access_token, data.session.refresh_token || '')
+    saveRememberedAccount(email)
     return true
+  }
+
+  function clearGuestAccount() {
+    localStorage.removeItem('guest_account')
   }
 
   async function logout() {
@@ -158,5 +200,6 @@ export const useUserStore = defineStore('user', () => {
     setSchoolInfo,
     getRememberedAccount, saveRememberedAccount,
     logout, supabaseLogin, supabaseRegister, restoreSession, guestLogin,
+    getGuestAccount, guestReLogin, clearGuestAccount,
   }
 })

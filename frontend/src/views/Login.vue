@@ -1,18 +1,41 @@
 <script setup lang="ts">
-import { reactive, ref, onMounted, computed } from 'vue'
+import { reactive, ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { schoolApi } from '@/api/school'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, UserFilled } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowDown, UserFilled, InfoFilled } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const loading = ref(false)
 const guestDialogVisible = ref(false)
-const guestForm = reactive({ name: '', major: '' })
+const guestForm = reactive({ name: '', collegeId: null as number | null, majorId: null as number | null })
 const activeTab = ref('register')
 const schoolCode = computed(() => route.params.schoolCode as string)
+const showTestAccounts = ref(false)
+
+// 学院/专业下拉数据
+const colleges = ref<{ id: number; name: string }[]>([])
+const majors = ref<{ id: number; name: string; collegeId: number }[]>([])
+
+const filteredMajors = computed(() => {
+  if (!guestForm.collegeId) return []
+  return majors.value.filter(m => m.collegeId === guestForm.collegeId)
+})
+
+// 默认演示数据（数据库无数据时使用）
+const DEMO_COLLEGES = [
+  { id: 1, name: '计算机科学与技术学院' },
+  { id: 2, name: '经济管理学院' },
+]
+const DEMO_MAJORS = [
+  { id: 101, name: '计算机科学与技术', collegeId: 1 },
+  { id: 102, name: '软件工程', collegeId: 1 },
+  { id: 201, name: '工商管理', collegeId: 2 },
+  { id: 202, name: '会计学', collegeId: 2 },
+]
 
 const loginForm = reactive({ email: '', password: '' })
 const registerForm = reactive({
@@ -51,7 +74,6 @@ const registerRules = {
 }
 
 onMounted(async () => {
-  // 尝试从 Supabase 恢复已有会话
   if (!userStore.token) {
     const restored = await userStore.restoreSession()
     if (restored) {
@@ -73,6 +95,32 @@ onMounted(async () => {
     registerForm.email = remembered
     activeTab.value = 'login'
   }
+})
+
+// 加载学院/专业列表
+async function loadCollegesAndMajors() {
+  try {
+    const colRes = await schoolApi.getColleges()
+    colleges.value = (colRes.data.data || []).map((c: any) => ({ id: c.id, name: c.name }))
+    const majRes = await schoolApi.getMajors()
+    majors.value = (majRes.data.data || []).map((m: any) => ({ id: m.id, name: m.name, collegeId: m.college_id || m.collegeId }))
+  } catch { /* ignore */ }
+  // 数据库无数据时使用默认演示数据
+  if (colleges.value.length === 0) {
+    colleges.value = DEMO_COLLEGES
+    majors.value = DEMO_MAJORS
+  }
+}
+
+watch(colleges, () => {
+  if (colleges.value.length > 0) {
+    majors.value = colleges.value.length > 0 && majors.value.length === 0 ? DEMO_MAJORS : majors.value
+  }
+})
+
+// 选择学院时清空专业
+watch(() => guestForm.collegeId, () => {
+  guestForm.majorId = null
 })
 
 async function handleLogin() {
@@ -131,8 +179,39 @@ function backToSchoolEntry() {
 }
 
 async function handleGuestLogin() {
-  guestForm.name = ''
-  guestForm.major = ''
+  // 先加载学院/专业数据
+  await loadCollegesAndMajors()
+
+  // 检查是否有记住的免登录账号
+  const savedGuest = userStore.getGuestAccount()
+  if (savedGuest && savedGuest.schoolCode === (userStore.schoolCode || schoolCode.value)) {
+    // 尝试用记住的邮箱 + 固定密码重新登录
+    try {
+      await userStore.guestReLogin(savedGuest.email)
+      ElMessage.success(`欢迎回来，${savedGuest.name}！`)
+      router.push(`/${schoolCode.value}/`)
+      return
+    } catch {
+      // 账号可能已被清理，清除记录，重新创建
+      userStore.clearGuestAccount()
+    }
+  }
+
+  // 预填上次的姓名
+  if (savedGuest) {
+    guestForm.name = savedGuest.name
+    // 尝试匹配上次的学院和专业
+    const prevCollege = colleges.value.find(c => c.name === savedGuest.collegeName)
+    if (prevCollege) {
+      guestForm.collegeId = prevCollege.id
+      const prevMajor = filteredMajors.value.find(m => m.name === savedGuest.majorName)
+      if (prevMajor) guestForm.majorId = prevMajor.id
+    }
+  } else {
+    guestForm.name = ''
+  }
+  guestForm.collegeId = guestForm.collegeId || null
+  guestForm.majorId = guestForm.majorId || null
   guestDialogVisible.value = true
 }
 
@@ -141,12 +220,23 @@ async function confirmGuestLogin() {
     ElMessage.warning('请输入姓名')
     return
   }
+  if (!guestForm.collegeId) {
+    ElMessage.warning('请选择学院')
+    return
+  }
+  if (!guestForm.majorId) {
+    ElMessage.warning('请选择专业')
+    return
+  }
+  const college = colleges.value.find(c => c.id === guestForm.collegeId)
+  const major = majors.value.find(m => m.id === guestForm.majorId)
   loading.value = true
   try {
     await userStore.guestLogin(
       userStore.schoolCode || schoolCode.value,
       guestForm.name.trim(),
-      guestForm.major.trim(),
+      college?.name || '',
+      major?.name || '',
     )
     guestDialogVisible.value = false
     ElMessage.success(`欢迎 ${guestForm.name.trim()}！请先完成偏好问卷`)
@@ -205,7 +295,7 @@ async function confirmGuestLogin() {
       </el-tabs>
 
       <div class="guest-section">
-        <el-divider><span style="color:#a0aec0;font-size:12px">快速测试入口（多人可同时使用）</span></el-divider>
+        <el-divider><span style="color:#a0aec0;font-size:12px">快速测试入口（免注册，自动记住账号）</span></el-divider>
         <el-button size="large" class="guest-btn" @click="handleGuestLogin">
           <el-icon :size="16"><UserFilled /></el-icon>
           免登录测试进入
@@ -213,13 +303,30 @@ async function confirmGuestLogin() {
       </div>
 
       <!-- 免登录弹窗 -->
-      <el-dialog v-model="guestDialogVisible" title="测试信息填写" width="380px" :close-on-click-modal="false">
+      <el-dialog v-model="guestDialogVisible" title="测试信息填写" width="420px" :close-on-click-modal="false" @opened="loadCollegesAndMajors">
         <el-form label-position="top" @submit.prevent="confirmGuestLogin">
           <el-form-item label="姓名" required>
             <el-input v-model="guestForm.name" placeholder="请输入你的姓名（如：张三）" size="large" maxlength="20" />
           </el-form-item>
-          <el-form-item label="专业">
-            <el-input v-model="guestForm.major" placeholder="请输入你的专业（如：计算机科学）" size="large" maxlength="30" />
+          <el-form-item label="学院" required>
+            <el-select v-model="guestForm.collegeId" placeholder="请选择学院" size="large" style="width:100%">
+              <el-option
+                v-for="c in colleges"
+                :key="c.id"
+                :label="c.name"
+                :value="c.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="专业" required>
+            <el-select v-model="guestForm.majorId" placeholder="请先选择学院" size="large" style="width:100%" :disabled="!guestForm.collegeId">
+              <el-option
+                v-for="m in filteredMajors"
+                :key="m.id"
+                :label="m.name"
+                :value="m.id"
+              />
+            </el-select>
           </el-form-item>
         </el-form>
         <template #footer>
@@ -227,6 +334,31 @@ async function confirmGuestLogin() {
           <el-button type="primary" :loading="loading" @click="confirmGuestLogin">进入系统</el-button>
         </template>
       </el-dialog>
+
+      <!-- 测试账号提示 -->
+      <div class="test-accounts-section">
+        <el-divider />
+        <div class="test-accounts-toggle" @click="showTestAccounts = !showTestAccounts">
+          <el-icon :size="14"><InfoFilled /></el-icon>
+          <span>测试账号</span>
+          <el-icon :size="12" style="transition: transform 0.2s" :style="{ transform: showTestAccounts ? 'rotate(180deg)' : '' }">
+            <ArrowDown />
+          </el-icon>
+        </div>
+        <div v-show="showTestAccounts" class="test-accounts-list">
+          <div class="test-account-row">
+            <el-tag type="danger" size="small">管理员</el-tag>
+            <code>admin@demo.com</code>
+            <span class="test-pwd">Admin123!</span>
+          </div>
+          <div class="test-account-row">
+            <el-tag type="warning" size="small">开发者</el-tag>
+            <code>dev@demo.com</code>
+            <span class="test-pwd">Dev123!</span>
+          </div>
+          <p class="test-hint">提示：如需创建管理员/开发者账号，请联系系统运维人员</p>
+        </div>
+      </div>
 
       <div class="switch-school" @click="backToSchoolEntry">
         <el-icon :size="14"><ArrowLeft /></el-icon>
@@ -265,4 +397,47 @@ async function confirmGuestLogin() {
 .guest-section { text-align: center; }
 .guest-btn { width: 100%; border: 2px dashed #c0c4cc; color: #606266; background: #fafafa; }
 .guest-btn:hover { border-color: #667eea; color: #667eea; background: #f0f0ff; }
+
+.test-accounts-section { margin-top: 4px; }
+.test-accounts-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #86909c;
+  cursor: pointer;
+  padding: 6px 0;
+  user-select: none;
+}
+.test-accounts-toggle:hover { color: #667eea; }
+.test-accounts-list {
+  background: #f7f8fa;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 4px;
+}
+.test-account-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.test-account-row code {
+  background: #e8eaed;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #4e5969;
+}
+.test-pwd {
+  color: #86909c;
+  font-size: 12px;
+}
+.test-hint {
+  font-size: 11px;
+  color: #c9cdd4;
+  margin: 4px 0 0;
+}
 </style>
