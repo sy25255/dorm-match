@@ -164,13 +164,88 @@ export const matchApi = {
   },
 
   async getStudentSurvey(targetId: number) {
-    const { data } = await supabase
-      .from('survey_answers')
-      .select('question_id, answer_value')
-      .eq('user_id', String(targetId))
-    return wrap((data || []).map((a: any) => ({
-      questionId: a.question_id,
-      answerValue: a.answer_value,
-    })))
+    // 获取该学生的问卷答案和所有题目
+    const [answerRes, questionRes] = await Promise.all([
+      supabase.from('survey_answers').select('question_id, answer_value').eq('user_id', String(targetId)),
+      supabase.from('survey_questions').select('*').eq('status', 1).order('sort_order'),
+    ])
+
+    const answers = answerRes.data || []
+    const questions = questionRes.data || []
+    if (answers.length === 0) return wrap(null)
+
+    const answerMap = new Map(answers.map((a: any) => [a.question_id, a.answer_value]))
+    const questionMap = new Map(questions.map((q: any) => [q.id, q]))
+
+    // 维度元信息
+    const dimMeta: Record<string, { title: string; desc: string }> = {
+      LIFESTYLE: { title: '基础信息采集', desc: '生活习惯与健康信息' },
+      SLEEP: { title: '生活作息', desc: '睡眠和作息习惯' },
+      HYGIENE: { title: '卫生习惯', desc: '个人卫生与公共区域维护' },
+      STUDY: { title: '学习习惯', desc: '学习时间与环境偏好' },
+      HOBBY: { title: '兴趣爱好', desc: '运动、音乐、游戏等兴趣偏好' },
+      SOCIAL: { title: '社交偏好', desc: '社交习惯与沟通方式' },
+      SPENDING: { title: '消费观念', desc: '消费习惯与共享态度' },
+      PERSONALITY: { title: '性格特征', desc: '性格特质与处事风格' },
+      ATTENTION: { title: '注意力检测', desc: '注意力检测题目' },
+      PSYCHOLOGY: { title: '情景心理测试', desc: '价值观和处事方式' },
+      EXTENSION: { title: '扩展信息', desc: '学习规划与宿舍生活偏好' },
+    }
+
+    const dimOrder = ['LIFESTYLE', 'SLEEP', 'HYGIENE', 'STUDY', 'HOBBY', 'SOCIAL', 'SPENDING', 'PERSONALITY', 'ATTENTION', 'PSYCHOLOGY', 'EXTENSION']
+
+    // 解析选项
+    function parseOptions(q: any): any[] {
+      if (!q.options_json) return []
+      try {
+        if (typeof q.options_json === 'string') return JSON.parse(q.options_json)
+        return q.options_json as any[]
+      } catch { return [] }
+    }
+
+    // 获取答案显示文本
+    function getAnswerText(q: any, answerValue: string): string {
+      if (!answerValue) return '未作答'
+      const opts = parseOptions(q)
+      if (opts.length === 0) return answerValue
+
+      // 多选答案
+      if (q.question_type === 'MULTI_CHOICE') {
+        const vals = answerValue.split(',')
+        return vals.map(v => {
+          const opt = opts.find((o: any) => o.value === v.trim())
+          return opt ? opt.text : v
+        }).join('、')
+      }
+
+      // 单选/量表
+      const opt = opts.find((o: any) => o.value === answerValue)
+      return opt ? `${opt.label || ''}. ${opt.text}` : answerValue
+    }
+
+    // 按维度分组构建 sections
+    const sections: any[] = []
+
+    for (const dim of dimOrder) {
+      const dimQuestions = questions.filter((q: any) => q.dimension === dim)
+      const answeredQuestions = dimQuestions.filter((q: any) => answerMap.has(q.id))
+
+      if (answeredQuestions.length === 0) continue
+
+      const meta = dimMeta[dim]
+      sections.push({
+        key: dim.toLowerCase(),
+        title: meta?.title || dim,
+        desc: meta?.desc || '',
+        questions: answeredQuestions.map((q: any) => ({
+          id: q.id,
+          questionText: q.question_text,
+          answerValue: answerMap.get(q.id),
+          answerText: getAnswerText(q, answerMap.get(q.id)),
+        })),
+      })
+    }
+
+    return wrap({ sections })
   },
 }

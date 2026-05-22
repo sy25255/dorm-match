@@ -79,6 +79,34 @@ const selfIntro = ref({
   bio: '',
 })
 
+// 查看我的问卷
+const showMySurvey = ref(false)
+const mySurvey = ref<any>(null)
+const mySurveyLoading = ref(false)
+const activeMySurveySections = ref<string[]>([])
+
+const dimIcons: Record<string, string> = {
+  sleep: '🛏️', hygiene: '🧹', study: '📚', hobby: '🎮',
+  social: '👥', spending: '💰', personality: '🎭',
+  lifestyle: '📋', attention: '🔍', psychology: '⚖️', extension: '📝',
+}
+
+async function viewMySurvey() {
+  mySurveyLoading.value = true
+  try {
+    const res = await surveyApi.getMySurvey()
+    mySurvey.value = res.data.data
+    showMySurvey.value = true
+    if (mySurvey.value?.sections) {
+      activeMySurveySections.value = mySurvey.value.sections.map((s: any) => s.key)
+    }
+  } catch {
+    ElMessage.error('获取问卷失败')
+  } finally {
+    mySurveyLoading.value = false
+  }
+}
+
 const sections = ref<Section[]>([])
 
 const currentSection = computed(() => sections.value[currentSectionIndex.value] ?? sections.value[0])
@@ -383,6 +411,7 @@ async function handleSubmit() {
       <el-result icon="success" title="问卷已提交" sub-title="你已完成偏好问卷，系统已根据你的回答生成了智能匹配结果">
         <template #extra>
           <el-button type="primary" @click="$router.push(`/${$route.params.schoolCode}/matches`)">查看匹配推荐</el-button>
+          <el-button @click="viewMySurvey">查看我的问卷</el-button>
         </template>
       </el-result>
     </div>
@@ -651,6 +680,43 @@ async function handleSubmit() {
     </template>
 
     <el-empty v-else description="加载中..." />
+
+    <!-- 查看我的问卷弹窗 -->
+    <el-dialog
+      v-model="showMySurvey"
+      title="我的偏好问卷"
+      width="800px"
+      top="5vh"
+      destroy-on-close
+    >
+      <div v-if="mySurvey" class="survey-dialog-content">
+        <el-collapse v-model="activeMySurveySections" v-if="mySurvey.sections?.length">
+          <el-collapse-item
+            v-for="sec in mySurvey.sections"
+            :key="sec.key"
+            :name="sec.key"
+          >
+            <template #title>
+              <span class="section-title">
+                <span class="section-icon">{{ dimIcons[sec.key] || '📋' }}</span>
+                {{ sec.title }}
+                <el-tag size="small" type="info" style="margin-left: 8px;">{{ sec.questions.length }}题</el-tag>
+              </span>
+            </template>
+            <div class="survey-questions">
+              <div v-for="q in sec.questions" :key="q.id" class="survey-q-item">
+                <div class="q-text">{{ q.questionText }}</div>
+                <div class="q-answer">
+                  <span class="q-answer-label">回答：</span>
+                  <span class="q-answer-value">{{ q.answerText }}</span>
+                </div>
+              </div>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+        <el-empty v-else description="暂未填写问卷" />
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -940,5 +1006,58 @@ async function handleSubmit() {
   line-height: 1.8;
   color: #4e5969;
   white-space: pre-wrap;
+}
+
+/* 查看问卷弹窗样式 */
+.survey-dialog-content {
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.section-icon {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.survey-questions {
+  padding: 0 4px;
+}
+
+.survey-q-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.survey-q-item:last-child {
+  border-bottom: none;
+}
+
+.q-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.q-answer {
+  font-size: 13px;
+  color: #606266;
+}
+
+.q-answer-label {
+  color: #909399;
+}
+
+.q-answer-value {
+  color: #409eff;
+  font-weight: 500;
 }
 </style>
