@@ -2,14 +2,53 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const unavailableError = new Error('Supabase unavailable: missing environment variables')
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Check .env file.')
+function createUnavailableQuery() {
+  const response = async () => ({ data: null, error: unavailableError, count: 0 })
+  const query: any = {
+    select: () => query,
+    insert: () => query,
+    update: () => query,
+    upsert: () => query,
+    delete: () => query,
+    eq: () => query,
+    neq: () => query,
+    in: () => query,
+    or: () => query,
+    order: () => query,
+    range: () => query,
+    limit: () => query,
+    single: response,
+    maybeSingle: response,
+    then: (resolve: any, reject: any) => response().then(resolve, reject),
+    catch: (reject: any) => response().catch(reject),
+    finally: (handler: any) => response().finally(handler),
+  }
+  return query
+}
+
+function createUnavailableSupabase() {
+  return {
+    auth: {
+      getSession: async () => ({ data: { session: null }, error: null }),
+      getUser: async () => ({ data: { user: null }, error: unavailableError }),
+      signUp: async () => { throw unavailableError },
+      signInWithPassword: async () => { throw unavailableError },
+      signOut: async () => ({}),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    },
+    from: () => createUnavailableQuery(),
+    rpc: async () => ({ data: null, error: unavailableError }),
+  } as any
 }
 
 // 创建 Supabase 客户端（含超时配置，防止网络不通时长时间挂起）
 let supabase: ReturnType<typeof createClient>
-try {
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('[Supabase Init Warning] Missing environment variables. App will run in limited fallback mode.')
+  supabase = createUnavailableSupabase()
+} else try {
   supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: true,
@@ -31,22 +70,7 @@ try {
   })
 } catch (e) {
   console.error('[Supabase Init Error]', e)
-  // 创建一个 mock 客户端，防止应用崩溃
-  supabase = {
-    auth: {
-      getSession: async () => ({ data: { session: null }, error: null }),
-      signUp: async () => { throw new Error('Supabase unavailable') },
-      signInWithPassword: async () => { throw new Error('Supabase unavailable') },
-      signOut: async () => ({}),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-    },
-    from: () => ({
-      select: () => ({ eq: () => ({ single: async () => ({ data: null, error: new Error('Supabase unavailable') }) }) }),
-      upsert: async () => ({ error: new Error('Supabase unavailable') }),
-      insert: async () => ({ error: new Error('Supabase unavailable') }),
-    }),
-    rpc: async () => ({ data: null, error: new Error('Supabase unavailable') }),
-  } as any
+  supabase = createUnavailableSupabase()
 }
 
 export { supabase }
