@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>跳转中...</title>
+  <script>
+    // GitHub Pages SPA 回退
+    (function() {
+      var base = '/dorm-match/';
+      var hash = window.location.hash || '';
+      // 如果已有 hash，直接跳到正确的 base + hash
+      if (hash) {
+        window.location.replace(base + window.location.hash);
+      } else {
+        window.location.replace(base);
+      }
+    })();
+  </script>
+</head>
+<body style="text-align:center;padding-top:50px;font-family:sans-serif;">
+  <p>正在跳转...</p>
+  <p><a href="/dorm-match/">点击此处进入系统</a></p>
+</body>
+</html>
