@@ -79,9 +79,9 @@ router.beforeEach(async (to, _from, next) => {
   if (!sessionRestored) {
     sessionRestored = true
     const hasSession = await userStore.restoreSession().catch(() => false)
-    if (hasSession && userStore.schoolCode.value) {
+    if (hasSession && userStore.schoolCode) {
       if (to.path === '/' || to.name === 'SchoolEntry') {
-        const target = `/${userStore.schoolCode.value}${userStore.role.value === 'ADMIN' ? '/admin' : '/'}`
+        const target = `/${userStore.schoolCode}${userStore.role === 'ADMIN' ? '/admin' : '/'}`
         next(target)
         return
       }
@@ -89,7 +89,7 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   if (to.meta.dev) {
-    if (!userStore.token && !userStore.supabaseUserId) { next('/'); return }
+    if (!userStore.token && !userStore.userId) { next('/'); return }
     if (userStore.role !== 'DEVELOPER') {
       next(storedCode ? `/${storedCode}/` : '/')
       return
@@ -101,8 +101,8 @@ router.beforeEach(async (to, _from, next) => {
   const scFromPath = to.params.schoolCode as string | undefined
 
   if (storedCode) {
-    if (to.name === 'SchoolEntry' && (userStore.token || userStore.supabaseUserId)) {
-      next(`/${storedCode}${userStore.role.value === 'ADMIN' || userStore.role.value === 'DEVELOPER' ? (userStore.role.value === 'DEVELOPER' ? '/admin' : '/admin') : userStore.role.value === 'ADMIN' ? '/admin' : '/'}`)
+    if (to.name === 'SchoolEntry' && (userStore.token || userStore.userId)) {
+      next(`/${storedCode}${userStore.role === 'ADMIN' || userStore.role === 'DEVELOPER' ? (userStore.role === 'DEVELOPER' ? '/admin' : '/admin') : userStore.role === 'ADMIN' ? '/admin' : '/'}`)
       return
     }
     if (scFromPath && scFromPath !== storedCode) {
@@ -127,7 +127,7 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   if (to.meta.guest) {
-    if (userStore.token || userStore.supabaseUserId) {
+    if (userStore.token || userStore.userId) {
       next(`/${storedCode}/`)
       return
     }
@@ -136,7 +136,7 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   if (to.meta.admin) {
-    if (!userStore.token && !userStore.supabaseUserId) {
+    if (!userStore.token && !userStore.userId) {
       next('/')
       return
     }
@@ -148,7 +148,7 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
-  if (!userStore.token && !userStore.supabaseUserId) {
+  if (!userStore.token && !userStore.userId) {
     next('/')
     return
   }
