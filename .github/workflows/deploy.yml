@@ -20,20 +20,14 @@ jobs:
           git remote add origin https://github.com/${{ github.repository }}.git
           git fetch --depth=1 origin ${{ github.sha }}
           git checkout --detach FETCH_HEAD
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - name: Install and Build
+      - name: Prepare Pages Artifact
         run: |
-          cd frontend
-          npm ci
-          npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+          mkdir page-artifact
+          git fetch --depth=1 origin gh-pages
+          git archive --format=tar FETCH_HEAD | tar -x -C page-artifact
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: frontend/dist
+          path: page-artifact
 
   deploy:
     needs: build
