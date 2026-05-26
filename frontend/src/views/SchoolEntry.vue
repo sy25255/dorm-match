@@ -66,6 +66,14 @@ async function enterSchool() {
   router.push(`/${validatedSchool.value.code}/login`)
 }
 
+function enterDemoSchool() {
+  const demoSchool = { code: 'DEMO-UNI', name: '示范大学' }
+  schoolCode.value = demoSchool.code
+  validatedSchool.value = demoSchool
+  userStore.setSchoolInfo(demoSchool.code, demoSchool.name)
+  router.push(`/${demoSchool.code}/login?guest=1`)
+}
+
 function onKeyUp(e: KeyboardEvent) {
   if (e.key === 'Enter') enterSchool()
 }
@@ -120,12 +128,19 @@ function onKeyUp(e: KeyboardEvent) {
         >
           进入登录
         </el-button>
+        <el-button
+          size="large"
+          class="demo-btn"
+          @click="enterDemoSchool"
+        >
+          一键进入测试体验
+        </el-button>
       </div>
 
       <div class="known-codes">
         <p class="codes-label">已知学校编码</p>
         <div class="codes-list">
-          <span class="code-tag" @click="schoolCode = 'DEMO-UNI'">DEMO-UNI 示范大学</span>
+          <span class="code-tag" @click="enterDemoSchool">DEMO-UNI 示范大学</span>
         </div>
       </div>
     </div>
@@ -197,6 +212,14 @@ function onKeyUp(e: KeyboardEvent) {
 .form-hint { font-size: 12px; margin: 4px 0 0; }
 
 .submit-btn { width: 100%; height: 46px; font-size: 16px; border-radius: 10px; }
+.demo-btn {
+  width: 100%;
+  height: 44px;
+  margin: 12px 0 0;
+  border-radius: 10px;
+  border: 1px solid #667eea;
+  color: #667eea;
+}
 
 .known-codes { margin-top: 24px; padding-top: 20px; border-top: 1px solid #f0f0f0; text-align: center; }
 .codes-label { font-size: 12px; color: #86909c; margin: 0 0 10px; }

@@ -95,6 +95,9 @@ onMounted(async () => {
     registerForm.email = remembered
     activeTab.value = 'login'
   }
+  if (route.query.guest === '1') {
+    await handleQuickGuestLogin()
+  }
 })
 
 // 加载学院/专业列表
@@ -176,6 +179,37 @@ async function handleRegister() {
 function backToSchoolEntry() {
   userStore.logout()
   router.push('/')
+}
+
+async function handleQuickGuestLogin() {
+  loading.value = true
+  try {
+    await loadCollegesAndMajors()
+    const college = colleges.value[0]
+    const major = majors.value.find(m => m.collegeId === college?.id) || majors.value[0]
+    const guestName = `测试用户${Date.now().toString().slice(-4)}`
+
+    if (!college || !major) {
+      throw new Error('测试数据未准备好，请稍后重试')
+    }
+
+    await userStore.guestLogin(
+      userStore.schoolCode || schoolCode.value,
+      guestName,
+      college.name,
+      major.name,
+    )
+    ElMessage.success('已进入测试体验，请先完成偏好问卷')
+    router.push(`/${schoolCode.value}/survey`)
+  } catch (err: any) {
+    if ((err?.message || '').includes('Supabase unavailable')) {
+      ElMessage.error('测试登录需要先配置 Supabase 环境变量')
+    } else {
+      ElMessage.error(err?.message || '一键测试登录失败，请重试')
+    }
+  } finally {
+    loading.value = false
+  }
 }
 
 async function handleGuestLogin() {
@@ -296,9 +330,13 @@ async function confirmGuestLogin() {
 
       <div class="guest-section">
         <el-divider><span style="color:#a0aec0;font-size:12px">快速测试入口（免注册，自动记住账号）</span></el-divider>
+        <el-button type="primary" size="large" class="quick-guest-btn" :loading="loading" @click="handleQuickGuestLogin">
+          <el-icon :size="16"><UserFilled /></el-icon>
+          一键匿名体验
+        </el-button>
         <el-button size="large" class="guest-btn" @click="handleGuestLogin">
           <el-icon :size="16"><UserFilled /></el-icon>
-          免登录测试进入
+          填写测试信息进入
         </el-button>
       </div>
 
@@ -395,7 +433,8 @@ async function confirmGuestLogin() {
 .switch-school { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; font-size: 13px; color: #a0aec0; cursor: pointer; }
 .switch-school:hover { color: #667eea; }
 .guest-section { text-align: center; }
-.guest-btn { width: 100%; border: 2px dashed #c0c4cc; color: #606266; background: #fafafa; }
+.quick-guest-btn { width: 100%; margin-bottom: 10px; }
+.guest-btn { width: 100%; margin-left: 0; border: 2px dashed #c0c4cc; color: #606266; background: #fafafa; }
 .guest-btn:hover { border-color: #667eea; color: #667eea; background: #f0f0ff; }
 
 .test-accounts-section { margin-top: 4px; }
