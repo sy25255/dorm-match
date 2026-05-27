@@ -6,8 +6,8 @@ import { ElMessage } from 'element-plus'
 
 interface InviteItem {
   id: number
-  fromStudentId: number
-  toStudentId: number
+  fromStudentId: string | number
+  toStudentId: string | number
   message: string
   status: number
   processedAt: string
@@ -27,7 +27,7 @@ try {
 console.log('[Invites] Room capacity:', roomCapacity.value)
 const activeTab = ref('received')
 const loading = ref(false)
-const studentNames = ref<Record<number, string>>({})
+const studentNames = ref<Record<string, string>>({})
 const processingId = ref<number | null>(null)
 
 onMounted(loadAll)
@@ -44,15 +44,15 @@ async function loadAll() {
     sent.value = s.data.data || []
     quotas.value = q.data.data
 
-    const nameMap: Record<number, string> = {}
-    const ids = new Set<number>()
+    const nameMap: Record<string, string> = {}
+    const ids = new Set<string | number>()
     received.value.forEach(i => ids.add(i.fromStudentId))
     sent.value.forEach(i => ids.add(i.toStudentId))
     for (const id of ids) {
       try {
         const res = await studentApi.getStudent(id)
-        nameMap[id] = res.data.data?.name || `学生${id}`
-      } catch { nameMap[id] = `学生${id}` }
+        nameMap[String(id)] = res.data.data?.name || `学生${id}`
+      } catch { nameMap[String(id)] = `学生${id}` }
     }
     studentNames.value = nameMap
   } catch { ElMessage.error('加载邀请数据失败') } finally {

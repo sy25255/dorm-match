@@ -8,7 +8,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 
 interface Member {
-  studentId: number
+  studentId: string | number
   name: string
   avatarUrl: string
   isInitiator: number
@@ -69,13 +69,13 @@ async function openInviteDialog() {
   } catch { ElMessage.warning('获取推荐列表失败') }
 }
 
-async function sendGroupInvite(targetId: number, targetName: string) {
+async function sendGroupInvite(targetId: string | number, targetName: string) {
   try {
     await ElMessageBox.confirm(`向"${targetName}"发送组队邀请？`, '组队邀请', { type: 'info' })
     await inviteApi.send({ targetId, message: inviteMessage.value || '我们的配对组正在扩招，一起来组队吧！' })
     ElMessage.success('组队邀请已发送')
     showInviteDialog.value = false
-  } catch {
+  } catch (e) {
     if (e !== 'cancel' && e !== 'close') ElMessage.error('发送组队邀请失败')
   }
 }

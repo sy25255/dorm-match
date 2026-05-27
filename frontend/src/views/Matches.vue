@@ -9,7 +9,7 @@ import SearchView from './Search.vue'
 import InvitesView from './Invites.vue'
 
 interface Recommendation {
-  studentId: number
+  studentId: string | number
   name: string
   avatarUrl: string
   collegeName: string
@@ -23,7 +23,7 @@ interface Recommendation {
 const activeTab = ref<'recommendations' | 'search' | 'invites'>('recommendations')
 const list = ref<Recommendation[]>([])
 const loading = ref(false)
-const inviting = ref<number | null>(null)
+const inviting = ref<string | number | null>(null)
 const surveyCompleted = ref(false)
 const userStore = useUserStore()
 
@@ -73,7 +73,7 @@ async function loadRecommendations() {
   }
 }
 
-async function sendInvite(targetId: number) {
+async function sendInvite(targetId: string | number) {
   inviting.value = targetId
   try {
     await inviteApi.send({ targetId, message: '' })

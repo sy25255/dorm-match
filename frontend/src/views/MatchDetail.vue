@@ -7,7 +7,7 @@ import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
-const targetId = Number(route.params.targetId)
+const targetId = String(route.params.targetId)
 
 const detail = ref<any>(null)
 const loading = ref(false)

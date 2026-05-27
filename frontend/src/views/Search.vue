@@ -54,7 +54,7 @@ async function handleSearch() {
   } catch {} finally { loading.value = false }
 }
 
-async function sendInvite(targetId: number) {
+async function sendInvite(targetId: string | number) {
   try {
     await inviteApi.send({ targetId, message: '' })
     ElMessage.success('邀请已发送')

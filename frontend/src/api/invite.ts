@@ -2,8 +2,30 @@ import { supabase, getCurrentSchool, getCurrentUserId } from '@/lib/supabase'
 
 const wrap = (data: any) => ({ data: { code: 200, message: 'ok', data } })
 
+function mapInvite(invite: any) {
+  return {
+    ...invite,
+    fromStudentId: invite.from_user_id,
+    toStudentId: invite.to_user_id,
+    processedAt: invite.processed_at || '',
+    expiresAt: invite.expires_at || '',
+    createdAt: invite.created_at || '',
+  }
+}
+
+function mapPairGroup(group: any, groupSize = 0) {
+  if (!group) return null
+  return {
+    ...group,
+    pairingCode: group.pairing_code || `PAIR-${String(group.id).padStart(4, '0')}`,
+    groupSize: group.group_size || groupSize,
+    lockedAt: group.locked_at || '',
+    createdAt: group.created_at || '',
+  }
+}
+
 export const inviteApi = {
-  async send(data: { targetId: number; message: string }) {
+  async send(data: { targetId: string | number; message: string }) {
     const uid = getCurrentUserId()
     const sc = getCurrentSchool()
 
@@ -19,7 +41,37 @@ export const inviteApi = {
   },
 
   async accept(inviteId: number) {
+    const { data: invite } = await supabase.from('invites').select('*').eq('id', inviteId).single()
     await supabase.from('invites').update({ status: 1 }).eq('id', inviteId)
+
+    if (invite?.from_user_id && invite?.to_user_id) {
+      const memberIds = [invite.from_user_id, invite.to_user_id]
+      const { data: existingMembers } = await supabase
+        .from('pair_members')
+        .select('group_id, user_id')
+        .in('user_id', memberIds)
+
+      let groupId = (existingMembers || []).find((m: any) => m.user_id === invite.from_user_id)?.group_id
+      if (!groupId) {
+        const { data: group } = await supabase
+          .from('pair_groups')
+          .insert({
+            school_code: invite.school_code || getCurrentSchool(),
+            status: 1,
+            capacity: 8,
+          })
+          .select('id')
+          .single()
+        groupId = group?.id
+      }
+
+      if (groupId) {
+        await supabase.from('pair_members').upsert([
+          { group_id: groupId, user_id: invite.from_user_id, is_initiator: 1 },
+          { group_id: groupId, user_id: invite.to_user_id, is_initiator: 0 },
+        ], { onConflict: 'group_id,user_id' })
+      }
+    }
     return wrap(null)
   },
 
@@ -40,7 +92,7 @@ export const inviteApi = {
       .select('*')
       .eq('to_user_id', uid)
       .order('created_at', { ascending: false })
-    return wrap(data || [])
+    return wrap((data || []).map(mapInvite))
   },
 
   async getSent() {
@@ -50,7 +102,7 @@ export const inviteApi = {
       .select('*')
       .eq('from_user_id', uid)
       .order('created_at', { ascending: false })
-    return wrap(data || [])
+    return wrap((data || []).map(mapInvite))
   },
 
   async getQuota() {
@@ -61,7 +113,17 @@ export const inviteApi = {
       .eq('from_user_id', uid)
     const used = sentCount || 0
     const limit = 10
-    return wrap({ used, limit, remaining: Math.max(0, limit - used) })
+    return wrap({
+      used,
+      limit,
+      remaining: Math.max(0, limit - used),
+      maxSent: limit,
+      usedSent: used,
+      remainingSent: Math.max(0, limit - used),
+      maxReceived: 10,
+      usedReceived: 0,
+      remainingReceived: 10,
+    })
   },
 
   async getPairing() {
@@ -82,7 +144,15 @@ export const inviteApi = {
       .in('id', groupIds)
       .eq('school_code', sc)
 
-    return wrap(groups?.[0] || null)
+    const group = groups?.[0]
+    if (!group) return wrap(null)
+
+    const { count } = await supabase
+      .from('pair_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('group_id', group.id)
+
+    return wrap(mapPairGroup(group, count || 0))
   },
 
   async getPairingMembers() {
@@ -131,7 +201,42 @@ export const allocationApi = {
       .eq('user_id', uid)
       .order('created_at', { ascending: false })
       .limit(1)
-    return wrap(data?.[0] || null)
+    const allocation = data?.[0]
+    if (!allocation) return wrap(null)
+
+    const room = Array.isArray(allocation.dormitory_rooms)
+      ? allocation.dormitory_rooms[0]
+      : allocation.dormitory_rooms
+
+    const { data: roommateRows } = await supabase
+      .from('allocations')
+      .select('*, profiles(id, name, avatar_url, bio, college_name, major_name)')
+      .eq('room_id', allocation.room_id)
+      .neq('user_id', uid)
+
+    const roommates = (roommateRows || []).map((row: any) => {
+      const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles
+      return {
+        studentId: row.user_id,
+        name: profile?.name || '',
+        avatarUrl: profile?.avatar_url || '',
+        bio: profile?.bio || '',
+        collegeName: profile?.college_name || '',
+        majorName: profile?.major_name || '',
+        bedNo: row.bed_no,
+        allocationType: row.allocation_type,
+      }
+    })
+
+    return wrap({
+      ...allocation,
+      roomNumber: allocation.room_number || room?.room_number || '',
+      bedNo: allocation.bed_no || 0,
+      allocationType: allocation.allocation_type || 'ALGORITHM',
+      batchCode: allocation.batch_code || '',
+      confirmedByStudent: allocation.confirmed_by_student || 0,
+      roommates,
+    })
   },
 
   async confirm() {

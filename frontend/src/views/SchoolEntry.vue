@@ -88,7 +88,7 @@ function onKeyUp(e: KeyboardEvent) {
           <el-icon :size="44" color="#667eea"><School /></el-icon>
         </div>
         <h1 class="entry-title">新生宿舍舍友选择系统</h1>
-        <p class="entry-subtitle">输入学校编码，开启你的大学舍友之旅</p>
+        <p class="entry-subtitle">输入学校编码进入；测试者可免注册体验完整流程</p>
       </div>
 
       <div class="form-section">
@@ -133,12 +133,12 @@ function onKeyUp(e: KeyboardEvent) {
           class="demo-btn"
           @click="enterDemoSchool"
         >
-          一键进入测试体验
+          免注册进入测试体验
         </el-button>
       </div>
 
       <div class="known-codes">
-        <p class="codes-label">已知学校编码</p>
+        <p class="codes-label">测试学校编码</p>
         <div class="codes-list">
           <span class="code-tag" @click="enterDemoSchool">DEMO-UNI 示范大学</span>
         </div>

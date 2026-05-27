@@ -89,6 +89,14 @@ onMounted(async () => {
         </el-card>
       </el-col>
     </el-row>
+
+    <div class="feedback-strip">
+      <div>
+        <h3>测试过程中发现问题或有改进建议？</h3>
+        <p>请直接提交反馈，开发者会根据反馈继续调整系统体验。</p>
+      </div>
+      <el-button type="primary" plain @click="$router.push(`/${$route.params.schoolCode}/feedback`)">提交反馈</el-button>
+    </div>
   </div>
 </template>
 
@@ -123,5 +131,36 @@ onMounted(async () => {
   font-size: 13px;
   color: #86909c;
   margin-bottom: 16px;
+}
+
+.feedback-strip {
+  margin-top: 20px;
+  background: #fff;
+  border: 1px solid #e5e6eb;
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.feedback-strip h3 {
+  font-size: 16px;
+  margin: 0 0 4px;
+  color: #1d2129;
+}
+
+.feedback-strip p {
+  font-size: 13px;
+  color: #86909c;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .feedback-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 </style>

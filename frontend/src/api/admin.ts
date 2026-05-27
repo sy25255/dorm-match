@@ -2,6 +2,28 @@ import { supabase, getCurrentSchool } from '@/lib/supabase'
 
 const wrap = (data: any) => ({ data: { code: 200, message: 'ok', data } })
 
+function answerDiff(a: unknown, b: unknown) {
+  const av = String(a ?? '')
+  const bv = String(b ?? '')
+  const an = Number(av)
+  const bn = Number(bv)
+
+  if (Number.isFinite(an) && Number.isFinite(bn)) {
+    return Math.min(Math.abs(an - bn), 4)
+  }
+
+  if (av.includes(',') || bv.includes(',')) {
+    const as = new Set(av.split(',').map(v => v.trim()).filter(Boolean))
+    const bs = new Set(bv.split(',').map(v => v.trim()).filter(Boolean))
+    const union = new Set([...as, ...bs])
+    if (union.size === 0) return 0
+    const intersection = [...as].filter(v => bs.has(v)).length
+    return (1 - intersection / union.size) * 4
+  }
+
+  return av === bv ? 0 : 4
+}
+
 export const adminApi = {
   // ========== 学生管理 ==========
   async getStudents(params?: { page?: number; size?: number; keyword?: string; collegeId?: number; surveyStatus?: string }) {
@@ -192,18 +214,18 @@ export const adminApi = {
       .select('user_id, question_id, answer_value')
       .in('user_id', studentIds)
 
-    const answerMap = new Map<string, Map<number, number>>()
+    const answerMap = new Map<string, Map<number, any>>()
     for (const a of (allAnswers as any[]) || []) {
       if (!answerMap.has(a.user_id)) answerMap.set(a.user_id, new Map())
-      answerMap.get(a.user_id)!.set(a.question_id, Number(a.answer_value))
+      answerMap.get(a.user_id)!.set(a.question_id, a.answer_value)
     }
 
     // Step 2: 计算两个学生偏好相似度（0~1，越高越相似）
-    function calcSimilarity(a: Map<number, number>, b: Map<number, number>): number {
+    function calcSimilarity(a: Map<number, any>, b: Map<number, any>): number {
       let totalDiff = 0, count = 0
       for (const [qid, val] of a) {
         const ov = b.get(qid)
-        if (ov !== undefined) { totalDiff += Math.abs(val - ov); count++ }
+        if (ov !== undefined) { totalDiff += answerDiff(val, ov); count++ }
       }
       return count > 0 ? 1 - totalDiff / (count * 4) : 0
     }

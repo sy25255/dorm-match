@@ -330,10 +330,6 @@ async function confirmGuestLogin() {
 
       <div class="guest-section">
         <el-divider><span style="color:#a0aec0;font-size:12px">快速测试入口（免注册，自动记住账号）</span></el-divider>
-        <el-button type="primary" size="large" class="quick-guest-btn" :loading="loading" @click="handleQuickGuestLogin">
-          <el-icon :size="16"><UserFilled /></el-icon>
-          一键匿名体验
-        </el-button>
         <el-button size="large" class="guest-btn" @click="handleGuestLogin">
           <el-icon :size="16"><UserFilled /></el-icon>
           填写测试信息进入
@@ -433,7 +429,6 @@ async function confirmGuestLogin() {
 .switch-school { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; font-size: 13px; color: #a0aec0; cursor: pointer; }
 .switch-school:hover { color: #667eea; }
 .guest-section { text-align: center; }
-.quick-guest-btn { width: 100%; margin-bottom: 10px; }
 .guest-btn { width: 100%; margin-left: 0; border: 2px dashed #c0c4cc; color: #606266; background: #fafafa; }
 .guest-btn:hover { border-color: #667eea; color: #667eea; background: #f0f0ff; }
 

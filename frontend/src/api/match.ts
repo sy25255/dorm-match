@@ -2,6 +2,91 @@ import { supabase, getCurrentSchool, getCurrentUserId } from '@/lib/supabase'
 
 const wrap = (data: any) => ({ data: { code: 200, message: 'ok', data } })
 
+function answerDiff(a: unknown, b: unknown) {
+  const av = String(a ?? '')
+  const bv = String(b ?? '')
+  const an = Number(av)
+  const bn = Number(bv)
+
+  if (Number.isFinite(an) && Number.isFinite(bn)) {
+    return Math.min(Math.abs(an - bn), 4)
+  }
+
+  if (av.includes(',') || bv.includes(',')) {
+    const as = new Set(av.split(',').map(v => v.trim()).filter(Boolean))
+    const bs = new Set(bv.split(',').map(v => v.trim()).filter(Boolean))
+    const union = new Set([...as, ...bs])
+    if (union.size === 0) return 0
+    const intersection = [...as].filter(v => bs.has(v)).length
+    return (1 - intersection / union.size) * 4
+  }
+
+  return av === bv ? 0 : 4
+}
+
+function scoreAnswerMaps(
+  myMap: Map<number, any>,
+  otherMap: Map<number, any>,
+  questionDimensions = new Map<number, string>(),
+) {
+  let totalDiff = 0
+  let count = 0
+  const dimTotals = new Map<string, { diff: number; count: number }>()
+
+  for (const [qid, myVal] of myMap) {
+    const otherVal = otherMap.get(qid)
+    if (otherVal === undefined) continue
+
+    const diff = answerDiff(myVal, otherVal)
+    totalDiff += diff
+    count++
+
+    const dim = questionDimensions.get(Number(qid))
+    if (dim) {
+      const current = dimTotals.get(dim) || { diff: 0, count: 0 }
+      current.diff += diff
+      current.count++
+      dimTotals.set(dim, current)
+    }
+  }
+
+  const score = count > 0 ? Math.round((1 - totalDiff / (count * 4)) * 100) : 0
+  const dimensionScores: Record<string, number> = {}
+  dimTotals.forEach((value, dim) => {
+    dimensionScores[dim] = value.count > 0 ? Math.round((1 - value.diff / (value.count * 4)) * 100) : 0
+  })
+
+  return {
+    score: Math.max(Math.min(score, 100), 0),
+    dimensionScores,
+  }
+}
+
+function toStudentCard(profile: any, matchScore?: number) {
+  return {
+    id: profile.id,
+    studentId: profile.id,
+    targetId: profile.id,
+    name: profile.name || '',
+    gender: profile.gender,
+    collegeName: profile.college_name || '',
+    majorName: profile.major_name || '',
+    className: profile.class_name || '',
+    hometown: profile.hometown || '',
+    bio: profile.bio || '',
+    avatarUrl: profile.avatar_url || '',
+    smoking: profile.smoking || '2',
+    snoring: profile.snoring || '1',
+    leaderScore: profile.leader_score || 0,
+    matchStatus: profile.match_status,
+    studentNo: profile.student_no || '',
+    matchScore: matchScore ?? 0,
+    totalScore: matchScore ?? 0,
+    commonTags: [],
+    dimensionScores: {},
+  }
+}
+
 export const matchApi = {
   async calculate() {
     return wrap(null)
@@ -19,6 +104,11 @@ export const matchApi = {
     if (!myAnswers || myAnswers.length === 0) return wrap([])
 
     const myMap = new Map((myAnswers as any[]).map((a: any) => [a.question_id, a.answer_value]))
+    const { data: questions } = await supabase
+      .from('survey_questions')
+      .select('id, dimension')
+      .eq('status', 1)
+    const questionDimensions = new Map((questions || []).map((q: any) => [q.id, q.dimension]))
 
     const { data: others } = await supabase
       .from('profiles')
@@ -39,33 +129,10 @@ export const matchApi = {
       if (!otherAnswers || otherAnswers.length === 0) continue
 
       const otherMap = new Map((otherAnswers as any[]).map((a: any) => [a.question_id, a.answer_value]))
-      let totalDiff = 0
-      let count = 0
-
-      for (const [qid, myVal] of myMap) {
-        const otherVal = otherMap.get(qid)
-        if (otherVal !== undefined) {
-          totalDiff += Math.abs(Number(myVal) - Number(otherVal))
-          count++
-        }
-      }
-
-      const score = count > 0 ? Math.round((1 - totalDiff / (count * 4)) * 100) : 0
+      const { score, dimensionScores } = scoreAnswerMaps(myMap, otherMap, questionDimensions)
       results.push({
-        targetId: other.id,
-        name: other.name,
-        gender: other.gender,
-        collegeName: other.college_name || '',
-        majorName: other.major_name || '',
-        className: other.class_name || '',
-        hometown: other.hometown || '',
-        bio: other.bio || '',
-        avatarUrl: other.avatar_url || '',
-        smoking: other.smoking || '2',
-        snoring: other.snoring || '1',
-        leaderScore: other.leader_score || 0,
-        matchScore: Math.max(score, 30),
-        dimensionScores: {},
+        ...toStudentCard(other, Math.max(score, 30)),
+        dimensionScores,
       })
     }
 
@@ -90,22 +157,7 @@ export const matchApi = {
 
     const { data } = await q.limit(50)
 
-    const results = (data || []).map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      gender: p.gender,
-      collegeName: p.college_name,
-      majorName: p.major_name,
-      className: p.class_name,
-      hometown: p.hometown,
-      bio: p.bio,
-      avatarUrl: p.avatar_url,
-      smoking: p.smoking,
-      snoring: p.snoring,
-      leaderScore: p.leader_score,
-      matchStatus: p.match_status,
-      studentNo: p.student_no,
-    }))
+    const results = (data || []).map((p: any) => toStudentCard(p))
 
     if (params.keyword) {
       const kw = params.keyword.toLowerCase()
@@ -120,7 +172,7 @@ export const matchApi = {
     return wrap(results)
   },
 
-  async getDetail(targetId: number) {
+  async getDetail(targetId: string | number) {
     const uid = getCurrentUserId()
 
     const { data: other } = await supabase.from('profiles').select('*').eq('id', String(targetId)).single()
@@ -134,36 +186,23 @@ export const matchApi = {
       .from('survey_answers')
       .select('question_id, answer_value')
       .eq('user_id', String(targetId))
+    const { data: questions } = await supabase
+      .from('survey_questions')
+      .select('id, dimension')
+      .eq('status', 1)
 
     const myMap = new Map((myAnswers || []).map((a: any) => [a.question_id, a.answer_value]))
     const otherMap = new Map((otherAnswers || []).map((a: any) => [a.question_id, a.answer_value]))
-
-    let totalDiff = 0; let count = 0
-    for (const [qid, val] of myMap) {
-      const ov = otherMap.get(qid)
-      if (ov !== undefined) { totalDiff += Math.abs(Number(val) - Number(ov)); count++ }
-    }
-    const score = count > 0 ? Math.round((1 - totalDiff / (count * 4)) * 100) : 0
+    const questionDimensions = new Map((questions || []).map((q: any) => [q.id, q.dimension]))
+    const { score, dimensionScores } = scoreAnswerMaps(myMap, otherMap, questionDimensions)
 
     return wrap({
-      targetId: other.id,
-      name: other.name,
-      gender: other.gender,
-      collegeName: other.college_name,
-      majorName: other.major_name,
-      className: other.class_name,
-      hometown: other.hometown,
-      bio: other.bio,
-      avatarUrl: other.avatar_url,
-      smoking: other.smoking,
-      snoring: other.snoring,
-      leaderScore: other.leader_score,
-      matchScore: Math.max(score, 30),
-      dimensionScores: {},
+      ...toStudentCard(other, Math.max(score, 30)),
+      dimensionScores,
     })
   },
 
-  async getStudentSurvey(targetId: number) {
+  async getStudentSurvey(targetId: string | number) {
     // 获取该学生的问卷答案和所有题目
     const [answerRes, questionRes] = await Promise.all([
       supabase.from('survey_answers').select('question_id, answer_value').eq('user_id', String(targetId)),
@@ -192,7 +231,7 @@ export const matchApi = {
       EXTENSION: { title: '扩展信息', desc: '学习规划与宿舍生活偏好' },
     }
 
-    const dimOrder = ['LIFESTYLE', 'SLEEP', 'HYGIENE', 'STUDY', 'HOBBY', 'SOCIAL', 'SPENDING', 'PERSONALITY', 'ATTENTION', 'PSYCHOLOGY', 'EXTENSION']
+    const dimOrder = ['LIFESTYLE', 'SLEEP', 'HYGIENE', 'STUDY', 'HOBBY', 'SOCIAL', 'SPENDING', 'EXTENSION']
 
     // 解析选项
     function parseOptions(q: any): any[] {

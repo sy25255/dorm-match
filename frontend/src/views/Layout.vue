@@ -43,7 +43,8 @@ onMounted(loadUnread)
 <template>
   <div class="app-root">
     <div class="test-banner">
-      <span>🧪 测试环境 — 非最终交付版本，仅用于功能验证</span>
+      <span>测试环境 - 非最终交付版本，仅用于功能验证</span>
+      <button class="banner-feedback" @click="router.push(`${basePath}/feedback`)">提交反馈</button>
     </div>
     <div class="app-shell">
       <div class="menu-overlay" v-if="menuOpen" @click="closeMenu" />
@@ -67,6 +68,7 @@ onMounted(loadUnread)
         <el-menu-item :index="`${basePath}/pairing`"><el-icon><UserFilled /></el-icon><span>我的配对</span></el-menu-item>
         <el-menu-item :index="`${basePath}/allocation`"><el-icon><OfficeBuilding /></el-icon><span>分配结果</span></el-menu-item>
         <el-menu-item :index="`${basePath}/profile`"><el-icon><Setting /></el-icon><span>个人信息</span></el-menu-item>
+        <el-menu-item :index="`${basePath}/feedback`"><el-icon><ChatLineSquare /></el-icon><span>建议反馈</span></el-menu-item>
       </el-menu>
 
       <div class="user-info">
@@ -81,6 +83,10 @@ onMounted(loadUnread)
           <el-icon :size="22"><Expand v-if="!menuOpen" /><Fold v-else /></el-icon>
         </el-button>
         <div style="flex:1" />
+        <el-button class="feedback-entry" size="small" @click="router.push(`${basePath}/feedback`)">
+          <el-icon :size="16"><ChatLineSquare /></el-icon>
+          <span style="margin-left:4px">反馈</span>
+        </el-button>
         <el-button v-if="userStore.role === 'ADMIN' || userStore.role === 'DEVELOPER'" class="admin-entry" size="small" @click="router.push(`${basePath}/admin`)">
           <el-icon :size="16"><Setting /></el-icon>
           <span style="margin-left:4px">后台管理</span>
@@ -110,14 +116,27 @@ onMounted(loadUnread)
 .test-banner {
   background: linear-gradient(90deg, #ffc069, #fa8c16);
   color: #fff;
-  text-align: center;
-  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 5px 12px;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 1px;
   z-index: 1000;
   flex-shrink: 0;
 }
+.banner-feedback {
+  border: 1px solid rgba(255,255,255,0.75);
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.banner-feedback:hover { background: rgba(255,255,255,0.25); }
 
 .menu-overlay {
   display: none;
@@ -201,7 +220,9 @@ onMounted(loadUnread)
   flex-shrink: 0;
 }
 .hamburger { display: flex; }
+.feedback-entry,
 .admin-entry { border: 1px solid #d9d9d9; color: #666; margin-right: 8px; }
+.feedback-entry:hover,
 .admin-entry:hover { border-color: #667eea; color: #667eea; }
 .dev-badge { margin-right: 8px; }
 .notification-bell { margin-right: 8px; }
@@ -222,5 +243,6 @@ onMounted(loadUnread)
 
   .menu-overlay { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 199; }
   .main-content { padding: 12px; }
+  .test-banner { justify-content: space-between; letter-spacing: 0; }
 }
 </style>
