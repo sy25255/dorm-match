@@ -89,7 +89,7 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   if (to.meta.dev) {
-    if (!userStore.token && !userStore.userId) { next('/'); return }
+    if (!userStore.token) { next('/'); return }
     if (userStore.role !== 'DEVELOPER') {
       next(storedCode ? `/${storedCode}/` : '/')
       return
@@ -136,7 +136,7 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   if (to.meta.admin) {
-    if (!userStore.token && !userStore.userId) {
+    if (!userStore.token) {
       next('/')
       return
     }

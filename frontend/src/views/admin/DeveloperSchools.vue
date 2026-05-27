@@ -83,7 +83,7 @@ onMounted(loadSchools)
         <el-table-column prop="description" label="简介" min-width="260" show-overflow-tooltip />
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusMap[row.status]?.type || 'info'">{{ statusMap[row.status]?.label || '未知' }}</el-tag>
+            <el-tag :type="(statusMap[row.status]?.type || 'info') as any">{{ statusMap[row.status]?.label || '未知' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">

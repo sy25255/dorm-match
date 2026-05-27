@@ -2,6 +2,150 @@ import { supabase, getCurrentSchool } from '@/lib/supabase'
 
 const wrap = (data: any) => ({ data: { code: 200, message: 'ok', data } })
 
+type StudentStatus = 'NOT_STARTED' | 'DRAFT' | 'COMPLETED' | number | null | undefined
+type MatchStatus = 'WAITING' | 'INVITING' | 'PAIRED' | 'ALLOCATED' | number | null | undefined
+
+function surveyStatusToNumber(status: StudentStatus) {
+  if (typeof status === 'number') return status
+  if (status === 'COMPLETED') return 2
+  if (status === 'DRAFT') return 1
+  return 0
+}
+
+function matchStatusToNumber(status: MatchStatus) {
+  if (typeof status === 'number') return status
+  if (status === 'ALLOCATED') return 3
+  if (status === 'PAIRED') return 2
+  if (status === 'INVITING') return 1
+  return 0
+}
+
+function normalizeStudent(s: any) {
+  const isValid = s.is_valid ?? s.isValid ?? s.status !== 0
+  const surveyStatus = surveyStatusToNumber(s.survey_status ?? s.surveyStatus)
+  const matchStatus = matchStatusToNumber(s.match_status ?? s.matchStatus)
+  return {
+    ...s,
+    id: s.id,
+    name: s.name || s.real_name || '',
+    gender: s.gender ?? 1,
+    collegeName: s.college_name || s.collegeName || '',
+    majorName: s.major_name || s.majorName || '',
+    className: s.class_name || s.className || '',
+    studentNo: s.student_no || s.studentNo || '',
+    surveyStatus,
+    matchStatus,
+    status: isValid ? 1 : 0,
+    isValid,
+    email: s.email || '',
+    phone: s.phone || '',
+  }
+}
+
+function normalizeBuilding(row: any) {
+  return {
+    ...row,
+    id: row.id,
+    name: row.name || row.building_name || '',
+    code: row.code || row.building_code || '',
+    gender: row.gender ?? 1,
+    floors: row.floors ?? 1,
+    status: row.status ?? 1,
+  }
+}
+
+function normalizeRoom(row: any) {
+  const building = Array.isArray(row.dormitory_buildings) ? row.dormitory_buildings[0] : row.dormitory_buildings
+  return {
+    ...row,
+    id: row.id,
+    buildingId: row.building_id ?? row.buildingId,
+    buildingName: building?.name || row.building_name || row.buildingName || '',
+    buildingCode: building?.code || row.building_code || row.buildingCode || '',
+    roomNumber: row.room_number || row.roomNumber || '',
+    floor: row.floor ?? 1,
+    capacity: row.capacity ?? 4,
+    occupied: row.occupied ?? 0,
+    roomType: row.room_type || row.roomType || 'NORMAL',
+    status: row.status || 'AVAILABLE',
+  }
+}
+
+function normalizeAllocation(row: any) {
+  const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles
+  const room = Array.isArray(row.dormitory_rooms) ? row.dormitory_rooms[0] : row.dormitory_rooms
+  const building = Array.isArray(room?.dormitory_buildings) ? room.dormitory_buildings[0] : room?.dormitory_buildings
+  return {
+    ...row,
+    id: row.id,
+    studentId: row.user_id || row.student_id || row.studentId || '',
+    studentName: profile?.name || row.student_name || row.studentName || '',
+    studentNo: profile?.student_no || row.student_no || row.studentNo || '',
+    collegeName: profile?.college_name || row.college_name || row.collegeName || '',
+    majorName: profile?.major_name || row.major_name || row.majorName || '',
+    roomId: row.room_id || row.roomId,
+    roomNumber: row.room_number || room?.room_number || row.roomNumber || '',
+    buildingName: building?.name || room?.building_name || row.building_name || row.buildingName || '',
+    bedNo: row.bed_no || row.bedNo || 0,
+    allocationType: row.allocation_type || row.allocationType || 'ALGORITHM',
+    batchCode: row.batch_code || row.batchCode || '',
+    status: row.status || 'PENDING',
+    confirmedByStudent: row.confirmed_by_student || row.confirmedByStudent || 0,
+  }
+}
+
+function buildingPayload(data: any) {
+  return {
+    name: data.name || data.buildingName || '',
+    code: data.code || data.buildingCode || '',
+    gender: data.gender ?? 1,
+    floors: data.floors ?? 1,
+    status: data.status ?? 1,
+  }
+}
+
+function roomPayload(data: any) {
+  return {
+    building_id: data.buildingId ?? data.building_id,
+    room_number: data.roomNumber || data.room_number || '',
+    floor: data.floor ?? 1,
+    capacity: data.capacity ?? 4,
+    occupied: data.occupied ?? 0,
+    room_type: data.roomType || data.room_type || 'NORMAL',
+    status: data.status || 'AVAILABLE',
+  }
+}
+
+async function hydrateAllocations(rows: any[]) {
+  const userIds = [...new Set(rows.map(r => r.user_id || r.student_id).filter(Boolean))]
+  const roomIds = [...new Set(rows.map(r => r.room_id).filter(Boolean))]
+
+  const [{ data: profiles }, { data: rooms }] = await Promise.all([
+    userIds.length
+      ? supabase.from('profiles').select('id, name, student_no, gender, college_name, major_name, class_name').in('id', userIds)
+      : Promise.resolve({ data: [] }),
+    roomIds.length
+      ? supabase.from('dormitory_rooms').select('*').in('id', roomIds)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  const roomRows = rooms || []
+  const buildingIds = [...new Set(roomRows.map((r: any) => r.building_id).filter(Boolean))]
+  const { data: buildings } = buildingIds.length
+    ? await supabase.from('dormitory_buildings').select('id, name, code').in('id', buildingIds)
+    : { data: [] }
+
+  const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]))
+  const buildingMap = new Map((buildings || []).map((b: any) => [b.id, b]))
+  const roomMap = new Map(roomRows.map((r: any) => [r.id, { ...r, dormitory_buildings: buildingMap.get(r.building_id) }]))
+
+  return rows.map(row => normalizeAllocation({
+    ...row,
+    profiles: profileMap.get(row.user_id || row.student_id),
+    dormitory_rooms: roomMap.get(row.room_id),
+  }))
+}
+
 function answerDiff(a: unknown, b: unknown) {
   const av = String(a ?? '')
   const bv = String(b ?? '')
@@ -42,21 +186,7 @@ export const adminApi = {
     const { data, count } = await q.range((page - 1) * size, page * size - 1).order('created_at', { ascending: false })
 
     return wrap({
-      items: (data || []).map(s => ({
-        ...s,
-        id: s.id,
-        name: s.name,
-        gender: s.gender,
-        collegeName: s.college_name,
-        majorName: s.major_name,
-        className: s.class_name,
-        studentNo: s.student_no,
-        surveyStatus: s.survey_status,
-        matchStatus: s.match_status,
-        isValid: s.is_valid,
-        email: s.email || '',
-        phone: '',
-      })),
+      items: (data || []).map(normalizeStudent),
       total: count || 0,
       page,
       size,
@@ -67,7 +197,7 @@ export const adminApi = {
     const sc = getCurrentSchool()
     for (const s of list) {
       await supabase.from('profiles').upsert({
-        id: s.id,
+        id: s.id || crypto.randomUUID(),
         school_code: sc,
         student_no: s.studentNo,
         name: s.name,
@@ -109,8 +239,8 @@ export const adminApi = {
     return wrap(null)
   },
 
-  async updateStudent(id: number, data: any) {
-    await supabase.from('profiles').update({
+  async updateStudent(id: string | number, data: any) {
+    const payload: any = {
       student_no: data.studentNo,
       name: data.name,
       gender: data.gender,
@@ -118,14 +248,20 @@ export const adminApi = {
       major_name: data.majorName || '',
       class_name: data.className || '',
       hometown: data.hometown || '',
-    }).eq('id', id)
+    }
+    if (data.status !== undefined) payload.is_valid = data.status === 1
+    await supabase.from('profiles').update(payload).eq('id', String(id))
     return wrap(null)
   },
 
   async getInviteCodes() {
     const sc = getCurrentSchool()
     const { data } = await supabase.from('invite_codes').select('*').eq('school_code', sc).order('created_at', { ascending: false })
-    return wrap(data || [])
+    return wrap((data || []).map((row: any) => ({
+      ...row,
+      isUsed: row.is_used ?? row.isUsed ?? false,
+      createdAt: row.created_at || row.createdAt || '',
+    })))
   },
 
   async generateInviteCode() {
@@ -143,17 +279,17 @@ export const adminApi = {
   async getBuildings() {
     const sc = getCurrentSchool()
     const { data } = await supabase.from('dormitory_buildings').select('*').eq('school_code', sc).order('created_at')
-    return wrap(data || [])
+    return wrap((data || []).map(normalizeBuilding))
   },
 
   async createBuilding(data: any) {
     const sc = getCurrentSchool()
-    await supabase.from('dormitory_buildings').insert({ ...data, school_code: sc })
+    await supabase.from('dormitory_buildings').insert({ ...buildingPayload(data), school_code: sc })
     return wrap(null)
   },
 
   async updateBuilding(id: number, data: any) {
-    await supabase.from('dormitory_buildings').update(data).eq('id', id)
+    await supabase.from('dormitory_buildings').update(buildingPayload(data)).eq('id', id)
     return wrap(null)
   },
 
@@ -164,20 +300,20 @@ export const adminApi = {
 
   async getRooms(buildingId?: number) {
     const sc = getCurrentSchool()
-    let q = supabase.from('dormitory_rooms').select('*, dormitory_buildings(name, code)').eq('dormitory_rooms.school_code', sc)
+    let q = supabase.from('dormitory_rooms').select('*').eq('school_code', sc)
     if (buildingId) q = q.eq('building_id', buildingId)
     const { data } = await q.order('floor').order('room_number')
-    return wrap(data || [])
+    return wrap((data || []).map(normalizeRoom))
   },
 
   async createRoom(data: any) {
     const sc = getCurrentSchool()
-    await supabase.from('dormitory_rooms').insert({ ...data, school_code: sc })
+    await supabase.from('dormitory_rooms').insert({ ...roomPayload(data), school_code: sc })
     return wrap(null)
   },
 
   async updateRoom(id: number, data: any) {
-    await supabase.from('dormitory_rooms').update(data).eq('id', id)
+    await supabase.from('dormitory_rooms').update(roomPayload(data)).eq('id', id)
     return wrap(null)
   },
 
@@ -295,38 +431,19 @@ export const adminApi = {
 
   async getResults(params?: { allocationType?: string }) {
     const sc = getCurrentSchool()
-    let q = supabase.from('allocations').select('*, profiles(name, student_no, gender, college_name, major_name, class_name)').eq('school_code', sc)
+    let q = supabase.from('allocations').select('*').eq('school_code', sc)
     if (params?.allocationType) q = q.eq('allocation_type', params.allocationType)
     const { data } = await q.order('room_number').order('bed_no')
-    return wrap((data || []).map((a: any) => {
-      const p = a.profiles
-      return {
-        ...a,
-        studentName: p?.name || a.student_name || '',
-        studentNo: p?.student_no || a.student_no || '',
-        collegeName: p?.college_name || a.college_name || '',
-        majorName: p?.major_name || a.major_name || '',
-      }
-    }))
+    return wrap(await hydrateAllocations(data || []))
   },
 
   // AllocationManage.vue 兼容别名
   async getAllocationResults(batchCode: string) {
     const sc = getCurrentSchool()
-    let q = supabase.from('allocations').select('*, profiles!inner(name, student_no, gender, college_name, major_name, class_name)').eq('school_code', sc)
+    let q = supabase.from('allocations').select('*').eq('school_code', sc)
     if (batchCode) q = q.eq('batch_code', batchCode)
     const { data } = await q.order('room_number').order('bed_no')
-    return wrap((data || []).map((a: any) => {
-      const p = a.profiles || {}
-      return {
-        ...a,
-        studentName: p?.name || a.user_id || '',
-        roomNumber: a.room_number || '',
-        bedNo: a.bed_no || 0,
-        allocationType: a.allocation_type || 'ALGORITHM',
-        status: a.status || 'PENDING',
-      }
-    }))
+    return wrap(await hydrateAllocations(data || []))
   },
 
   async publishResults(batchCode: string) {
@@ -343,6 +460,7 @@ export const adminApi = {
     const sc = getCurrentSchool()
     const { data: room } = await supabase.from('dormitory_rooms').select('*').eq('id', roomId).single()
 
+    await supabase.from('allocations').delete().eq('user_id', studentId)
     await supabase.from('allocations').insert({
       school_code: sc,
       user_id: studentId,
@@ -353,6 +471,16 @@ export const adminApi = {
     })
     await supabase.from('dormitory_rooms').update({ occupied: (room?.occupied || 0) + 1 }).eq('id', roomId)
     await supabase.from('profiles').update({ match_status: 'ALLOCATED' }).eq('id', studentId)
+    return wrap(null)
+  },
+
+  async clearAllocations(batchCode?: string) {
+    const sc = getCurrentSchool()
+    let q = supabase.from('allocations').delete().eq('school_code', sc)
+    if (batchCode) q = q.eq('batch_code', batchCode)
+    await q
+    await supabase.from('dormitory_rooms').update({ occupied: 0, status: 'AVAILABLE' }).eq('school_code', sc)
+    await supabase.from('profiles').update({ match_status: 'WAITING' }).eq('school_code', sc).eq('role', 'STUDENT')
     return wrap(null)
   },
 
@@ -439,27 +567,58 @@ export const adminApi = {
   async getStatistics() {
     const sc = getCurrentSchool()
 
-    const { count: totalStudents } = await supabase
-      .from('profiles').select('*', { count: 'exact', head: true }).eq('school_code', sc).eq('role', 'STUDENT')
-    const { count: completedSurvey } = await supabase
-      .from('profiles').select('*', { count: 'exact', head: true }).eq('school_code', sc).eq('role', 'STUDENT').eq('survey_status', 'COMPLETED')
+    const { data: students } = await supabase
+      .from('profiles')
+      .select('id, gender, college_name, survey_status, match_status, created_at')
+      .eq('school_code', sc)
+      .eq('role', 'STUDENT')
+    const studentRows = students || []
+    const totalStudents = studentRows.length
+    const completedSurvey = studentRows.filter((s: any) => surveyStatusToNumber(s.survey_status) === 2).length
+    const draftingSurvey = studentRows.filter((s: any) => surveyStatusToNumber(s.survey_status) === 1).length
+    const notStartedSurvey = Math.max(0, totalStudents - completedSurvey - draftingSurvey)
+    const paired = studentRows.filter((s: any) => matchStatusToNumber(s.match_status) >= 2).length
+    const maleStudents = studentRows.filter((s: any) => Number(s.gender) === 1).length
+
     const { count: allocatedCount } = await supabase
       .from('allocations').select('*', { count: 'exact', head: true }).eq('school_code', sc)
     const { count: objectionsCount } = await supabase
       .from('allocation_objections').select('*', { count: 'exact', head: true }).eq('school_code', sc)
+    const { count: pendingObjections } = await supabase
+      .from('allocation_objections').select('*', { count: 'exact', head: true }).eq('school_code', sc).eq('status', 'PENDING')
     const { count: totalRoomsCount } = await supabase
       .from('dormitory_rooms').select('*', { count: 'exact', head: true }).eq('school_code', sc)
-    const { count: maleStudents } = await supabase
-      .from('profiles').select('*', { count: 'exact', head: true }).eq('school_code', sc).eq('role', 'STUDENT').eq('gender', 1)
+
+    const collegeCounts = new Map<string, number>()
+    const dailyCounts = new Map<string, number>()
+    for (const s of studentRows) {
+      const college = s.college_name || '未设置学院'
+      collegeCounts.set(college, (collegeCounts.get(college) || 0) + 1)
+      const day = s.created_at ? String(s.created_at).slice(0, 10) : '未知日期'
+      dailyCounts.set(day, (dailyCounts.get(day) || 0) + 1)
+    }
 
     return wrap({
-      totalStudents: totalStudents || 0,
-      completedSurvey: completedSurvey || 0,
-      maleStudents: maleStudents || 0,
-      femaleStudents: (totalStudents || 0) - (maleStudents || 0),
+      totalStudents,
+      completedSurvey,
+      paired,
+      pendingObjections: pendingObjections || 0,
+      maleStudents,
+      femaleStudents: totalStudents - maleStudents,
       allocated: allocatedCount || 0,
       objections: objectionsCount || 0,
       totalRooms: totalRoomsCount || 0,
+      surveyStatus: {
+        completed: completedSurvey,
+        drafting: draftingSurvey,
+        notStarted: notStartedSurvey,
+      },
+      collegeDistribution: [...collegeCounts.entries()].map(([name, count]) => ({ name, count })),
+      dailyRegistrations: [...dailyCounts.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-14)
+        .map(([date, count]) => ({ date, count })),
+      dimensionAverages: {},
     })
   },
 

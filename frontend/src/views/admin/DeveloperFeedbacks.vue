@@ -94,7 +94,7 @@ onMounted(loadFeedbacks)
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusMap[row.status]?.type || 'info'">{{ statusMap[row.status]?.label || row.status }}</el-tag>
+            <el-tag :type="(statusMap[row.status]?.type || 'info') as any">{{ statusMap[row.status]?.label || row.status }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="提交时间" width="170" />

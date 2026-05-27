@@ -26,11 +26,11 @@ async function checkSurveyCompletion() {
 const allocation = ref<any>(null)
 const loading = ref(false)
 
-const chatMessages = ref<{ from: number; fromName: string; text: string; time: string }[]>([])
+const chatMessages = ref<{ from: string; fromName: string; text: string; time: string }[]>([])
 const newMessage = ref('')
 const chatRef = ref<HTMLElement>()
 
-const currentUserId = ref(0)
+const currentUserId = ref('')
 const currentUserName = ref('')
 
 function getStorageKey(roomNumber: string) {
@@ -43,7 +43,7 @@ function loadChatMessages(roomNumber: string) {
     try { chatMessages.value = JSON.parse(raw) } catch { chatMessages.value = [] }
   } else {
     chatMessages.value = [
-      { from: 0, fromName: '系统', text: '宿舍群聊已创建，大家可以在这里交流，互加微信～', time: new Date().toISOString() },
+      { from: 'system', fromName: '系统', text: '宿舍群聊已创建，大家可以在这里交流，互加微信～', time: new Date().toISOString() },
     ]
   }
 }
@@ -198,7 +198,7 @@ async function submitObjection() {
                   :key="i"
                   :class="['chat-msg', msg.from === currentUserId ? 'chat-msg-mine' : 'chat-msg-other']"
                 >
-                  <template v-if="msg.from === 0">
+                  <template v-if="msg.from === 'system'">
                     <div class="chat-msg-system">{{ msg.text }}</div>
                   </template>
                   <template v-else>

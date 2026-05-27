@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { schoolApi } from '@/api/school'
-import { mockColleges, mockMajors, mockClasses } from '@/mock/data'
 import { ElMessage } from 'element-plus'
 
 const config = ref<any>({})
-const colleges = ref<any[]>(mockColleges)
+const colleges = ref<any[]>([])
 const majors = ref<any[]>([])
 const classes = ref<any[]>([])
 
@@ -30,18 +29,35 @@ const collegeMap = computed(() => {
 })
 
 function getMajorName(id: number) {
-  for (const list of Object.values(mockMajors)) {
-    const found = list.find(m => m.id === id)
-    if (found) return found.name
-  }
-  return ''
+  return majors.value.find(m => m.id === id)?.name || ''
 }
 
 async function loadConfig() {
   try { const res = await schoolApi.getConfig(); config.value = res.data.data || {} } catch {}
 }
 
-async function saveConfig() { await schoolApi.updateConfig(config.value); ElMessage.success('学校配置已保存') }
+async function loadColleges() {
+  const res = await schoolApi.getColleges()
+  colleges.value = res.data.data || []
+  if (!selectedCollegeId.value && colleges.value.length > 0) {
+    await selectCollege(colleges.value[0])
+  }
+}
+
+async function loadMajors(collegeId: number) {
+  const res = await schoolApi.getMajors(collegeId)
+  majors.value = (res.data.data || []).map((m: any) => ({ ...m, collegeName: collegeMap.value[collegeId] }))
+}
+
+async function loadClasses(majorId: number) {
+  const res = await schoolApi.getClasses(majorId)
+  classes.value = res.data.data || []
+}
+
+async function saveConfig() {
+  await schoolApi.updateConfig(config.value)
+  ElMessage.success('学校配置已保存')
+}
 
 function openCollegeEdit(row?: any) {
   if (row) { isEditCollege.value = true; collegeForm.value = { ...row } }
@@ -55,6 +71,8 @@ async function saveCollege() {
     await schoolApi.createCollege(collegeForm.value)
   }
   collegeDialog.value = false
+  await loadColleges()
+  ElMessage.success('学院信息已保存')
 }
 
 function openMajorEdit(row?: any) {
@@ -70,9 +88,9 @@ async function saveMajor() {
   }
   majorDialog.value = false
   if (selectedCollegeId.value) {
-    const m = mockMajors[selectedCollegeId.value] || []
-    majors.value = m.map((maj: any) => ({ ...maj, collegeName: collegeMap.value[selectedCollegeId.value!] }))
+    await loadMajors(selectedCollegeId.value)
   }
+  ElMessage.success('专业信息已保存')
 }
 
 function openClassEdit(row?: any) {
@@ -87,25 +105,25 @@ async function saveClass() {
     await schoolApi.createClass(classForm.value)
   }
   classDialog.value = false
-  if (selectedMajorId.value) classes.value = mockClasses.filter((c: any) => c.majorId === selectedMajorId.value)
+  if (selectedMajorId.value) await loadClasses(selectedMajorId.value)
+  ElMessage.success('班级信息已保存')
 }
 
-function selectCollege(row: any) {
+async function selectCollege(row: any) {
   selectedCollegeId.value = row.id
   selectedMajorId.value = null
-  const m = mockMajors[row.id] || []
-  majors.value = m.map((maj: any) => ({ ...maj, collegeName: row.name }))
   classes.value = []
+  await loadMajors(row.id)
 }
 
-function selectMajor(row: any) {
+async function selectMajor(row: any) {
   selectedMajorId.value = row.id
-  classes.value = mockClasses.filter((c: any) => c.majorId === row.id)
+  await loadClasses(row.id)
 }
 
-onMounted(() => {
-  loadConfig()
-  if (colleges.value.length > 0) selectCollege(colleges.value[0])
+onMounted(async () => {
+  await loadConfig()
+  await loadColleges()
 })
 </script>
 

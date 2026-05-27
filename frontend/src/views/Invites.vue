@@ -64,8 +64,8 @@ function statusText(s: number): string {
   return ['待处理', '已接受', '已拒绝', '已过期', '已撤回'][s] || '未知'
 }
 
-function statusType(s: number): 'warning' | 'success' | 'danger' | 'info' | '' {
-  return ['warning', 'success', 'danger', 'info', 'info'][s] as any || 'info'
+function statusType(s: number): 'warning' | 'success' | 'danger' | 'info' {
+  return (['warning', 'success', 'danger', 'info', 'info'][s] || 'info') as 'warning' | 'success' | 'danger' | 'info'
 }
 
 async function accept(id: number) {

@@ -105,7 +105,7 @@ export const surveyApi = {
     const questions = questionRes.data || []
     if (answers.length === 0) return wrap(null)
 
-    const answerMap = new Map(answers.map((a: any) => [a.question_id, a.answer_value]))
+    const answerMap = new Map<number, string>((answers as any[]).map((a: any) => [a.question_id, a.answer_value]))
 
     const dimMeta: Record<string, { title: string; desc: string }> = {
       LIFESTYLE: { title: '基础信息采集', desc: '生活习惯与健康信息' },
@@ -160,7 +160,7 @@ export const surveyApi = {
           id: q.id,
           questionText: q.question_text,
           answerValue: answerMap.get(q.id),
-          answerText: getAnswerText(q, answerMap.get(q.id)),
+          answerText: getAnswerText(q, answerMap.get(q.id) || ''),
         })),
       })
     }

@@ -44,7 +44,7 @@ function createUnavailableSupabase() {
 }
 
 // 创建 Supabase 客户端（含超时配置，防止网络不通时长时间挂起）
-let supabase: ReturnType<typeof createClient>
+let supabase: any
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('[Supabase Init Warning] Missing environment variables. App will run in limited fallback mode.')
   supabase = createUnavailableSupabase()

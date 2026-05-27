@@ -79,7 +79,7 @@ onMounted(loadResults)
       <el-table-column prop="bedNo" label="床位" width="70" />
       <el-table-column label="分配方式" width="110">
         <template #default="{ row }">
-          <el-tag :type="typeMap[row.allocationType]?.type || 'info'" size="small">{{ typeMap[row.allocationType]?.label || row.allocationType }}</el-tag>
+          <el-tag :type="(typeMap[row.allocationType]?.type || 'info') as any" size="small">{{ typeMap[row.allocationType]?.label || row.allocationType }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="状态" width="100">

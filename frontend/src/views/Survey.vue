@@ -517,7 +517,7 @@ async function handleSubmit() {
             <template v-else-if="q.questionType === 'MULTI_CHOICE'">
               <el-checkbox-group
                 :model-value="(answers[q.id] || '').split(',').filter(Boolean)"
-                @update:model-value="(vals: string[]) => { answers[q.id] = vals.join(',') }"
+                @update:model-value="(vals: any) => { answers[q.id] = (Array.isArray(vals) ? vals : [vals]).join(',') }"
               >
                 <el-checkbox v-for="opt in getOption(q)" :key="opt.value" :value="opt.value">
                   {{ opt.text }}

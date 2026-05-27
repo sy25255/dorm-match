@@ -60,6 +60,12 @@ async function sendInvite(targetId: string | number) {
     ElMessage.success('邀请已发送')
   } catch {}
 }
+
+function quickSearch(nextCollegeId: number, nextMajorId: number) {
+  collegeId.value = nextCollegeId
+  majorId.value = nextMajorId
+  window.setTimeout(() => handleSearch(), 100)
+}
 </script>
 
 <template>
@@ -89,9 +95,9 @@ async function sendInvite(targetId: string | number) {
         </el-input>
       </div>
       <div class="quick-btns">
-        <el-button size="small" text @click="collegeId=1;majorId=1;setTimeout(() => handleSearch(), 100)">快速查找：计算机科学与技术</el-button>
-        <el-button size="small" text @click="collegeId=2;majorId=4;setTimeout(() => handleSearch(), 100)">快速查找：通信工程</el-button>
-        <el-button size="small" text @click="collegeId=4;majorId=8;setTimeout(() => handleSearch(), 100)">快速查找：英语</el-button>
+        <el-button size="small" text @click="quickSearch(1, 1)">快速查找：计算机科学与技术</el-button>
+        <el-button size="small" text @click="quickSearch(2, 4)">快速查找：通信工程</el-button>
+        <el-button size="small" text @click="quickSearch(4, 8)">快速查找：英语</el-button>
       </div>
     </div>
 

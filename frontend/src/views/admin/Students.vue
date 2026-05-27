@@ -25,7 +25,7 @@ const editDialogVisible = ref(false)
 const isEdit = ref(false)
 
 const form = ref({
-  id: null as number | null,
+  id: null as string | number | null,
   studentNo: '', name: '', gender: 1,
   collegeId: null as number | null, collegeName: '',
   majorId: null as number | null, majorName: '',
@@ -52,7 +52,13 @@ watch(filterMajorId, async (mid) => {
 
 watch(() => form.value.collegeId, async (cid) => {
   form.value.majorId = null; form.value.classId = null
-  if (cid) { form.value.collegeName = allColleges.value.find(c => c.id === cid)?.name || '' }
+  availableClasses.value = []
+  if (cid) {
+    form.value.collegeName = allColleges.value.find(c => c.id === cid)?.name || ''
+    try { const res = await schoolApi.getMajors(cid); availableMajors.value = res.data.data || [] } catch { ElMessage.error('加载专业列表失败') }
+  } else {
+    availableMajors.value = []
+  }
 })
 
 watch(() => form.value.majorId, async (mid) => {
@@ -62,12 +68,19 @@ watch(() => form.value.majorId, async (mid) => {
       const list = res.data.data || []
       form.value.majorName = list.find((m: any) => m.id === mid)?.name || ''
     } catch { ElMessage.error('加载院系列表失败') }
+    try { const res = await schoolApi.getClasses(mid); availableClasses.value = res.data.data || [] } catch { ElMessage.error('加载班级列表失败') }
+  } else {
+    availableClasses.value = []
   }
+})
+
+watch(() => form.value.classId, (cid) => {
+  if (cid) form.value.className = availableClasses.value.find(c => c.id === cid)?.name || ''
 })
 
 const filteredStudents = computed(() => {
   return (students.value || []).filter(s => {
-    if (searchKeyword.value && !s.name.includes(searchKeyword.value) && !s.studentNo.includes(searchKeyword.value)) return false
+    if (searchKeyword.value && !String(s.name || '').includes(searchKeyword.value) && !String(s.studentNo || '').includes(searchKeyword.value)) return false
     if (filterCollegeId.value && s.collegeName !== allColleges.value.find(c => c.id === filterCollegeId.value)?.name) return false
     if (filterClassId.value && s.className !== availableClasses.value.find(c => c.id === filterClassId.value)?.name) return false
     if (filterStatus.value !== null && filterStatus.value !== undefined && s.status !== filterStatus.value) return false
@@ -87,7 +100,13 @@ async function loadColleges() {
 
 async function loadStudents() {
   loading.value = true
-  try { const res = await adminApi.getStudents(); students.value = res.data.data || [] } catch { ElMessage.error('加载学生列表失败') } finally { loading.value = false }
+  try {
+    const res = await adminApi.getStudents({ size: 1000 })
+    const payload = res.data.data || {}
+    students.value = Array.isArray(payload) ? payload : payload.items || []
+  } catch {
+    ElMessage.error('加载学生列表失败')
+  } finally { loading.value = false }
 }
 
 async function toggleStatus(row: any) {
@@ -129,7 +148,13 @@ async function loadInviteCodes() {
   const res = await adminApi.getInviteCodes(); inviteCodes.value = res.data.data || []; inviteCodeDialog.value = true
 }
 async function generateCode() {
-  const res = await adminApi.generateInviteCode(); inviteCodes.value.unshift({ code: res.data.data.code, isUsed: false, createdAt: new Date().toISOString() })
+  const res = await adminApi.generateInviteCode()
+  const row = res.data.data || {}
+  inviteCodes.value.unshift({
+    code: row.code,
+    isUsed: row.is_used ?? row.isUsed ?? false,
+    createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+  })
 }
 
 onMounted(() => { loadStudents(); loadColleges() })

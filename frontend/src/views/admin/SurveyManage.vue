@@ -2,7 +2,6 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { adminApi } from '@/api/admin'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { SurveyQuestion } from '@/api/survey'
 
 const questions = ref<any[]>([])
 const loading = ref(false)

@@ -205,7 +205,7 @@ onMounted(() => {
               <div class="submitter-cell">
                 <el-tag
                   size="small"
-                  :type="row.submitterRole === 'ADMIN' ? '' : row.submitterRole === 'DEVELOPER' ? 'warning' : 'info'"
+                  :type="(row.submitterRole === 'ADMIN' ? 'primary' : row.submitterRole === 'DEVELOPER' ? 'warning' : 'info') as any"
                   effect="plain"
                 >
                   {{ row.submitterRole === 'STUDENT' ? '学生' : row.submitterRole === 'ADMIN' ? '管理员' : '开发者' }}
@@ -216,7 +216,7 @@ onMounted(() => {
           </el-table-column>
           <el-table-column label="反馈对象" width="110">
             <template #default="{ row }">
-              <el-tag :type="row.targetRole === 'ADMIN' ? 'warning' : ''" size="small" effect="dark">
+              <el-tag :type="(row.targetRole === 'ADMIN' ? 'warning' : 'primary') as any" size="small" effect="dark">
                 {{ targetMap[row.targetRole] || row.targetRole }}
               </el-tag>
             </template>
@@ -240,7 +240,7 @@ onMounted(() => {
           </el-table-column>
           <el-table-column label="状态" width="90">
             <template #default="{ row }">
-              <el-tag :type="statusMap[row.status]?.type || 'info'" size="small">
+              <el-tag :type="(statusMap[row.status]?.type || 'info') as any" size="small">
                 {{ statusMap[row.status]?.label || row.status }}
               </el-tag>
             </template>
@@ -285,7 +285,7 @@ onMounted(() => {
           <el-table-column prop="reason" label="申诉理由" min-width="200" show-overflow-tooltip />
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
-              <el-tag :type="statusMap[row.status]?.type || 'info'">
+              <el-tag :type="(statusMap[row.status]?.type || 'info') as any">
                 {{ statusMap[row.status]?.label || row.status }}
               </el-tag>
             </template>
@@ -363,7 +363,7 @@ onMounted(() => {
           <el-descriptions-item label="申诉理由">{{ currentObjection.reason }}</el-descriptions-item>
           <el-descriptions-item label="提交时间">{{ currentObjection.createdAt }}</el-descriptions-item>
           <el-descriptions-item label="当前状态">
-            <el-tag :type="statusMap[currentObjection.status]?.type">
+            <el-tag :type="(statusMap[currentObjection.status]?.type || 'info') as any">
               {{ statusMap[currentObjection.status]?.label }}
             </el-tag>
           </el-descriptions-item>

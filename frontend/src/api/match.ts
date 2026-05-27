@@ -103,12 +103,12 @@ export const matchApi = {
 
     if (!myAnswers || myAnswers.length === 0) return wrap([])
 
-    const myMap = new Map((myAnswers as any[]).map((a: any) => [a.question_id, a.answer_value]))
+    const myMap = new Map<number, any>((myAnswers as any[]).map((a: any) => [a.question_id, a.answer_value]))
     const { data: questions } = await supabase
       .from('survey_questions')
       .select('id, dimension')
       .eq('status', 1)
-    const questionDimensions = new Map((questions || []).map((q: any) => [q.id, q.dimension]))
+    const questionDimensions = new Map<number, string>((questions || []).map((q: any) => [q.id, q.dimension]))
 
     const { data: others } = await supabase
       .from('profiles')
@@ -128,7 +128,7 @@ export const matchApi = {
 
       if (!otherAnswers || otherAnswers.length === 0) continue
 
-      const otherMap = new Map((otherAnswers as any[]).map((a: any) => [a.question_id, a.answer_value]))
+      const otherMap = new Map<number, any>((otherAnswers as any[]).map((a: any) => [a.question_id, a.answer_value]))
       const { score, dimensionScores } = scoreAnswerMaps(myMap, otherMap, questionDimensions)
       results.push({
         ...toStudentCard(other, Math.max(score, 30)),
@@ -191,9 +191,9 @@ export const matchApi = {
       .select('id, dimension')
       .eq('status', 1)
 
-    const myMap = new Map((myAnswers || []).map((a: any) => [a.question_id, a.answer_value]))
-    const otherMap = new Map((otherAnswers || []).map((a: any) => [a.question_id, a.answer_value]))
-    const questionDimensions = new Map((questions || []).map((q: any) => [q.id, q.dimension]))
+    const myMap = new Map<number, any>((myAnswers || []).map((a: any) => [a.question_id, a.answer_value]))
+    const otherMap = new Map<number, any>((otherAnswers || []).map((a: any) => [a.question_id, a.answer_value]))
+    const questionDimensions = new Map<number, string>((questions || []).map((q: any) => [q.id, q.dimension]))
     const { score, dimensionScores } = scoreAnswerMaps(myMap, otherMap, questionDimensions)
 
     return wrap({
@@ -213,8 +213,7 @@ export const matchApi = {
     const questions = questionRes.data || []
     if (answers.length === 0) return wrap(null)
 
-    const answerMap = new Map(answers.map((a: any) => [a.question_id, a.answer_value]))
-    const questionMap = new Map(questions.map((q: any) => [q.id, q]))
+    const answerMap = new Map<number, string>((answers as any[]).map((a: any) => [a.question_id, a.answer_value]))
 
     // 维度元信息
     const dimMeta: Record<string, { title: string; desc: string }> = {
@@ -280,7 +279,7 @@ export const matchApi = {
           id: q.id,
           questionText: q.question_text,
           answerValue: answerMap.get(q.id),
-          answerText: getAnswerText(q, answerMap.get(q.id)),
+          answerText: getAnswerText(q, answerMap.get(q.id) || ''),
         })),
       })
     }

@@ -180,7 +180,7 @@ export const inviteApi = {
       .select('id, name, avatar_url, college_name, major_name')
       .in('id', userIds)
 
-    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]))
+    const profileMap = new Map<string, any>((profiles || []).map((p: any) => [p.id, p]))
     return wrap((allMembers as any[]).map((m: any) => ({
       studentId: m.user_id,
       name: profileMap.get(m.user_id)?.name || '',
