@@ -47,3 +47,13 @@ Move compatibility calculation out of `frontend/src/api/match.ts` before enablin
 2. Supabase RPC or Edge Function calculates match scores using database-side access.
 3. Frontend reads only match summaries and allowed public profile fields.
 4. Detailed answer display hides sensitive dimensions and never exposes raw private answers directly.
+
+## RPC Migration Added
+
+`supabase/migrations/20260527_matching_rpc.sql` adds:
+
+- `get_match_recommendations(p_limit)` for server-side recommendation scoring.
+- `get_match_detail(p_target_id)` for one target's match score and dimension scores.
+- `get_public_student_survey(p_target_id)` for limited, non-sensitive public survey display.
+
+The frontend now tries these RPCs first. Until this SQL is applied in Supabase, recommendations keep using the legacy client fallback so public testing can continue. Production RLS should be tightened only after the RPCs are installed and verified.

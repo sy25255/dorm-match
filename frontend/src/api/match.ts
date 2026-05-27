@@ -2,6 +2,45 @@ import { supabase, getCurrentSchool, getCurrentUserId } from '@/lib/supabase'
 
 const wrap = (data: any) => ({ data: { code: 200, message: 'ok', data } })
 
+function isMissingRpc(error: any) {
+  if (!error) return false
+  const code = String(error.code || '')
+  const text = `${error.message || ''} ${error.details || ''} ${error.hint || ''}`
+  return (
+    code === 'PGRST202' ||
+    text.includes('Could not find the function') ||
+    text.includes('does not exist') ||
+    text.includes('Supabase unavailable')
+  )
+}
+
+function mapRpcStudent(row: any) {
+  const matchScore = Number(row.match_score ?? row.matchScore ?? row.total_score ?? row.totalScore ?? 0)
+  const id = row.student_id || row.studentId || row.id
+  return {
+    id,
+    studentId: id,
+    targetId: id,
+    name: row.name || '',
+    gender: row.gender,
+    collegeName: row.college_name || row.collegeName || '',
+    majorName: row.major_name || row.majorName || '',
+    className: row.class_name || row.className || '',
+    hometown: row.hometown || '',
+    bio: row.bio || '',
+    avatarUrl: row.avatar_url || row.avatarUrl || '',
+    smoking: row.smoking || '2',
+    snoring: row.snoring || '1',
+    leaderScore: row.leader_score || row.leaderScore || 0,
+    matchStatus: row.match_status ?? row.matchStatus,
+    studentNo: row.student_no || row.studentNo || '',
+    matchScore,
+    totalScore: Number(row.total_score ?? row.totalScore ?? matchScore),
+    commonTags: row.common_tags || row.commonTags || [],
+    dimensionScores: row.dimension_scores || row.dimensionScores || {},
+  }
+}
+
 function answerDiff(a: unknown, b: unknown) {
   const av = String(a ?? '')
   const bv = String(b ?? '')
@@ -93,6 +132,14 @@ export const matchApi = {
   },
 
   async getRecommendations() {
+    const rpcResult = await supabase.rpc('get_match_recommendations', { p_limit: 20 })
+    if (!rpcResult.error && Array.isArray(rpcResult.data)) {
+      return wrap(rpcResult.data.map(mapRpcStudent))
+    }
+    if (rpcResult.error && !isMissingRpc(rpcResult.error)) {
+      console.warn('[match] get_match_recommendations failed, falling back to client scoring:', rpcResult.error)
+    }
+
     const uid = getCurrentUserId()
     const sc = getCurrentSchool()
 
@@ -173,6 +220,15 @@ export const matchApi = {
   },
 
   async getDetail(targetId: string | number) {
+    const rpcResult = await supabase.rpc('get_match_detail', { p_target_id: String(targetId) })
+    if (!rpcResult.error) {
+      const row = Array.isArray(rpcResult.data) ? rpcResult.data[0] : rpcResult.data
+      if (row) return wrap(mapRpcStudent(row))
+    }
+    if (rpcResult.error && !isMissingRpc(rpcResult.error)) {
+      console.warn('[match] get_match_detail failed, falling back to client scoring:', rpcResult.error)
+    }
+
     const uid = getCurrentUserId()
 
     const { data: other } = await supabase.from('profiles').select('*').eq('id', String(targetId)).single()
@@ -203,6 +259,16 @@ export const matchApi = {
   },
 
   async getStudentSurvey(targetId: string | number) {
+    const rpcResult = await supabase.rpc('get_public_student_survey', { p_target_id: String(targetId) })
+    if (!rpcResult.error) {
+      return wrap(rpcResult.data)
+    }
+    if (rpcResult.error && !isMissingRpc(rpcResult.error)) {
+      console.warn('[match] get_public_student_survey failed:', rpcResult.error)
+    }
+    const allowLegacySurveyFallback = import.meta.env.DEV || import.meta.env.VITE_ALLOW_LEGACY_SURVEY_FALLBACK === 'true'
+    if (!allowLegacySurveyFallback) return wrap(null)
+
     // 获取该学生的问卷答案和所有题目
     const [answerRes, questionRes] = await Promise.all([
       supabase.from('survey_answers').select('question_id, answer_value').eq('user_id', String(targetId)),

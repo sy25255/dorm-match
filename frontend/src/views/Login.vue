@@ -15,6 +15,7 @@ const guestForm = reactive({ name: '', collegeId: null as number | null, majorId
 const activeTab = ref('register')
 const schoolCode = computed(() => route.params.schoolCode as string)
 const showTestAccounts = ref(false)
+const canShowTestAccounts = import.meta.env.DEV || import.meta.env.VITE_SHOW_TEST_ACCOUNTS === 'true'
 
 // 学院/专业下拉数据
 const colleges = ref<{ id: number; name: string }[]>([])
@@ -370,7 +371,7 @@ async function confirmGuestLogin() {
       </el-dialog>
 
       <!-- 测试账号提示 -->
-      <div class="test-accounts-section">
+      <div v-if="canShowTestAccounts" class="test-accounts-section">
         <el-divider />
         <div class="test-accounts-toggle" @click="showTestAccounts = !showTestAccounts">
           <el-icon :size="14"><InfoFilled /></el-icon>
