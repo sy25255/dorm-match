@@ -2,6 +2,7 @@
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { allocationApi } from '@/api/invite'
+import { chatApi } from '@/api/chat'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ChatDotRound, User } from '@element-plus/icons-vue'
@@ -37,7 +38,14 @@ function getStorageKey(roomNumber: string) {
   return `demo_chat_${roomNumber}`
 }
 
-function loadChatMessages(roomNumber: string) {
+async function loadChatMessages(roomNumber: string) {
+  const remoteMessages = await chatApi.list(roomNumber).catch(() => null)
+  if (remoteMessages) {
+    chatMessages.value = remoteMessages.length > 0 ? remoteMessages : [
+      { from: 'system', fromName: '系统', text: '宿舍群聊已创建，大家可以在这里交流。', time: new Date().toISOString() },
+    ]
+    return
+  }
   const raw = localStorage.getItem(getStorageKey(roomNumber))
   if (raw) {
     try { chatMessages.value = JSON.parse(raw) } catch { chatMessages.value = [] }
@@ -52,16 +60,18 @@ function saveChatMessages(roomNumber: string) {
   localStorage.setItem(getStorageKey(roomNumber), JSON.stringify(chatMessages.value))
 }
 
-function sendMessage() {
+async function sendMessage() {
   const text = newMessage.value.trim()
   if (!text || !allocation.value) return
-  chatMessages.value.push({
+  const message = {
     from: currentUserId.value,
     fromName: currentUserName.value,
     text,
     time: new Date().toISOString(),
-  })
-  saveChatMessages(allocation.value.roomNumber)
+  }
+  const savedRemote = await chatApi.send(allocation.value.roomNumber, text, currentUserName.value).catch(() => false)
+  chatMessages.value.push(message)
+  if (!savedRemote) saveChatMessages(allocation.value.roomNumber)
   newMessage.value = ''
   nextTick(() => {
     if (chatRef.value) chatRef.value.scrollTop = chatRef.value.scrollHeight
@@ -85,7 +95,7 @@ onMounted(async () => {
     const res = await allocationApi.getMyAllocation()
     allocation.value = res.data.data
     if (allocation.value?.roomNumber) {
-      loadChatMessages(allocation.value.roomNumber)
+      await loadChatMessages(allocation.value.roomNumber)
     }
   } catch {
     ElMessage.error('加载分配结果失败')

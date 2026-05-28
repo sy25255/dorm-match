@@ -172,16 +172,14 @@ onMounted(async () => {
     const draft = await surveyApi.getDraft()
     const draftData = draft.data.data || []
     draftData.forEach((item: AnswerItem) => {
-      if (Number(item.questionId) < 0) {
+      if (Number(item.questionId) === -1) {
+        try { selfIntro.value = { ...selfIntro.value, ...JSON.parse(item.answerValue) } } catch {}
+      } else if (Number(item.questionId) < 0) {
         supplements.value[-Number(item.questionId)] = item.answerValue
       } else {
         answers.value[item.questionId] = item.answerValue
       }
     })
-    const savedIntro = JSON.parse(localStorage.getItem('demo_survey_intro') || 'null')
-    if (savedIntro) selfIntro.value = { ...selfIntro.value, ...savedIntro }
-    const savedSupplements = JSON.parse(localStorage.getItem('demo_survey_supplements') || '{}')
-    Object.entries(savedSupplements).forEach(([k, v]) => { supplements.value[Number(k)] = v as string })
 
     buildSections()
 
@@ -294,48 +292,50 @@ function toggleMulti(questionId: number, value: string) {
   answers.value[questionId] = arr.join(',')
 }
 
-function previousSection() {
+async function previousSection() {
   if (currentSectionIndex.value > 0) {
-    saveDraft()
+    await saveDraft()
     currentSectionIndex.value--
     localStorage.setItem('demo_survey_section', String(currentSectionIndex.value))
   }
 }
 
-function nextSection() {
+async function nextSection() {
   if (!allRequiredAnswered.value) {
     const count = requiredInSection.value.filter(q => !answers.value[q.id]).length
     ElMessage.warning(`还有 ${count} 道必答题未作答，请先完成所有标注 *必答 的题目`)
     return
   }
   if (currentSectionIndex.value < sections.value.length - 1) {
-    saveDraft()
+    await saveDraft()
     currentSectionIndex.value++
     localStorage.setItem('demo_survey_section', String(currentSectionIndex.value))
   }
 }
 
-function gotoSection(idx: number) {
-  saveDraft()
+async function gotoSection(idx: number) {
+  await saveDraft()
   currentSectionIndex.value = idx
   localStorage.setItem('demo_survey_section', String(idx))
 }
 
 async function saveDraft() {
   if (isIntroSection.value) {
-    localStorage.setItem('demo_survey_intro', JSON.stringify(selfIntro.value))
+    await surveyApi.saveDraft([{ questionId: -1, answerValue: JSON.stringify(selfIntro.value) }]).catch(() => {})
     return
   }
   const items: AnswerItem[] = currentQuestions.value
     .filter(q => answers.value[q.id])
     .map(q => ({ questionId: q.id, answerValue: answers.value[q.id] }))
-  localStorage.setItem('demo_survey_supplements', JSON.stringify(supplements.value))
+  Object.entries(supplements.value).forEach(([qid, val]) => {
+    if (val) items.push({ questionId: -Number(qid), answerValue: val })
+  })
   if (items.length === 0) return
-  surveyApi.saveDraft(items).catch(() => {})
+  await surveyApi.saveDraft(items).catch(() => {})
 }
 
 function saveIntroDraft() {
-  localStorage.setItem('demo_survey_intro', JSON.stringify(selfIntro.value))
+  surveyApi.saveDraft([{ questionId: -1, answerValue: JSON.stringify(selfIntro.value) }]).catch(() => {})
 }
 
 const scenarioCategoryColors: Record<string, string> = {

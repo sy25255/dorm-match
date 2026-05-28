@@ -18,7 +18,22 @@ export const studentApi = {
   async updateProfile(data: any) {
     const uid = (await supabase.auth.getUser()).data.user?.id
     if (!uid) return wrap(null)
-    await supabase.from('profiles').update(data).eq('id', uid)
+    const payload = {
+      bio: data.bio,
+      hometown: data.hometown,
+      class_name: data.className ?? data.class_name,
+      visibility_settings: data.visibilitySettings ?? data.visibility_settings,
+    }
+    const { error } = await supabase.from('profiles').update(payload).eq('id', uid)
+    if (error) {
+      const text = `${error.message || ''} ${error.details || ''} ${error.hint || ''}`
+      if (!text.includes('visibility_settings')) throw error
+      await supabase.from('profiles').update({
+        bio: payload.bio,
+        hometown: payload.hometown,
+        class_name: payload.class_name,
+      }).eq('id', uid)
+    }
     return wrap(null)
   },
 }
