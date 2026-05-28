@@ -5,6 +5,7 @@ import { inviteApi } from '@/api/invite'
 import { supabase } from '@/lib/supabase'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
+import { getDefaultRoomCapacity } from '@/api/dormitory'
 import SearchView from './Search.vue'
 import InvitesView from './Invites.vue'
 
@@ -28,11 +29,10 @@ const surveyCompleted = ref(false)
 const userStore = useUserStore()
 
 const roomCapacity = ref(8)
-try {
-  const stored = localStorage.getItem('demo_room_capacity')
-  if (stored) roomCapacity.value = Number(stored)
-} catch {}
-console.log('[Matches] Room capacity:', roomCapacity.value)
+
+async function loadRoomCapacity() {
+  roomCapacity.value = await getDefaultRoomCapacity()
+}
 
 const headerTitle = computed(() => {
   switch (activeTab.value) {
@@ -84,7 +84,7 @@ async function sendInvite(targetId: string | number) {
 }
 
 onMounted(async () => {
-  await checkSurveyCompletion()
+  await Promise.all([loadRoomCapacity(), checkSurveyCompletion()])
   if (surveyCompleted.value) loadRecommendations()
 })
 </script>

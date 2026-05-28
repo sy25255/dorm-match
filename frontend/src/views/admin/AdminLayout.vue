@@ -8,10 +8,15 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const activeMenu = computed(() => route.path)
 const schoolCode = computed(() => route.params.schoolCode as string || userStore.schoolCode || '')
 const basePath = computed(() => `/${schoolCode.value}`)
 const adminBase = computed(() => `${basePath.value}/admin`)
+const activeMenu = computed(() => {
+  if (route.path === `${adminBase.value}/feedback` && route.query.tab === 'objection') {
+    return `${adminBase.value}/objections`
+  }
+  return route.path
+})
 
 function handleLogout() {
   userStore.logout()
@@ -75,6 +80,10 @@ function goToDev() {
         <el-menu-item :index="`${adminBase}/feedback`">
           <el-icon><ChatLineSquare /></el-icon>
           <span>反馈与异议</span>
+        </el-menu-item>
+        <el-menu-item :index="`${adminBase}/objections`">
+          <el-icon><Warning /></el-icon>
+          <span>异议处理</span>
         </el-menu-item>
         <el-menu-item :index="`${adminBase}/audit-logs`">
           <el-icon><List /></el-icon>

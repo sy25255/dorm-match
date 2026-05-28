@@ -345,14 +345,12 @@ function saveRoomCapacity() {
   capacityHistory.value.push(`${now}: 设为 ${val} 人/间`)
   localStorage.setItem('demo_capacity_history', JSON.stringify(capacityHistory.value.slice(-10)))
   ElMessage.success(`新增房间默认容量已设为 ${val} 人/间`)
-  console.log('[Admin] Room capacity updated:', val)
 }
 
 // ========== 楼栋管理 ==========
 async function loadBuildings() {
   const res = await adminApi.getBuildings()
   buildings.value = (res.data?.data ?? res.data ?? []) as Building[]
-  console.log('[Admin] Buildings loaded:', buildings.value.length)
 }
 
 async function loadRooms(row: Building) {
@@ -360,7 +358,6 @@ async function loadRooms(row: Building) {
   const res = await adminApi.getRooms(row.id)
   const all = (res.data?.data ?? res.data ?? []) as Room[]
   rooms.value = all.filter((r: Room) => r.buildingId === row.id)
-  console.log('[Admin] Rooms loaded for building', row.id, ':', rooms.value.length)
 }
 
 function openBuildingEdit(row?: Building) {
@@ -501,7 +498,6 @@ async function computeRemaining() {
     }
   }
   remainingStudents.value = result
-  console.log('[Admin] Under-filled rooms:', roomMap.size, 'rooms,', result.length, 'students in under-filled rooms')
 }
 
 // ========== 手动分配 ==========

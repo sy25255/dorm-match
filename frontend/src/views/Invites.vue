@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { inviteApi } from '@/api/invite'
 import { studentApi } from '@/api/student'
 import { ElMessage } from 'element-plus'
+import { getDefaultRoomCapacity } from '@/api/dormitory'
 
 interface InviteItem {
   id: number
@@ -20,17 +21,19 @@ const sent = ref<InviteItem[]>([])
 const quotas = ref({ maxSent: 5, usedSent: 0, remainingSent: 5, maxReceived: 10, usedReceived: 0, remainingReceived: 10 })
 const roomCapacity = ref(8)
 
-try {
-  const stored = localStorage.getItem('demo_room_capacity')
-  if (stored) roomCapacity.value = Number(stored)
-} catch {}
-console.log('[Invites] Room capacity:', roomCapacity.value)
 const activeTab = ref('received')
 const loading = ref(false)
 const studentNames = ref<Record<string, string>>({})
 const processingId = ref<number | null>(null)
 
-onMounted(loadAll)
+onMounted(() => {
+  loadRoomCapacity()
+  loadAll()
+})
+
+async function loadRoomCapacity() {
+  roomCapacity.value = await getDefaultRoomCapacity()
+}
 
 async function loadAll() {
   loading.value = true

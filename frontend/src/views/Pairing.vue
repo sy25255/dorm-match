@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
+import { getDefaultRoomCapacity } from '@/api/dormitory'
 
 interface Member {
   studentId: string | number
@@ -19,13 +20,12 @@ const route = useRoute()
 const userStore = useUserStore()
 
 const roomCapacity = ref(8)
-try {
-  const stored = localStorage.getItem('demo_room_capacity')
-  if (stored) roomCapacity.value = Number(stored)
-} catch {}
-console.log('[Pairing] Room capacity:', roomCapacity.value)
 
 const surveyCompleted = ref(false)
+
+async function loadRoomCapacity() {
+  roomCapacity.value = await getDefaultRoomCapacity()
+}
 
 async function checkSurveyCompletion() {
   const { data: profile } = await supabase
@@ -83,7 +83,7 @@ async function sendGroupInvite(targetId: string | number, targetName: string) {
 const statusLabels: Record<number, string> = { 0: '组建中', 1: '已锁定', 2: '已分配' }
 
 onMounted(async () => {
-  await checkSurveyCompletion()
+  await Promise.all([loadRoomCapacity(), checkSurveyCompletion()])
   if (surveyCompleted.value) loadData()
 })
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { feedbackApi } from '@/api/feedback'
@@ -164,7 +164,11 @@ async function submitObjectionReply() {
 }
 
 // ========== 整体 Tab ==========
-const mainTab = ref<'feedback' | 'objection'>('feedback')
+const mainTab = ref<'feedback' | 'objection'>(route.query.tab === 'objection' ? 'objection' : 'feedback')
+
+watch(() => route.query.tab, (tab) => {
+  mainTab.value = tab === 'objection' ? 'objection' : 'feedback'
+})
 
 onMounted(() => {
   loadFeedbacks()

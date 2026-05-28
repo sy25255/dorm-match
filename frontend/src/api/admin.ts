@@ -94,6 +94,21 @@ function normalizeAllocation(row: any) {
   }
 }
 
+function normalizeObjection(row: any) {
+  const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles
+  return {
+    ...row,
+    allocationId: row.allocation_id ?? row.allocationId,
+    studentId: row.user_id ?? row.student_id ?? row.studentId,
+    studentName: profile?.name || row.student_name || row.studentName || '',
+    studentNo: profile?.student_no || row.student_no || row.studentNo || '',
+    currentHandler: row.handler_id ?? row.currentHandler ?? null,
+    reviewComment: row.review_comment || row.reviewComment || '',
+    createdAt: row.created_at || row.createdAt || '',
+    resolvedAt: row.resolved_at || row.resolvedAt || '',
+  }
+}
+
 function buildingPayload(data: any) {
   return {
     name: data.name || data.buildingName || '',
@@ -500,7 +515,7 @@ export const adminApi = {
     let q = supabase.from('allocation_objections').select('*, profiles(name, student_no)').eq('school_code', sc)
     if (params?.status) q = q.eq('status', params.status)
     const { data } = await q.order('created_at', { ascending: false })
-    return wrap(data || [])
+    return wrap((data || []).map(normalizeObjection))
   },
 
   async handleObjection(objectionId: number, data: { status: string; reviewComment: string }) {

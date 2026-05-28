@@ -46,7 +46,7 @@ const router = createRouter({
         { path: 'dormitory', name: 'AdminDormitory', component: () => import('@/views/admin/Dormitory.vue'), meta: { title: '宿舍管理' } },
         { path: 'allocation', redirect: (to: any) => `/${to.params.schoolCode}/admin/dormitory` },
         { path: 'feedback', name: 'AdminFeedback', component: () => import('@/views/admin/FeedbackManage.vue'), meta: { title: '反馈与异议' } },
-        { path: 'objections', redirect: (to: any) => `/${to.params.schoolCode}/admin/feedback` },
+        { path: 'objections', redirect: (to: any) => `/${to.params.schoolCode}/admin/feedback?tab=objection` },
         { path: 'audit-logs', name: 'AdminAuditLogs', component: () => import('@/views/admin/AuditLogs.vue'), meta: { title: '审计日志' } },
       ],
     },

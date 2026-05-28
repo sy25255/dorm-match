@@ -37,7 +37,10 @@ function closeMenu() {
   menuOpen.value = false
 }
 
-onMounted(loadUnread)
+onMounted(() => {
+  menuOpen.value = window.innerWidth >= 1024
+  loadUnread()
+})
 </script>
 
 <template>
@@ -62,6 +65,8 @@ onMounted(loadUnread)
       </div>
 
       <el-menu :default-active="activeMenu" router class="side-menu">
+        <el-menu-item :index="`${basePath}/search`"><el-icon><Search /></el-icon><span>搜索舍友</span></el-menu-item>
+        <el-menu-item :index="`${basePath}/invites`"><el-icon><Message /></el-icon><span>邀请管理</span></el-menu-item>
         <el-menu-item :index="`${basePath}/`"><el-icon><HomeFilled /></el-icon><span>首页</span></el-menu-item>
         <el-menu-item :index="`${basePath}/survey`"><el-icon><Edit /></el-icon><span>偏好问卷</span></el-menu-item>
         <el-menu-item :index="`${basePath}/matches`"><el-icon><Connection /></el-icon><span>舍友推荐</span></el-menu-item>
