@@ -71,7 +71,7 @@ function enterDemoSchool() {
   schoolCode.value = demoSchool.code
   validatedSchool.value = demoSchool
   userStore.setSchoolInfo(demoSchool.code, demoSchool.name)
-  router.push(`/${demoSchool.code}/login?guest=1`)
+  router.push(`/${demoSchool.code}/login`)
 }
 
 function onKeyUp(e: KeyboardEvent) {

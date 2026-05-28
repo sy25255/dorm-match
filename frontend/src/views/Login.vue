@@ -96,9 +96,6 @@ onMounted(async () => {
     registerForm.email = remembered
     activeTab.value = 'login'
   }
-  if (route.query.guest === '1') {
-    await handleQuickGuestLogin()
-  }
 })
 
 // 加载学院/专业列表
@@ -182,37 +179,6 @@ function backToSchoolEntry() {
   router.push('/')
 }
 
-async function handleQuickGuestLogin() {
-  loading.value = true
-  try {
-    await loadCollegesAndMajors()
-    const college = colleges.value[0]
-    const major = majors.value.find(m => m.collegeId === college?.id) || majors.value[0]
-    const guestName = `测试用户${Date.now().toString().slice(-4)}`
-
-    if (!college || !major) {
-      throw new Error('测试数据未准备好，请稍后重试')
-    }
-
-    await userStore.guestLogin(
-      userStore.schoolCode || schoolCode.value,
-      guestName,
-      college.name,
-      major.name,
-    )
-    ElMessage.success('已进入测试体验，请先完成偏好问卷')
-    router.push(`/${schoolCode.value}/survey`)
-  } catch (err: any) {
-    if ((err?.message || '').includes('Supabase unavailable')) {
-      ElMessage.error('测试登录需要先配置 Supabase 环境变量')
-    } else {
-      ElMessage.error(err?.message || '一键测试登录失败，请重试')
-    }
-  } finally {
-    loading.value = false
-  }
-}
-
 async function handleGuestLogin() {
   // 先加载学院/专业数据
   await loadCollegesAndMajors()
@@ -294,6 +260,17 @@ async function confirmGuestLogin() {
         <p style="font-size:14px;color:#4e5969;margin-top:4px">完成偏好问卷，智能匹配理想舍友</p>
       </div>
 
+      <div class="test-entry-panel">
+        <div>
+          <h2>测试体验</h2>
+          <p>填写姓名、学院和专业后进入完整流程，不需要先注册正式账号。</p>
+        </div>
+        <el-button type="primary" size="large" class="test-entry-btn" @click="handleGuestLogin">
+          <el-icon :size="16"><UserFilled /></el-icon>
+          填写测试信息进入
+        </el-button>
+      </div>
+
       <el-tabs v-model="activeTab" class="login-tabs">
         <el-tab-pane label="新生注册" name="register">
           <el-form :model="registerForm" :rules="registerRules" label-position="top" @submit.prevent="handleRegister">
@@ -328,14 +305,6 @@ async function confirmGuestLogin() {
           </el-form>
         </el-tab-pane>
       </el-tabs>
-
-      <div class="guest-section">
-        <el-divider><span style="color:#a0aec0;font-size:12px">快速测试入口（免注册，自动记住账号）</span></el-divider>
-        <el-button size="large" class="guest-btn" @click="handleGuestLogin">
-          <el-icon :size="16"><UserFilled /></el-icon>
-          填写测试信息进入
-        </el-button>
-      </div>
 
       <!-- 免登录弹窗 -->
       <el-dialog v-model="guestDialogVisible" title="测试信息填写" width="420px" :close-on-click-modal="false" @opened="loadCollegesAndMajors">
@@ -409,23 +378,40 @@ async function confirmGuestLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background:
+    radial-gradient(circle at top left, rgba(22, 119, 255, 0.12), transparent 34%),
+    linear-gradient(135deg, #f6f8fb 0%, #e9eff7 52%, #edf7f1 100%);
   padding: 20px;
 }
 .login-card {
-  width: 440px;
+  width: min(520px, 100%);
   background: #fff;
-  border-radius: 16px;
-  padding: 36px 40px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-  max-height: 90vh;
+  border-radius: 12px;
+  padding: 28px 32px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.14);
+  max-height: 92vh;
   overflow-y: auto;
 }
-.login-header { text-align: center; margin-bottom: 24px; }
+.login-header { text-align: center; margin-bottom: 16px; }
 .school-brand { display: flex; flex-direction: column; align-items: center; }
 .school-name { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-top: 6px; }
+.test-entry-panel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #f8fbff;
+  margin-bottom: 16px;
+}
+.test-entry-panel h2 { margin: 0 0 4px; font-size: 16px; color: #1d2129; }
+.test-entry-panel p { margin: 0; font-size: 13px; line-height: 1.5; color: #5f6b7a; }
+.test-entry-btn { min-width: 150px; }
 .login-tabs :deep(.el-tabs__nav) { width: 100%; display: flex; }
 .login-tabs :deep(.el-tabs__item) { flex: 1; text-align: center; font-size: 15px; }
+.login-tabs :deep(.el-form-item) { margin-bottom: 14px; }
 .login-btn { width: 100%; margin-top: 4px; }
 .switch-school { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; font-size: 13px; color: #a0aec0; cursor: pointer; }
 .switch-school:hover { color: #667eea; }
@@ -474,5 +460,12 @@ async function confirmGuestLogin() {
   font-size: 11px;
   color: #c9cdd4;
   margin: 4px 0 0;
+}
+
+@media (max-width: 640px) {
+  .login-container { align-items: flex-start; padding: 12px; }
+  .login-card { padding: 22px 18px; max-height: none; }
+  .test-entry-panel { grid-template-columns: 1fr; }
+  .test-entry-btn { width: 100%; }
 }
 </style>
