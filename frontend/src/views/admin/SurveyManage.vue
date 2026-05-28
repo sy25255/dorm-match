@@ -65,12 +65,12 @@ function optionsJsonToText(optionsJson: string | null): string {
 function optionsTextToJson(text: string): string | null {
   if (!text.trim()) return null
   const lines = text.trim().split('\n').filter(line => line.trim())
-  const arr = lines.map(line => {
+  const arr = lines.map((line, index) => {
     const match = line.match(/^([A-Za-z0-9]+)\.\s*(.+)$/)
     if (match) {
       return { label: match[1], value: match[1], text: match[2].trim() }
     }
-    return { label: String(lines.indexOf(line) + 1), value: String(lines.indexOf(line) + 1), text: line.trim() }
+    return { label: String(index + 1), value: String(index + 1), text: line.trim() }
   })
   return JSON.stringify(arr)
 }
@@ -80,6 +80,8 @@ async function loadQuestions() {
   try {
     const res = await adminApi.getSurveyQuestions()
     questions.value = res.data.data || []
+  } catch (error: any) {
+    ElMessage.error(error?.message || '加载问卷题目失败')
   } finally { loading.value = false }
 }
 
@@ -100,8 +102,20 @@ function openEdit(row?: any) {
 
 async function saveQuestion() {
   try {
+    if (!form.value.questionCode.trim() || !form.value.dimension || !form.value.questionText.trim() || !form.value.questionType) {
+      ElMessage.warning('请先填写题目编码、维度、题干和题型')
+      return
+    }
+    if (needsOptions.value && !form.value.optionsText.trim()) {
+      ElMessage.warning('当前题型需要填写选项内容')
+      return
+    }
     const data: any = { ...form.value }
     data.optionsJson = needsOptions.value ? optionsTextToJson(form.value.optionsText) : null
+    if (needsOptions.value && !data.optionsJson) {
+      ElMessage.warning('选项格式无效，请每行填写一个选项')
+      return
+    }
     delete data.optionsText
     if (isEdit.value && data.id) {
       await adminApi.updateQuestion(data.id, data)
@@ -109,9 +123,10 @@ async function saveQuestion() {
       await adminApi.createQuestion(data)
     }
     dialogVisible.value = false
-    loadQuestions()
-  } catch {
-    ElMessage.warning('保存失败，请检查填写内容')
+    await loadQuestions()
+    ElMessage.success('题目已保存')
+  } catch (error: any) {
+    ElMessage.warning(error?.message || '保存失败，请检查填写内容')
   }
 }
 
@@ -121,17 +136,22 @@ async function toggleQuestion(row: any) {
   try {
     await ElMessageBox.confirm(`确认${actionText}题目"${row.questionText.slice(0, 20)}..."吗？`, '提示', { type: 'warning' })
     await adminApi.toggleQuestionStatus(row.id, newStatus)
-    row.status = newStatus
+    await loadQuestions()
     ElMessage.success(`题目已${actionText}`)
-  } catch {}
+  } catch (error: any) {
+    if (error !== 'cancel' && error !== 'close') ElMessage.warning(error?.message || `${actionText}失败`)
+  }
 }
 
 async function deleteQuestion(row: any) {
   try {
     await ElMessageBox.confirm(`确认删除题目"${row.questionText.slice(0, 20)}..."吗？`, '警告', { type: 'warning' })
     await adminApi.deleteQuestion(row.id)
-    loadQuestions()
-  } catch {}
+    await loadQuestions()
+    ElMessage.success('题目已删除')
+  } catch (error: any) {
+    if (error !== 'cancel' && error !== 'close') ElMessage.warning(error?.message || '删除失败')
+  }
 }
 
 const dimLabelMap: Record<string, string> = {

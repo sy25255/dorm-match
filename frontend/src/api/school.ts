@@ -2,6 +2,13 @@ import { supabase, getCurrentSchool } from '@/lib/supabase'
 
 const wrap = (data: any) => ({ data: { code: 200, message: 'ok', data } })
 
+function assertOk(result: { error?: any }, message = '操作失败') {
+  if (result.error) {
+    const text = result.error.message || result.error.details || result.error.hint || message
+    throw new Error(text)
+  }
+}
+
 function mapSchool(row: any) {
   if (!row) return null
   return {
@@ -59,103 +66,123 @@ function mapClass(row: any) {
 export const schoolApi = {
   async getConfig() {
     const sc = getCurrentSchool()
-    const { data } = await supabase.from('schools').select('*').eq('code', sc).single()
+    const { data, error } = await supabase.from('schools').select('*').eq('code', sc).single()
+    assertOk({ error }, '加载学校配置失败')
     return wrap(mapSchool(data))
   },
   async updateConfig(data: any) {
     const sc = getCurrentSchool()
-    await supabase.from('schools').update(schoolPayload(data)).eq('code', sc)
+    const result = await supabase.from('schools').update(schoolPayload(data)).eq('code', sc)
+    assertOk(result, '保存学校配置失败')
     return wrap(null)
   },
   async getColleges() {
     const sc = getCurrentSchool()
-    const { data } = await supabase.from('colleges').select('*').eq('school_code', sc).order('sort_order')
+    const { data, error } = await supabase.from('colleges').select('*').eq('school_code', sc).order('sort_order')
+    assertOk({ error }, '加载学院失败')
     return wrap((data || []).map(mapCollege))
   },
   async createCollege(data: any) {
     const sc = getCurrentSchool()
-    await supabase.from('colleges').insert({
+    const result = await supabase.from('colleges').insert({
       school_code: sc,
       name: data.name,
       code: data.code || '',
       description: data.description || '',
       sort_order: data.sortOrder ?? data.sort_order ?? 0,
     })
+    assertOk(result, '新增学院失败')
     return wrap(null)
   },
   async updateCollege(id: number, data: any) {
-    await supabase.from('colleges').update({
+    const sc = getCurrentSchool()
+    const result = await supabase.from('colleges').update({
       name: data.name,
       code: data.code || '',
       description: data.description || '',
       sort_order: data.sortOrder ?? data.sort_order ?? 0,
-    }).eq('id', id)
+    }).eq('id', id).eq('school_code', sc)
+    assertOk(result, '保存学院失败')
     return wrap(null)
   },
   async deleteCollege(id: number) {
-    await supabase.from('colleges').delete().eq('id', id)
+    const sc = getCurrentSchool()
+    const result = await supabase.from('colleges').delete().eq('id', id).eq('school_code', sc)
+    assertOk(result, '删除学院失败')
     return wrap(null)
   },
   async getMajors(collegeId?: number) {
     const sc = getCurrentSchool()
     let q = supabase.from('majors').select('*').eq('school_code', sc)
     if (collegeId) q = q.eq('college_id', collegeId)
-    const { data } = await q.order('sort_order')
+    const { data, error } = await q.order('sort_order')
+    assertOk({ error }, '加载专业失败')
     return wrap((data || []).map(mapMajor))
   },
   async createMajor(data: any) {
     const sc = getCurrentSchool()
-    await supabase.from('majors').insert({
+    const result = await supabase.from('majors').insert({
       school_code: sc,
       college_id: data.collegeId ?? data.college_id,
       name: data.name,
       code: data.code || '',
       sort_order: data.sortOrder ?? data.sort_order ?? 0,
     })
+    assertOk(result, '新增专业失败')
     return wrap(null)
   },
   async updateMajor(id: number, data: any) {
-    await supabase.from('majors').update({
+    const sc = getCurrentSchool()
+    const result = await supabase.from('majors').update({
       college_id: data.collegeId ?? data.college_id,
       name: data.name,
       code: data.code || '',
       sort_order: data.sortOrder ?? data.sort_order ?? 0,
-    }).eq('id', id)
+    }).eq('id', id).eq('school_code', sc)
+    assertOk(result, '保存专业失败')
     return wrap(null)
   },
   async deleteMajor(id: number) {
-    await supabase.from('majors').delete().eq('id', id)
+    const sc = getCurrentSchool()
+    const result = await supabase.from('majors').delete().eq('id', id).eq('school_code', sc)
+    assertOk(result, '删除专业失败')
     return wrap(null)
   },
   async getClasses(majorId?: number) {
     const sc = getCurrentSchool()
     let q = supabase.from('classes').select('*').eq('school_code', sc)
     if (majorId) q = q.eq('major_id', majorId)
-    const { data } = await q.order('sort_order')
+    const { data, error } = await q.order('sort_order')
+    assertOk({ error }, '加载班级失败')
     return wrap((data || []).map(mapClass))
   },
   async createClass(data: any) {
     const sc = getCurrentSchool()
-    await supabase.from('classes').insert({
+    const result = await supabase.from('classes').insert({
       school_code: sc,
       major_id: data.majorId ?? data.major_id,
       name: data.name,
       grade: data.grade,
       sort_order: data.sortOrder ?? data.sort_order ?? 0,
     })
+    assertOk(result, '新增班级失败')
     return wrap(null)
   },
   async updateClass(id: number, data: any) {
-    await supabase.from('classes').update({
+    const sc = getCurrentSchool()
+    const result = await supabase.from('classes').update({
       major_id: data.majorId ?? data.major_id,
       name: data.name,
       grade: data.grade,
       sort_order: data.sortOrder ?? data.sort_order ?? 0,
-    }).eq('id', id)
+    }).eq('id', id).eq('school_code', sc)
+    assertOk(result, '保存班级失败')
     return wrap(null)
   },
   async deleteClass(id: number) {
-    await supabase.from('classes').delete().eq('id', id)
+    const sc = getCurrentSchool()
+    const result = await supabase.from('classes').delete().eq('id', id).eq('school_code', sc)
+    assertOk(result, '删除班级失败')
     return wrap(null)
   },
 }

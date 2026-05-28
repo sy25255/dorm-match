@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { adminApi } from '@/api/admin'
+import { ElMessage } from 'element-plus'
 
 const logs = ref<any[]>([])
 const loading = ref(false)
@@ -10,7 +11,10 @@ async function loadLogs() {
   loading.value = true
   try {
     const res = await adminApi.getAuditLogs(filterAction.value ? { action: filterAction.value } : undefined)
-    logs.value = res.data.data || []
+    const payload = res.data.data || {}
+    logs.value = Array.isArray(payload) ? payload : payload.items || []
+  } catch (error: any) {
+    ElMessage.error(error?.message || '加载审计日志失败')
   } finally { loading.value = false }
 }
 

@@ -116,6 +116,48 @@ function normalizeObjection(row: any) {
   }
 }
 
+function normalizeSurveyQuestion(row: any) {
+  return {
+    ...row,
+    questionCode: row.question_code || row.questionCode || '',
+    questionText: row.question_text || row.questionText || '',
+    questionType: row.question_type || row.questionType || 'SINGLE_CHOICE',
+    optionsJson: row.options_json ?? row.optionsJson ?? null,
+    sortOrder: row.sort_order ?? row.sortOrder ?? 0,
+    isRequired: row.is_required ?? row.isRequired ?? 1,
+    isAttentionCheck: row.is_attention_check ?? row.isAttentionCheck ?? 0,
+    hasSupplement: row.has_supplement ?? row.hasSupplement ?? false,
+    supplementPlaceholder: row.supplement_placeholder || row.supplementPlaceholder || '',
+    scenarioCategory: row.scenario_category || row.scenarioCategory || '',
+    trapAnswer: row.trap_answer || row.trapAnswer || '',
+    trapSection: row.trap_section || row.trapSection || '',
+    leaderWeight: row.leader_weight ?? row.leaderWeight ?? 0,
+    dropdownPlaceholder: row.dropdown_placeholder || row.dropdownPlaceholder || '',
+  }
+}
+
+function surveyQuestionPayload(data: any) {
+  return {
+    question_code: data.questionCode || data.question_code || '',
+    dimension: data.dimension || '',
+    question_text: data.questionText || data.question_text || '',
+    question_type: data.questionType || data.question_type || 'SINGLE_CHOICE',
+    options_json: data.optionsJson ?? data.options_json ?? null,
+    sort_order: data.sortOrder ?? data.sort_order ?? 0,
+    is_required: data.isRequired ?? data.is_required ?? 1,
+    is_attention_check: data.isAttentionCheck ?? data.is_attention_check ?? 0,
+    has_supplement: data.hasSupplement ?? data.has_supplement ?? false,
+    supplement_placeholder: data.supplementPlaceholder ?? data.supplement_placeholder ?? null,
+    scenario_category: data.scenarioCategory ?? data.scenario_category ?? null,
+    placeholder: data.placeholder ?? null,
+    trap_answer: data.trapAnswer ?? data.trap_answer ?? null,
+    trap_section: data.trapSection ?? data.trap_section ?? null,
+    leader_weight: data.leaderWeight ?? data.leader_weight ?? 0,
+    dropdown_placeholder: data.dropdownPlaceholder ?? data.dropdown_placeholder ?? null,
+    status: data.status ?? 1,
+  }
+}
+
 function buildingPayload(data: any) {
   return {
     name: data.name || data.buildingName || '',
@@ -696,43 +738,47 @@ export const adminApi = {
 
   // ========== 问卷管理 ==========
   async getSurveyQuestions() {
-    const { data } = await supabase.from('survey_questions').select('*').order('id')
-    return wrap(data || [])
+    const { data, error } = await supabase
+      .from('survey_questions')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('id', { ascending: true })
+    assertOk({ error }, '加载问卷题目失败')
+    return wrap((data || []).map(normalizeSurveyQuestion))
   },
 
   async updateQuestion(id: number, data: any) {
-    await supabase.from('survey_questions').update(data).eq('id', id)
+    const result = await supabase
+      .from('survey_questions')
+      .update(surveyQuestionPayload(data))
+      .eq('id', id)
+    assertOk(result, '保存题目失败')
     return wrap(null)
   },
 
   async createQuestion(data: any) {
-    await supabase.from('survey_questions').insert({
-      question_code: data.questionCode || '',
-      dimension: data.dimension || '',
-      question_text: data.questionText || '',
-      question_type: data.questionType || 'SINGLE_CHOICE',
-      options_json: data.optionsJson || null,
-      sort_order: data.sortOrder ?? 0,
-      is_required: data.isRequired ?? 1,
-      is_attention_check: data.isAttentionCheck ?? 0,
-      status: data.status ?? 1,
-    })
+    const result = await supabase.from('survey_questions').insert(surveyQuestionPayload(data))
+    assertOk(result, '新增题目失败')
     return wrap(null)
   },
 
   async toggleQuestionStatus(id: number, newStatus?: number) {
     if (newStatus !== undefined) {
-      await supabase.from('survey_questions').update({ status: newStatus }).eq('id', id)
+      const result = await supabase.from('survey_questions').update({ status: newStatus }).eq('id', id)
+      assertOk(result, '更新题目状态失败')
     } else {
-      const { data } = await supabase.from('survey_questions').select('status').eq('id', id).single()
+      const { data, error } = await supabase.from('survey_questions').select('status').eq('id', id).single()
+      assertOk({ error }, '读取题目状态失败')
       const status = data?.status === 1 ? 0 : 1
-      await supabase.from('survey_questions').update({ status }).eq('id', id)
+      const result = await supabase.from('survey_questions').update({ status }).eq('id', id)
+      assertOk(result, '更新题目状态失败')
     }
     return wrap(null)
   },
 
   async deleteQuestion(id: number) {
-    await supabase.from('survey_questions').delete().eq('id', id)
+    const result = await supabase.from('survey_questions').delete().eq('id', id)
+    assertOk(result, '删除题目失败')
     return wrap(null)
   },
 
@@ -811,10 +857,17 @@ export const adminApi = {
 
     const page = params?.page || 1
     const size = params?.size || 20
-    const { data, count } = await q.order('created_at', { ascending: false }).range((page - 1) * size, page * size - 1)
+    const { data, count, error } = await q.order('created_at', { ascending: false }).range((page - 1) * size, page * size - 1)
+    assertOk({ error }, '加载审计日志失败')
 
     return wrap({
-      items: data || [],
+      items: (data || []).map((row: any) => ({
+        ...row,
+        targetType: row.target_type || row.targetType || '',
+        targetId: row.target_id || row.targetId || '',
+        ipAddress: row.ip_address || row.ipAddress || '',
+        createdAt: row.created_at || row.createdAt || '',
+      })),
       total: count || 0,
       page,
       size,
@@ -824,7 +877,7 @@ export const adminApi = {
   async writeAuditLog(entry: { action: string; targetType?: string; targetId?: string; detail?: string }) {
     const sc = getCurrentSchool()
     const { data: user } = await supabase.auth.getUser()
-    await supabase.from('audit_logs').insert({
+    const result = await supabase.from('audit_logs').insert({
       school_code: sc,
       user_id: user.user?.id,
       username: user.user?.email,
@@ -833,6 +886,7 @@ export const adminApi = {
       target_id: entry.targetId,
       detail: entry.detail,
     })
+    assertOk(result, '写入审计日志失败')
     return wrap(null)
   },
 }

@@ -33,30 +33,55 @@ function getMajorName(id: number) {
 }
 
 async function loadConfig() {
-  try { const res = await schoolApi.getConfig(); config.value = res.data.data || {} } catch {}
+  try {
+    const res = await schoolApi.getConfig()
+    config.value = res.data.data || {}
+  } catch (error: any) {
+    ElMessage.error(error?.message || '加载学校配置失败')
+  }
 }
 
 async function loadColleges() {
-  const res = await schoolApi.getColleges()
-  colleges.value = res.data.data || []
-  if (!selectedCollegeId.value && colleges.value.length > 0) {
-    await selectCollege(colleges.value[0])
+  try {
+    const res = await schoolApi.getColleges()
+    colleges.value = res.data.data || []
+    if (!selectedCollegeId.value && colleges.value.length > 0) {
+      await selectCollege(colleges.value[0])
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.message || '加载学院失败')
   }
 }
 
 async function loadMajors(collegeId: number) {
-  const res = await schoolApi.getMajors(collegeId)
-  majors.value = (res.data.data || []).map((m: any) => ({ ...m, collegeName: collegeMap.value[collegeId] }))
+  try {
+    const res = await schoolApi.getMajors(collegeId)
+    majors.value = (res.data.data || []).map((m: any) => ({ ...m, collegeName: collegeMap.value[collegeId] }))
+  } catch (error: any) {
+    ElMessage.error(error?.message || '加载专业失败')
+  }
 }
 
 async function loadClasses(majorId: number) {
-  const res = await schoolApi.getClasses(majorId)
-  classes.value = res.data.data || []
+  try {
+    const res = await schoolApi.getClasses(majorId)
+    classes.value = res.data.data || []
+  } catch (error: any) {
+    ElMessage.error(error?.message || '加载班级失败')
+  }
 }
 
 async function saveConfig() {
-  await schoolApi.updateConfig(config.value)
-  ElMessage.success('学校配置已保存')
+  try {
+    if (!String(config.value.schoolName || '').trim()) {
+      ElMessage.warning('请填写学校名称')
+      return
+    }
+    await schoolApi.updateConfig(config.value)
+    ElMessage.success('学校配置已保存')
+  } catch (error: any) {
+    ElMessage.warning(error?.message || '学校配置保存失败')
+  }
 }
 
 function openCollegeEdit(row?: any) {
@@ -65,14 +90,22 @@ function openCollegeEdit(row?: any) {
   collegeDialog.value = true
 }
 async function saveCollege() {
-  if (isEditCollege.value && collegeForm.value.id) {
-    await schoolApi.updateCollege(collegeForm.value.id, collegeForm.value)
-  } else {
-    await schoolApi.createCollege(collegeForm.value)
+  try {
+    if (!collegeForm.value.name.trim()) {
+      ElMessage.warning('请填写学院名称')
+      return
+    }
+    if (isEditCollege.value && collegeForm.value.id) {
+      await schoolApi.updateCollege(collegeForm.value.id, collegeForm.value)
+    } else {
+      await schoolApi.createCollege(collegeForm.value)
+    }
+    collegeDialog.value = false
+    await loadColleges()
+    ElMessage.success('学院信息已保存')
+  } catch (error: any) {
+    ElMessage.warning(error?.message || '学院信息保存失败')
   }
-  collegeDialog.value = false
-  await loadColleges()
-  ElMessage.success('学院信息已保存')
 }
 
 function openMajorEdit(row?: any) {
@@ -81,16 +114,24 @@ function openMajorEdit(row?: any) {
   majorDialog.value = true
 }
 async function saveMajor() {
-  if (isEditMajor.value && majorForm.value.id) {
-    await schoolApi.updateMajor(majorForm.value.id, majorForm.value)
-  } else {
-    await schoolApi.createMajor(majorForm.value)
+  try {
+    if (!majorForm.value.collegeId || !majorForm.value.name.trim()) {
+      ElMessage.warning('请先选择学院并填写专业名称')
+      return
+    }
+    if (isEditMajor.value && majorForm.value.id) {
+      await schoolApi.updateMajor(majorForm.value.id, majorForm.value)
+    } else {
+      await schoolApi.createMajor(majorForm.value)
+    }
+    majorDialog.value = false
+    if (selectedCollegeId.value) {
+      await loadMajors(selectedCollegeId.value)
+    }
+    ElMessage.success('专业信息已保存')
+  } catch (error: any) {
+    ElMessage.warning(error?.message || '专业信息保存失败')
   }
-  majorDialog.value = false
-  if (selectedCollegeId.value) {
-    await loadMajors(selectedCollegeId.value)
-  }
-  ElMessage.success('专业信息已保存')
 }
 
 function openClassEdit(row?: any) {
@@ -99,14 +140,22 @@ function openClassEdit(row?: any) {
   classDialog.value = true
 }
 async function saveClass() {
-  if (isEditClass.value && classForm.value.id) {
-    await schoolApi.updateClass(classForm.value.id, classForm.value)
-  } else {
-    await schoolApi.createClass(classForm.value)
+  try {
+    if (!classForm.value.majorId || !classForm.value.name.trim()) {
+      ElMessage.warning('请先选择专业并填写班级名称')
+      return
+    }
+    if (isEditClass.value && classForm.value.id) {
+      await schoolApi.updateClass(classForm.value.id, classForm.value)
+    } else {
+      await schoolApi.createClass(classForm.value)
+    }
+    classDialog.value = false
+    if (selectedMajorId.value) await loadClasses(selectedMajorId.value)
+    ElMessage.success('班级信息已保存')
+  } catch (error: any) {
+    ElMessage.warning(error?.message || '班级信息保存失败')
   }
-  classDialog.value = false
-  if (selectedMajorId.value) await loadClasses(selectedMajorId.value)
-  ElMessage.success('班级信息已保存')
 }
 
 async function selectCollege(row: any) {
@@ -138,7 +187,7 @@ onMounted(async () => {
           <el-form-item label="学校名称"><el-input v-model="config.schoolName" /></el-form-item>
         </el-col>
         <el-col :span="8">
-          <el-form-item label="学校代码"><el-input v-model="config.schoolCode" /></el-form-item>
+          <el-form-item label="学校代码"><el-input v-model="config.schoolCode" disabled /></el-form-item>
         </el-col>
         <el-col :span="8">
           <el-form-item label="学年"><el-input v-model="config.academicYear" /></el-form-item>
