@@ -24,11 +24,12 @@ function mapFeedback(row: any) {
 export const feedbackApi = {
   async getList() {
     const uid = getCurrentUserId()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('feedbacks')
       .select('*')
       .eq('submitter_id', uid)
       .order('created_at', { ascending: false })
+    if (error) throw error
     return wrap((data || []).map(mapFeedback))
   },
 
@@ -43,7 +44,7 @@ export const feedbackApi = {
   }) {
     const uid = getCurrentUserId()
     const sc = getCurrentSchool()
-    await supabase.from('feedbacks').insert({
+    const { error } = await supabase.from('feedbacks').insert({
       school_code: sc,
       submitter_id: uid,
       target_role: payload.targetRole,
@@ -55,16 +56,18 @@ export const feedbackApi = {
       class_name: payload.className,
       status: 'PENDING',
     })
+    if (error) throw error
     return wrap(null)
   },
 
   async getAdminList() {
     const sc = getCurrentSchool()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('feedbacks')
       .select('*')
       .eq('school_code', sc)
       .order('created_at', { ascending: false })
+    if (error) throw error
     return wrap((data || []).map(mapFeedback))
   },
 
@@ -73,7 +76,7 @@ export const feedbackApi = {
     payload: { status: string; reply: string },
   ) {
     const { data: user } = await supabase.auth.getUser()
-    await supabase
+    const { error } = await supabase
       .from('feedbacks')
       .update({
         status: payload.status,
@@ -82,6 +85,7 @@ export const feedbackApi = {
         resolved_at: new Date().toISOString(),
       })
       .eq('id', id)
+    if (error) throw error
     return wrap(null)
   },
 }

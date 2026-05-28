@@ -79,6 +79,52 @@ const selfIntro = ref({
   bio: '',
 })
 
+function getIntroDraftKey() {
+  return `demo_survey_intro_${getCurrentUserId() || 'anonymous'}`
+}
+
+function getSupplementDraftKey() {
+  return `demo_survey_supplements_${getCurrentUserId() || 'anonymous'}`
+}
+
+function persistIntroDraft() {
+  localStorage.setItem(getIntroDraftKey(), JSON.stringify(selfIntro.value))
+}
+
+function persistSupplementDraft() {
+  localStorage.setItem(getSupplementDraftKey(), JSON.stringify(supplements.value))
+}
+
+async function loadIntroDraft() {
+  const uid = getCurrentUserId()
+  if (uid) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('bio')
+      .eq('id', uid)
+      .single()
+    if (data?.bio && !selfIntro.value.bio) selfIntro.value.bio = data.bio
+  }
+
+  try {
+    const savedIntro = JSON.parse(localStorage.getItem(getIntroDraftKey()) || 'null')
+    if (savedIntro) selfIntro.value = { ...selfIntro.value, ...savedIntro }
+  } catch {}
+
+  try {
+    const savedSupplements = JSON.parse(localStorage.getItem(getSupplementDraftKey()) || '{}')
+    Object.entries(savedSupplements).forEach(([k, v]) => { supplements.value[Number(k)] = v as string })
+  } catch {}
+}
+
+async function saveIntroToProfile() {
+  const uid = getCurrentUserId()
+  if (!uid) return
+  const bio = selfIntro.value.bio?.trim()
+  if (!bio) return
+  await supabase.from('profiles').update({ bio }).eq('id', uid)
+}
+
 // 查看我的问卷
 const showMySurvey = ref(false)
 const mySurvey = ref<any>(null)
@@ -172,14 +218,11 @@ onMounted(async () => {
     const draft = await surveyApi.getDraft()
     const draftData = draft.data.data || []
     draftData.forEach((item: AnswerItem) => {
-      if (Number(item.questionId) === -1) {
-        try { selfIntro.value = { ...selfIntro.value, ...JSON.parse(item.answerValue) } } catch {}
-      } else if (Number(item.questionId) < 0) {
-        supplements.value[-Number(item.questionId)] = item.answerValue
-      } else {
+      if (Number(item.questionId) > 0) {
         answers.value[item.questionId] = item.answerValue
       }
     })
+    await loadIntroDraft()
 
     buildSections()
 
@@ -321,21 +364,21 @@ async function gotoSection(idx: number) {
 
 async function saveDraft() {
   if (isIntroSection.value) {
-    await surveyApi.saveDraft([{ questionId: -1, answerValue: JSON.stringify(selfIntro.value) }]).catch(() => {})
+    persistIntroDraft()
+    await saveIntroToProfile().catch(() => {})
     return
   }
   const items: AnswerItem[] = currentQuestions.value
     .filter(q => answers.value[q.id])
     .map(q => ({ questionId: q.id, answerValue: answers.value[q.id] }))
-  Object.entries(supplements.value).forEach(([qid, val]) => {
-    if (val) items.push({ questionId: -Number(qid), answerValue: val })
-  })
+  persistSupplementDraft()
   if (items.length === 0) return
   await surveyApi.saveDraft(items).catch(() => {})
 }
 
 function saveIntroDraft() {
-  surveyApi.saveDraft([{ questionId: -1, answerValue: JSON.stringify(selfIntro.value) }]).catch(() => {})
+  persistIntroDraft()
+  saveIntroToProfile().catch(() => {})
 }
 
 const scenarioCategoryColors: Record<string, string> = {
@@ -373,14 +416,15 @@ async function handleSubmit() {
       questionId: Number(qid),
       answerValue: val,
     }))
-    Object.entries(supplements.value).forEach(([qid, val]) => {
-      if (val) allItems.push({ questionId: -Number(qid), answerValue: val })
-    })
-    allItems.push({ questionId: -1, answerValue: JSON.stringify(selfIntro.value) })
+    persistIntroDraft()
+    persistSupplementDraft()
+    await saveIntroToProfile().catch(() => {})
     await surveyApi.submit(allItems)
     const userId = localStorage.getItem('userId') || '0'
     localStorage.removeItem('demo_survey_intro')
     localStorage.removeItem('demo_survey_supplements')
+    localStorage.removeItem(getIntroDraftKey())
+    localStorage.removeItem(getSupplementDraftKey())
     localStorage.removeItem(`demo_survey_draft_${userId}`)
     localStorage.removeItem('demo_survey_section')
     ElMessage.success('问卷提交成功！正在为你计算匹配结果...')

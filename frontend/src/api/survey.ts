@@ -54,14 +54,16 @@ export const surveyApi = {
 
   async saveDraft(answers: AnswerItem[]) {
     const uid = getCurrentUserId()
-    if (answers.length === 0) return wrap(null)
-    const rows = answers.map(a => ({
+    const validAnswers = answers.filter(a => Number(a.questionId) > 0)
+    if (validAnswers.length === 0) return wrap(null)
+    const rows = validAnswers.map(a => ({
       user_id: uid,
       question_id: a.questionId,
       answer_value: a.answerValue,
       updated_at: new Date().toISOString(),
     }))
-    await supabase.from('survey_answers').upsert(rows, { onConflict: 'user_id,question_id' })
+    const { error } = await supabase.from('survey_answers').upsert(rows, { onConflict: 'user_id,question_id' })
+    if (error) throw error
     return wrap(null)
   },
 
@@ -80,16 +82,19 @@ export const surveyApi = {
 
   async submit(answers: AnswerItem[]) {
     const uid = getCurrentUserId()
-    if (answers.length > 0) {
-      const rows = answers.map(a => ({
+    const validAnswers = answers.filter(a => Number(a.questionId) > 0)
+    if (validAnswers.length > 0) {
+      const rows = validAnswers.map(a => ({
         user_id: uid,
         question_id: a.questionId,
         answer_value: a.answerValue,
         updated_at: new Date().toISOString(),
       }))
-      await supabase.from('survey_answers').upsert(rows, { onConflict: 'user_id,question_id' })
+      const { error } = await supabase.from('survey_answers').upsert(rows, { onConflict: 'user_id,question_id' })
+      if (error) throw error
     }
-    await supabase.from('profiles').update({ survey_status: 'COMPLETED' }).eq('id', uid)
+    const { error } = await supabase.from('profiles').update({ survey_status: 'COMPLETED' }).eq('id', uid)
+    if (error) throw error
     return wrap(null)
   },
 
