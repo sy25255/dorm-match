@@ -2,6 +2,13 @@ import { supabase, getCurrentSchool } from '@/lib/supabase'
 
 const wrap = (data: any) => ({ data: { code: 200, message: 'ok', data } })
 
+function assertOk(result: { error?: any }, message = '操作失败') {
+  if (result.error) {
+    const text = result.error.message || result.error.details || result.error.hint || message
+    throw new Error(text)
+  }
+}
+
 type StudentStatus = 'NOT_STARTED' | 'DRAFT' | 'COMPLETED' | number | null | undefined
 type MatchStatus = 'WAITING' | 'INVITING' | 'PAIRED' | 'ALLOCATED' | number | null | undefined
 
@@ -128,6 +135,51 @@ function roomPayload(data: any) {
     occupied: data.occupied ?? 0,
     room_type: data.roomType || data.room_type || 'NORMAL',
     status: data.status || 'AVAILABLE',
+  }
+}
+
+function roomStatusFromOccupancy(occupied: number, capacity: number, currentStatus?: string) {
+  if (currentStatus === 'MAINTENANCE') return 'MAINTENANCE'
+  if (occupied <= 0) return 'AVAILABLE'
+  if (occupied >= capacity) return 'FULL'
+  return 'PARTIAL'
+}
+
+async function recomputeRoomOccupancy(schoolCode: string, roomIds?: number[]) {
+  let roomQuery = supabase
+    .from('dormitory_rooms')
+    .select('id, capacity, status')
+    .eq('school_code', schoolCode)
+  if (roomIds?.length) roomQuery = roomQuery.in('id', [...new Set(roomIds)])
+
+  const { data: rooms, error: roomError } = await roomQuery
+  assertOk({ error: roomError }, '加载房间失败')
+  const targetRooms = rooms || []
+  if (targetRooms.length === 0) return
+
+  const ids = targetRooms.map((room: any) => room.id)
+  const { data: allocations, error: allocError } = await supabase
+    .from('allocations')
+    .select('room_id')
+    .eq('school_code', schoolCode)
+    .in('room_id', ids)
+  assertOk({ error: allocError }, '加载分配记录失败')
+
+  const counts = new Map<number, number>()
+  for (const row of allocations || []) {
+    counts.set(row.room_id, (counts.get(row.room_id) || 0) + 1)
+  }
+
+  for (const room of targetRooms as any[]) {
+    const occupied = counts.get(room.id) || 0
+    const capacity = Number(room.capacity) || 0
+    const status = roomStatusFromOccupancy(occupied, capacity, room.status)
+    const result = await supabase
+      .from('dormitory_rooms')
+      .update({ occupied, status })
+      .eq('id', room.id)
+      .eq('school_code', schoolCode)
+    assertOk(result, '更新房间占用失败')
   }
 }
 
@@ -345,17 +397,38 @@ export const adminApi = {
     }
     const sc = getCurrentSchool()
 
-    let q = supabase.from('profiles').select('*').eq('school_code', sc).eq('survey_status', 'COMPLETED')
+    let q = supabase
+      .from('profiles')
+      .select('*')
+      .eq('school_code', sc)
+      .eq('role', 'STUDENT')
+      .eq('survey_status', 'COMPLETED')
+      .or('is_valid.is.null,is_valid.eq.true')
     if (data.gender !== undefined) q = q.eq('gender', data.gender)
 
-    const { data: students } = await q
+    const { data: students, error: studentError } = await q
+    assertOk({ error: studentError }, '加载待分配学生失败')
     if (!students || students.length === 0) return wrap({ allocated: 0 })
 
-    const { data: rooms } = await supabase.from('dormitory_rooms').select('*').eq('school_code', sc).eq('status', 'AVAILABLE')
-    if (!rooms || rooms.length === 0) return wrap({ allocated: 0 })
-
     const studentIds = (students as any[]).map((s: any) => s.id)
-    await supabase.from('allocations').delete().in('user_id', studentIds)
+    const deleteResult = await supabase
+      .from('allocations')
+      .delete()
+      .eq('school_code', sc)
+      .in('user_id', studentIds)
+    assertOk(deleteResult, '清理旧分配失败')
+    await recomputeRoomOccupancy(sc)
+
+    const { data: roomRows, error: roomError } = await supabase
+      .from('dormitory_rooms')
+      .select('*')
+      .eq('school_code', sc)
+      .neq('status', 'MAINTENANCE')
+      .order('room_number')
+    assertOk({ error: roomError }, '加载可用房间失败')
+
+    const rooms = (roomRows || []).filter((room: any) => (room.occupied || 0) < (room.capacity || 0))
+    if (rooms.length === 0) return wrap({ allocated: 0 })
 
     const roomCapacity = (rooms as any[])[0]?.capacity || 4
 
@@ -414,30 +487,40 @@ export const adminApi = {
 
     for (const group of groups) {
       if (roomIdx >= rooms.length) break
-      const room = (rooms as any[])[roomIdx]
-      let bedNo = (room.occupied || 0)
+      let studentIdx = 0
 
-      for (const student of group) {
-        bedNo++
-        await supabase.from('allocations').insert({
-          school_code: sc,
-          user_id: student.id,
-          room_id: room.id,
-          room_number: room.room_number,
-          bed_no: bedNo,
-          allocation_type: data.type || 'ALGORITHM',
-          batch_code: batchCode,
-        })
-        await supabase.from('profiles').update({ match_status: 'ALLOCATED' }).eq('id', student.id)
-        allocated++
-      }
+      while (studentIdx < group.length && roomIdx < rooms.length) {
+        const room = (rooms as any[])[roomIdx]
+        let bedNo = room.occupied || 0
 
-      // 更新房间状态
-      if (bedNo >= room.capacity) {
-        await supabase.from('dormitory_rooms').update({ occupied: bedNo, status: 'FULL' }).eq('id', room.id)
-        roomIdx++
-      } else {
-        await supabase.from('dormitory_rooms').update({ occupied: bedNo, status: 'PARTIAL' }).eq('id', room.id)
+        while (studentIdx < group.length && bedNo < room.capacity) {
+          const student = group[studentIdx]
+          bedNo++
+          const insertResult = await supabase.from('allocations').insert({
+            school_code: sc,
+            user_id: student.id,
+            room_id: room.id,
+            room_number: room.room_number,
+            bed_no: bedNo,
+            allocation_type: data.type || 'ALGORITHM',
+            batch_code: batchCode,
+          })
+          assertOk(insertResult, '写入分配结果失败')
+          const profileResult = await supabase.from('profiles').update({ match_status: 'ALLOCATED' }).eq('id', student.id)
+          assertOk(profileResult, '更新学生分配状态失败')
+          allocated++
+          studentIdx++
+        }
+
+        room.occupied = bedNo
+        const roomResult = await supabase.from('dormitory_rooms').update({
+          occupied: bedNo,
+          status: roomStatusFromOccupancy(bedNo, room.capacity, room.status),
+        }).eq('id', room.id)
+        assertOk(roomResult, '更新房间状态失败')
+
+        if (bedNo >= room.capacity) roomIdx++
+        else if (studentIdx < group.length) roomIdx++
       }
     }
 
@@ -462,51 +545,133 @@ export const adminApi = {
   },
 
   async publishResults(batchCode: string) {
-    await supabase.from('allocations').update({ status: 'PUBLISHED' }).eq('batch_code', batchCode)
+    const sc = getCurrentSchool()
+    const result = await supabase
+      .from('allocations')
+      .update({ status: 'PUBLISHED' })
+      .eq('school_code', sc)
+      .eq('batch_code', batchCode)
+    assertOk(result, '发布分配结果失败')
     return wrap(null)
   },
 
   async finalizeResults(batchCode: string) {
-    await supabase.from('allocations').update({ status: 'FINALIZED' }).eq('batch_code', batchCode)
+    const sc = getCurrentSchool()
+    const result = await supabase
+      .from('allocations')
+      .update({ status: 'FINALIZED' })
+      .eq('school_code', sc)
+      .eq('batch_code', batchCode)
+    assertOk(result, '确认分配结果失败')
     return wrap(null)
   },
 
-  async manualAllocate(studentId: string, roomId: number, bedNo: number) {
+  async manualAllocate(studentId: string, roomId: number, bedNo: number, batchCode?: string) {
     const sc = getCurrentSchool()
-    const { data: room } = await supabase.from('dormitory_rooms').select('*').eq('id', roomId).single()
+    const { data: room, error: roomError } = await supabase
+      .from('dormitory_rooms')
+      .select('*')
+      .eq('school_code', sc)
+      .eq('id', roomId)
+      .single()
+    assertOk({ error: roomError }, '加载目标房间失败')
+    if (!room) throw new Error('目标房间不存在')
+    if (room.status === 'MAINTENANCE') throw new Error('维修中的房间不能分配')
 
-    await supabase.from('allocations').delete().eq('user_id', studentId)
-    await supabase.from('allocations').insert({
+    const { data: currentAllocation, error: currentError } = await supabase
+      .from('allocations')
+      .select('*')
+      .eq('school_code', sc)
+      .eq('user_id', studentId)
+      .maybeSingle()
+    assertOk({ error: currentError }, '加载学生当前分配失败')
+
+    const { data: roomAllocations, error: allocationError } = await supabase
+      .from('allocations')
+      .select('user_id, bed_no')
+      .eq('school_code', sc)
+      .eq('room_id', roomId)
+    assertOk({ error: allocationError }, '加载房间床位失败')
+
+    const otherOccupants = (roomAllocations || []).filter((row: any) => row.user_id !== studentId)
+    if (otherOccupants.some((row: any) => Number(row.bed_no) === Number(bedNo))) {
+      throw new Error('目标床位已被占用')
+    }
+    if (otherOccupants.length >= Number(room.capacity || 0)) {
+      throw new Error('目标房间已满')
+    }
+
+    const oldRoomId = currentAllocation?.room_id
+    if (currentAllocation) {
+      const deleteResult = await supabase
+        .from('allocations')
+        .delete()
+        .eq('school_code', sc)
+        .eq('user_id', studentId)
+      assertOk(deleteResult, '移除旧分配失败')
+    }
+
+    const insertResult = await supabase.from('allocations').insert({
       school_code: sc,
       user_id: studentId,
       room_id: roomId,
       room_number: room?.room_number || '',
       bed_no: bedNo,
       allocation_type: 'MANUAL',
+      batch_code: batchCode || currentAllocation?.batch_code || `BATCH-MANUAL-${Date.now()}`,
     })
-    await supabase.from('dormitory_rooms').update({ occupied: (room?.occupied || 0) + 1 }).eq('id', roomId)
-    await supabase.from('profiles').update({ match_status: 'ALLOCATED' }).eq('id', studentId)
+    assertOk(insertResult, '写入手动分配失败')
+    const profileResult = await supabase.from('profiles').update({ match_status: 'ALLOCATED' }).eq('id', studentId)
+    assertOk(profileResult, '更新学生分配状态失败')
+
+    await recomputeRoomOccupancy(sc, [oldRoomId, roomId].filter(Boolean) as number[])
     return wrap(null)
   },
 
   async clearAllocations(batchCode?: string) {
     const sc = getCurrentSchool()
+    let existingQuery = supabase.from('allocations').select('user_id, room_id').eq('school_code', sc)
+    if (batchCode) existingQuery = existingQuery.eq('batch_code', batchCode)
+    const { data: existingRows, error: existingError } = await existingQuery
+    assertOk({ error: existingError }, '加载待清理分配失败')
+
     let q = supabase.from('allocations').delete().eq('school_code', sc)
     if (batchCode) q = q.eq('batch_code', batchCode)
-    await q
-    await supabase.from('dormitory_rooms').update({ occupied: 0, status: 'AVAILABLE' }).eq('school_code', sc)
-    await supabase.from('profiles').update({ match_status: 'WAITING' }).eq('school_code', sc).eq('role', 'STUDENT')
+    const deleteResult = await q
+    assertOk(deleteResult, '清理分配失败')
+
+    const roomIds = [...new Set((existingRows || []).map((row: any) => row.room_id).filter(Boolean))] as number[]
+    await recomputeRoomOccupancy(sc, batchCode ? roomIds : undefined)
+
+    const userIds = [...new Set((existingRows || []).map((row: any) => row.user_id).filter(Boolean))]
+    if (userIds.length > 0) {
+      const { data: stillAllocated, error: stillError } = await supabase
+        .from('allocations')
+        .select('user_id')
+        .eq('school_code', sc)
+        .in('user_id', userIds)
+      assertOk({ error: stillError }, '检查剩余分配失败')
+      const stillAllocatedIds = new Set((stillAllocated || []).map((row: any) => row.user_id))
+      const waitingIds = userIds.filter(id => !stillAllocatedIds.has(id))
+      if (waitingIds.length > 0) {
+        const updateResult = await supabase
+          .from('profiles')
+          .update({ match_status: 'WAITING' })
+          .eq('school_code', sc)
+          .eq('role', 'STUDENT')
+          .in('id', waitingIds)
+        assertOk(updateResult, '更新学生状态失败')
+      }
+    }
     return wrap(null)
   },
 
   async publishAllocations(batchCode: string) {
-    await supabase.from('allocations').update({ status: 'PUBLISHED' }).eq('batch_code', batchCode)
-    return wrap(null)
+    return this.publishResults(batchCode)
   },
 
   async finalizeAllocations(batchCode: string) {
-    await supabase.from('allocations').update({ status: 'FINALIZED' }).eq('batch_code', batchCode)
-    return wrap(null)
+    return this.finalizeResults(batchCode)
   },
 
   // ========== 异议处理 ==========

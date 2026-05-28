@@ -422,6 +422,14 @@ const allocations = ref<Allocation[]>([])
 async function loadAllocState() {
   const res = await adminApi.getAllocationResults(batchCode.value)
   allocations.value = res.data.data || []
+  if (allocations.value.length === 0 && batchCode.value === 'BATCH-001') {
+    const latest = await adminApi.getResults()
+    const latestRows = latest.data.data || []
+    if (latestRows.length > 0) {
+      allocations.value = latestRows
+      batchCode.value = latestRows[0].batchCode || batchCode.value
+    }
+  }
   const statuses = new Set(allocations.value.map(a => a.status))
   if (statuses.has('FINALIZED')) currentStep.value = 3
   else if (statuses.has('PUBLISHED')) currentStep.value = 2
@@ -568,7 +576,7 @@ async function saveManualAlloc() {
   const room = manualAllocRooms.value.find(r => r.id === manualAllocForm.roomId)
   if (!student || !room) return
 
-  await adminApi.manualAllocate(student.id, room.id, manualAllocForm.bedNo)
+  await adminApi.manualAllocate(student.id, room.id, manualAllocForm.bedNo, batchCode.value)
   await loadAllocState()
   await computeRemaining()
   if (activeBuilding.value) await loadRooms(activeBuilding.value)

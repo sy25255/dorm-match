@@ -179,8 +179,7 @@ onMounted(() => { loadStudents(); loadColleges() })
           <el-option label="正常" :value="1" />
           <el-option label="已禁用" :value="0" />
         </el-select>
-        <el-button type="primary" @click="openEdit()">新增学生</el-button>
-        <el-button @click="loadInviteCodes">邀请码</el-button>
+        <el-button type="primary" @click="loadInviteCodes">邀请学生</el-button>
       </div>
     </div>
 
