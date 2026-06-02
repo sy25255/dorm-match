@@ -19,7 +19,7 @@
 - 老师 A：`demo.teacher.a@dormmatch.cn`
 - 老师 B：`demo.teacher.b@dormmatch.cn`
 
-密码不要写进文档或聊天。老师密码由用户在登录/注册页面自己设置。
+老师密码由用户在登录/注册页面自己设置，或按新会话规则处理。
 
 ## 学生邀请码
 
