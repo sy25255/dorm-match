@@ -5,8 +5,10 @@ import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { resolve } from 'path'
 
+const basePath = process.env.VITE_BASE_PATH || '/dorm-match/'
+
 export default defineConfig({
-  base: '/dorm-match/',
+  base: basePath,
   plugins: [
     vue(),
     AutoImport({

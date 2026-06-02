@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy frontend to GitHub Pages
 
 on:
   push:
@@ -14,20 +14,44 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Type check
+        working-directory: frontend
+        run: npx vue-tsc --noEmit --pretty false
+
+      - name: Verify deployment env
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
-          git init .
-          git remote add origin https://github.com/${{ github.repository }}.git
-          git fetch --depth=1 origin ${{ github.sha }}
-          git checkout --detach FETCH_HEAD
-      - name: Prepare Pages Artifact
-        run: |
-          mkdir page-artifact
-          git fetch --depth=1 origin gh-pages
-          git archive --format=tar FETCH_HEAD | tar -x -C page-artifact
+          test -n "$VITE_SUPABASE_URL"
+          test -n "$VITE_SUPABASE_ANON_KEY"
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_BASE_PATH: /
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_ALLOW_LEGACY_SURVEY_FALLBACK: "false"
+          VITE_SHOW_TEST_ACCOUNTS: "false"
+        run: npm run build
+
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: page-artifact
+          path: frontend/dist
 
   deploy:
     needs: build

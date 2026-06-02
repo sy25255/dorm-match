@@ -28,6 +28,7 @@ const router = createRouter({
         { path: 'invites', name: 'Invites', component: () => import('@/views/Invites.vue'), meta: { title: '邀请管理' } },
         { path: 'pairing', name: 'Pairing', component: () => import('@/views/Pairing.vue'), meta: { title: '我的配对' } },
         { path: 'allocation', name: 'Allocation', component: () => import('@/views/Allocation.vue'), meta: { title: '宿舍分配结果' } },
+        { path: 'admin-activate', name: 'AdminActivate', component: () => import('@/views/admin/AdminActivate.vue'), meta: { title: '管理员激活' } },
         { path: 'profile', name: 'Profile', component: () => import('@/views/Profile.vue'), meta: { title: '个人信息' } },
         { path: 'notifications', name: 'Notifications', component: () => import('@/views/Notifications.vue'), meta: { title: '消息中心' } },
         { path: 'feedback', name: 'Feedback', component: () => import('@/views/Feedback.vue'), meta: { title: '建议反馈' } },
@@ -42,6 +43,7 @@ const router = createRouter({
         { path: 'statistics', name: 'AdminStatistics', component: () => import('@/views/admin/Statistics.vue'), meta: { title: '数据统计' } },
         { path: 'school', name: 'AdminSchool', component: () => import('@/views/admin/SchoolManage.vue'), meta: { title: '学校管理' } },
         { path: 'students', name: 'AdminStudents', component: () => import('@/views/admin/Students.vue'), meta: { title: '学生管理' } },
+        { path: 'pair-groups', name: 'AdminPairGroups', component: () => import('@/views/admin/PairGroups.vue'), meta: { title: '队伍管理' } },
         { path: 'survey', name: 'AdminSurvey', component: () => import('@/views/admin/SurveyManage.vue'), meta: { title: '问卷管理' } },
         { path: 'dormitory', name: 'AdminDormitory', component: () => import('@/views/admin/Dormitory.vue'), meta: { title: '宿舍管理' } },
         { path: 'allocation', redirect: (to: any) => `/${to.params.schoolCode}/admin/dormitory` },
@@ -72,6 +74,13 @@ const router = createRouter({
 
 let sessionRestored = false
 
+function landingPathForRole(schoolCode: string, role: string) {
+  if (role === 'DEVELOPER') return '/dev'
+  if (!schoolCode) return '/'
+  if (role === 'ADMIN') return `/${schoolCode}/admin`
+  return `/${schoolCode}/`
+}
+
 router.beforeEach(async (to, _from, next) => {
   const userStore = useUserStore()
   const storedCode = localStorage.getItem('schoolCode')
@@ -81,8 +90,7 @@ router.beforeEach(async (to, _from, next) => {
     const hasSession = await userStore.restoreSession().catch(() => false)
     if (hasSession && userStore.schoolCode) {
       if (to.path === '/' || to.name === 'SchoolEntry') {
-        const target = `/${userStore.schoolCode}${userStore.role === 'ADMIN' ? '/admin' : '/'}`
-        next(target)
+        next(landingPathForRole(userStore.schoolCode, userStore.role))
         return
       }
     }
@@ -102,7 +110,7 @@ router.beforeEach(async (to, _from, next) => {
 
   if (storedCode) {
     if (to.name === 'SchoolEntry' && (userStore.token || userStore.userId)) {
-      next(`/${storedCode}${userStore.role === 'ADMIN' || userStore.role === 'DEVELOPER' ? (userStore.role === 'DEVELOPER' ? '/admin' : '/admin') : userStore.role === 'ADMIN' ? '/admin' : '/'}`)
+      next(landingPathForRole(storedCode, userStore.role))
       return
     }
     if (scFromPath && scFromPath !== storedCode) {
@@ -118,6 +126,11 @@ router.beforeEach(async (to, _from, next) => {
       return
     }
   } else {
+    if (scFromPath) {
+      userStore.setSchoolInfo(scFromPath, localStorage.getItem('schoolName') || scFromPath)
+      next()
+      return
+    }
     if (to.name !== 'SchoolEntry' && to.path !== '/') {
       next('/')
       return
@@ -128,7 +141,7 @@ router.beforeEach(async (to, _from, next) => {
 
   if (to.meta.guest) {
     if (userStore.token || userStore.userId) {
-      next(`/${storedCode}/`)
+      next(landingPathForRole(storedCode || userStore.schoolCode, userStore.role))
       return
     }
     next()

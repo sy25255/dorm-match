@@ -5,9 +5,11 @@ import { matchApi } from '@/api/match'
 import { supabase, getCurrentUserId } from '@/lib/supabase'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
+import { useUserStore } from '@/store/user'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 const hasAnswers = computed(() => Object.keys(answers.value).length > 0)
 
@@ -69,6 +71,7 @@ const answers = ref<Record<number, string>>({})
 const supplements = ref<Record<number, string>>({})
 const currentSectionIndex = ref(0)
 const loading = ref(false)
+const sectionChanging = ref(false)
 const submitted = ref(false)
 const sectionFromDraft = ref<number | null>(null)
 
@@ -155,15 +158,21 @@ async function viewMySurvey() {
 
 const sections = ref<Section[]>([])
 
-const currentSection = computed(() => sections.value[currentSectionIndex.value] ?? sections.value[0])
+const safeSectionIndex = computed(() => {
+  if (sections.value.length === 0) return 0
+  return Math.min(Math.max(currentSectionIndex.value, 0), sections.value.length - 1)
+})
+const currentSection = computed(() => sections.value[safeSectionIndex.value] ?? sections.value[0])
 const currentQuestions = computed(() => {
   if (!currentSection.value || currentSection.value.key === 'intro') return []
   return questions.value.filter(q => currentSection.value.questionIds.includes(q.id))
 })
 const isIntroSection = computed(() => currentSection.value?.key === 'intro')
-const isLastSection = computed(() => currentSectionIndex.value >= sections.value.length - 1)
-const isFirstSection = computed(() => currentSectionIndex.value === 0)
+const isLastSection = computed(() => safeSectionIndex.value >= sections.value.length - 1)
+const isFirstSection = computed(() => safeSectionIndex.value === 0)
 const totalSections = computed(() => sections.value.length)
+const overallProgress = computed(() => totalSections.value ? Math.round((safeSectionIndex.value + 1) / totalSections.value * 100) : 0)
+const schoolName = computed(() => userStore.schoolName || localStorage.getItem('schoolName') || (route.params.schoolCode as string))
 
 const answeredInSection = computed(() => {
   if (isIntroSection.value) {
@@ -186,6 +195,10 @@ const requiredInSection = computed(() => {
 const allRequiredAnswered = computed(() => {
   if (isIntroSection.value) return true
   return requiredInSection.value.every(q => answers.value[q.id])
+})
+const unansweredRequiredCount = computed(() => {
+  if (isIntroSection.value) return 0
+  return requiredInSection.value.filter(q => !answers.value[q.id]).length
 })
 
 const bioCharCount = computed(() => (selfIntro.value.bio || '').replace(/\s/g, '').length)
@@ -336,30 +349,49 @@ function toggleMulti(questionId: number, value: string) {
 }
 
 async function previousSection() {
+  if (sectionChanging.value) return
   if (currentSectionIndex.value > 0) {
-    await saveDraft()
-    currentSectionIndex.value--
-    localStorage.setItem('demo_survey_section', String(currentSectionIndex.value))
+    sectionChanging.value = true
+    try {
+      await saveDraft()
+      currentSectionIndex.value = Math.max(0, currentSectionIndex.value - 1)
+      localStorage.setItem('demo_survey_section', String(currentSectionIndex.value))
+    } finally {
+      sectionChanging.value = false
+    }
   }
 }
 
 async function nextSection() {
+  if (sectionChanging.value) return
   if (!allRequiredAnswered.value) {
     const count = requiredInSection.value.filter(q => !answers.value[q.id]).length
     ElMessage.warning(`还有 ${count} 道必答题未作答，请先完成所有标注 *必答 的题目`)
     return
   }
   if (currentSectionIndex.value < sections.value.length - 1) {
-    await saveDraft()
-    currentSectionIndex.value++
-    localStorage.setItem('demo_survey_section', String(currentSectionIndex.value))
+    sectionChanging.value = true
+    try {
+      await saveDraft()
+      currentSectionIndex.value = Math.min(sections.value.length - 1, currentSectionIndex.value + 1)
+      localStorage.setItem('demo_survey_section', String(currentSectionIndex.value))
+    } finally {
+      sectionChanging.value = false
+    }
   }
 }
 
 async function gotoSection(idx: number) {
-  await saveDraft()
-  currentSectionIndex.value = idx
-  localStorage.setItem('demo_survey_section', String(idx))
+  if (sectionChanging.value) return
+  const nextIdx = Math.min(Math.max(idx, 0), Math.max(0, sections.value.length - 1))
+  sectionChanging.value = true
+  try {
+    await saveDraft()
+    currentSectionIndex.value = nextIdx
+    localStorage.setItem('demo_survey_section', String(nextIdx))
+  } finally {
+    sectionChanging.value = false
+  }
 }
 
 async function saveDraft() {
@@ -446,9 +478,16 @@ async function handleSubmit() {
 
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <h1>偏好调查问卷</h1>
-      <p>请认真如实填写，这将帮助系统精准匹配与你最合拍的舍友（预计约12-15分钟）</p>
+    <div class="survey-hero">
+      <div>
+        <p class="eyebrow">{{ schoolName }} · 问卷会用于当前学校匹配</p>
+        <h1>偏好调查问卷</h1>
+        <p>题目较多是为了让宿舍匹配更准确。系统会自动保存草稿，你可以按分组逐步完成。</p>
+      </div>
+      <div class="hero-progress">
+        <el-progress type="circle" :percentage="overallProgress" :width="86" />
+        <span>第 {{ safeSectionIndex + 1 }} / {{ totalSections || 1 }} 部分</span>
+      </div>
     </div>
 
     <div v-if="submitted" class="submitted-box">
@@ -461,13 +500,15 @@ async function handleSubmit() {
     </div>
 
     <template v-else-if="sections.length > 0">
-      <el-progress
-        :percentage="Math.round((currentSectionIndex + 1) / totalSections * 100)"
-        :stroke-width="8"
-        class="survey-progress"
-      />
+      <div class="progress-panel">
+        <div class="progress-copy">
+          <strong>{{ currentSection?.title || '问卷' }}</strong>
+          <span>{{ currentSection?.desc || '请按真实情况填写' }}</span>
+        </div>
+        <el-progress :percentage="overallProgress" :stroke-width="8" class="survey-progress" />
+      </div>
 
-      <div class="section-nav">
+      <div class="section-nav" aria-label="问卷分组导航">
         <el-tag
           v-for="(sec, idx) in sections"
           :key="sec.key"
@@ -475,10 +516,10 @@ async function handleSubmit() {
           :effect="idx === currentSectionIndex ? 'dark' : 'plain'"
           :type="idx < currentSectionIndex ? 'success' : idx === currentSectionIndex ? 'primary' : 'info'"
           class="section-tag"
-          @click="idx <= currentSectionIndex ? gotoSection(idx) : undefined"
-          :style="{ cursor: idx <= currentSectionIndex ? 'pointer' : 'default' }"
+          @click="idx <= safeSectionIndex ? gotoSection(idx) : undefined"
+          :style="{ cursor: idx <= safeSectionIndex ? 'pointer' : 'default' }"
         >
-          <template v-if="idx < currentSectionIndex">✓</template>
+          <template v-if="idx < safeSectionIndex">✓</template>
           {{ sec.title }}
         </el-tag>
       </div>
@@ -492,7 +533,9 @@ async function handleSubmit() {
 
         <el-card class="survey-card">
           <div class="step-indicator">
-            第 {{ currentSectionIndex + 1 }} / {{ totalSections }} 部分（本部分 {{ answeredInSection }}/{{ totalInSection }} 已答）
+            <span>本部分 {{ answeredInSection }}/{{ totalInSection }} 已答</span>
+            <span v-if="unansweredRequiredCount > 0">还差 {{ unansweredRequiredCount }} 道必答题</span>
+            <span v-else>本部分必答题已完成</span>
           </div>
           <el-divider />
 
@@ -603,10 +646,10 @@ async function handleSubmit() {
           <el-divider />
 
           <div class="survey-actions">
-            <el-button @click="previousSection" :disabled="isFirstSection">上一部分</el-button>
-            <el-button @click="saveDraft" type="info" plain>暂存草稿</el-button>
-            <el-button v-if="!isLastSection" type="primary" @click="nextSection">下一部分</el-button>
-            <el-button v-else type="primary" :loading="loading" @click="handleSubmit">前往自我介绍</el-button>
+            <el-button @click="previousSection" :disabled="isFirstSection || sectionChanging">上一部分</el-button>
+            <el-button @click="saveDraft" type="info" plain :disabled="sectionChanging">暂存草稿</el-button>
+            <el-button v-if="!isLastSection" type="primary" :loading="sectionChanging" @click="nextSection">下一部分</el-button>
+            <el-button v-else type="primary" :loading="loading" :disabled="sectionChanging" @click="handleSubmit">前往自我介绍</el-button>
           </div>
 
           <template v-if="currentSection.key === 'lifestyle'">
@@ -715,9 +758,9 @@ async function handleSubmit() {
           <el-divider />
 
           <div class="survey-actions">
-            <el-button @click="previousSection">上一部分</el-button>
-            <el-button @click="saveDraft" type="info" plain>暂存草稿</el-button>
-            <el-button type="primary" :loading="loading" @click="handleSubmit">提交问卷</el-button>
+            <el-button @click="previousSection" :disabled="sectionChanging">上一部分</el-button>
+            <el-button @click="saveDraft" type="info" plain :disabled="sectionChanging">暂存草稿</el-button>
+            <el-button type="primary" :loading="loading" :disabled="sectionChanging" @click="handleSubmit">提交问卷</el-button>
           </div>
         </el-card>
       </template>
@@ -765,15 +808,88 @@ async function handleSubmit() {
 </template>
 
 <style scoped>
-.survey-progress {
+.survey-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px;
+  margin-bottom: 18px;
+  background: #fff;
+  border: 1px solid #dfe5ef;
+  border-radius: 8px;
+}
+
+.survey-hero h1 {
+  margin: 0;
+  color: #172033;
+  font-size: 26px;
+}
+
+.survey-hero p {
+  margin: 8px 0 0;
+  color: #667085;
+  line-height: 1.6;
+}
+
+.eyebrow {
+  margin: 0 0 6px !important;
+  color: #2563eb !important;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hero-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  color: #667085;
+  font-size: 13px;
+}
+
+.progress-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
   margin-bottom: 12px;
+  background: #f8fafc;
+  border: 1px solid #dfe5ef;
+  border-radius: 8px;
+}
+
+.progress-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 220px;
+}
+
+.progress-copy strong {
+  color: #172033;
+}
+
+.progress-copy span {
+  color: #667085;
+  font-size: 13px;
+}
+
+.survey-progress {
+  flex: 1;
+  min-width: 220px;
+  margin: 0;
 }
 
 .section-nav {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  padding: 12px;
   margin-bottom: 20px;
+  background: #fff;
+  border: 1px solid #dfe5ef;
+  border-radius: 8px;
 }
 
 .section-tag {
@@ -785,9 +901,9 @@ async function handleSubmit() {
   margin-bottom: 16px;
   padding: 16px 20px;
   background: #fff;
-  border-radius: 10px;
+  border-radius: 8px;
   border-left: 4px solid var(--sec-color, #1890ff);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: none;
 }
 
 .section-header h2 {
@@ -803,17 +919,30 @@ async function handleSubmit() {
 }
 
 .survey-card {
-  max-width: 800px;
+  max-width: 860px;
+  border-radius: 8px;
 }
 
 .step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 13px;
-  color: #86909c;
-  text-align: center;
+  color: #667085;
 }
 
 .question-item {
+  padding: 18px;
   margin-bottom: 28px;
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
 }
 
 .q-header {
@@ -941,8 +1070,9 @@ async function handleSubmit() {
 
 .survey-actions {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .submitted-box {
@@ -1083,7 +1213,7 @@ async function handleSubmit() {
   border-bottom: none;
 }
 
-.q-text {
+.survey-q-item .q-text {
   font-size: 14px;
   font-weight: 500;
   color: #303133;
@@ -1103,5 +1233,35 @@ async function handleSubmit() {
 .q-answer-value {
   color: #409eff;
   font-weight: 500;
+}
+
+@media (max-width: 760px) {
+  .survey-hero,
+  .progress-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hero-progress {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .survey-progress,
+  .progress-copy,
+  .survey-card {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .step-indicator {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .question-item {
+    padding: 14px;
+  }
 }
 </style>

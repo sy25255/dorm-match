@@ -7,6 +7,7 @@ const config = ref<any>({})
 const colleges = ref<any[]>([])
 const majors = ref<any[]>([])
 const classes = ref<any[]>([])
+const inviteCodes = ref<any[]>([])
 
 const collegeDialog = ref(false)
 const majorDialog = ref(false)
@@ -18,6 +19,7 @@ const isEditClass = ref(false)
 const collegeForm = ref({ id: null as number | null, name: '', code: '', description: '' })
 const majorForm = ref({ id: null as number | null, collegeId: null as number | null, name: '', code: '' })
 const classForm = ref({ id: null as number | null, majorId: null as number | null, name: '', grade: 2024 })
+const inviteForm = ref({ name: '新生入学邀请码', code: '', maxUses: 200 })
 
 const selectedCollegeId = ref<number | null>(null)
 const selectedMajorId = ref<number | null>(null)
@@ -68,6 +70,32 @@ async function loadClasses(majorId: number) {
     classes.value = res.data.data || []
   } catch (error: any) {
     ElMessage.error(error?.message || '加载班级失败')
+  }
+}
+
+async function loadInviteCodes() {
+  try {
+    const res = await schoolApi.getStudentInviteCodes()
+    inviteCodes.value = res.data.data || []
+  } catch (error: any) {
+    ElMessage.warning(error?.message || '加载学生邀请码失败')
+  }
+}
+
+function generateInviteCode() {
+  const sc = String(config.value.schoolCode || 'SCHOOL').replace(/[^A-Z0-9]/gi, '').toUpperCase()
+  inviteForm.value.code = `${sc}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+}
+
+async function createInviteCode() {
+  try {
+    if (!inviteForm.value.code.trim()) generateInviteCode()
+    await schoolApi.createStudentInviteCode(inviteForm.value)
+    ElMessage.success('学生邀请码已创建')
+    generateInviteCode()
+    await loadInviteCodes()
+  } catch (error: any) {
+    ElMessage.warning(error?.message || '学生邀请码创建失败')
   }
 }
 
@@ -172,6 +200,8 @@ async function selectMajor(row: any) {
 
 onMounted(async () => {
   await loadConfig()
+  generateInviteCode()
+  await loadInviteCodes()
   await loadColleges()
 })
 </script>
@@ -202,6 +232,50 @@ onMounted(async () => {
           <el-button type="primary" @click="saveConfig">保存学校信息</el-button>
         </el-col>
       </el-row>
+    </el-card>
+
+    <el-card style="margin-bottom:16px">
+      <template #header><span style="font-weight:600">学生入学邀请码</span></template>
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        title="正式流程：学校先生成邀请码，再发给本校新生。学生必须凭邀请码进入问卷和舍友选择流程。"
+        style="margin-bottom:12px"
+      />
+      <el-row :gutter="16">
+        <el-col :span="8">
+          <el-form-item label="批次名称">
+            <el-input v-model="inviteForm.name" placeholder="如：2026级本科新生" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="8">
+          <el-form-item label="邀请码">
+            <el-input v-model="inviteForm.code" placeholder="自动生成或手动填写">
+              <template #append>
+                <el-button @click="generateInviteCode">生成</el-button>
+              </template>
+            </el-input>
+          </el-form-item>
+        </el-col>
+        <el-col :span="5">
+          <el-form-item label="最多使用次数">
+            <el-input-number v-model="inviteForm.maxUses" :min="1" :max="10000" style="width:100%" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="3" style="display:flex;align-items:flex-end;padding-bottom:18px">
+          <el-button type="primary" @click="createInviteCode">创建</el-button>
+        </el-col>
+      </el-row>
+      <el-table :data="inviteCodes" size="small" border>
+        <el-table-column prop="name" label="批次" min-width="160" />
+        <el-table-column prop="code" label="邀请码" min-width="180" />
+        <el-table-column label="使用情况" width="120">
+          <template #default="{ row }">{{ row.used_count || 0 }} / {{ row.max_uses || '不限' }}</template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="100" />
+        <el-table-column prop="created_at" label="创建时间" min-width="170" />
+      </el-table>
     </el-card>
 
     <el-row :gutter="16">

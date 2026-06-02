@@ -1,4 +1,5 @@
 import { supabase, getCurrentSchool } from '@/lib/supabase'
+import { getDefaultRoomCapacity } from '@/api/dormitory'
 
 const wrap = (data: any) => ({ data: { code: 200, message: 'ok', data } })
 
@@ -593,7 +594,11 @@ export const adminApi = {
       .update({ status: 'PUBLISHED' })
       .eq('school_code', sc)
       .eq('batch_code', batchCode)
+      .select('id')
     assertOk(result, '发布分配结果失败')
+    if (!result.data?.length) {
+      throw new Error('未找到当前批次的分配记录，发布未生效')
+    }
     return wrap(null)
   },
 
@@ -604,7 +609,11 @@ export const adminApi = {
       .update({ status: 'FINALIZED' })
       .eq('school_code', sc)
       .eq('batch_code', batchCode)
+      .select('id')
     assertOk(result, '确认分配结果失败')
+    if (!result.data?.length) {
+      throw new Error('未找到当前批次的分配记录，确认未生效')
+    }
     return wrap(null)
   },
 
@@ -774,6 +783,177 @@ export const adminApi = {
       assertOk(result, '更新题目状态失败')
     }
     return wrap(null)
+  },
+
+  async getPairGroups() {
+    const sc = getCurrentSchool()
+    const defaultCapacity = await getDefaultRoomCapacity()
+    const { data: groups, error: groupError } = await supabase
+      .from('pair_groups')
+      .select('*')
+      .eq('school_code', sc)
+      .order('created_at', { ascending: false })
+    assertOk({ error: groupError }, '加载配对组失败')
+
+    const groupRows = groups || []
+    if (groupRows.length === 0) return wrap([])
+
+    const groupIds = groupRows.map((g: any) => g.id)
+    const { data: members, error: memberError } = await supabase
+      .from('pair_members')
+      .select('group_id, user_id, is_initiator')
+      .in('group_id', groupIds)
+    assertOk({ error: memberError }, '加载配对成员失败')
+
+    const userIds = [...new Set((members || []).map((m: any) => m.user_id).filter(Boolean))]
+    const { data: profiles, error: profileError } = userIds.length
+      ? await supabase
+        .from('profiles')
+        .select('id, name, student_no, college_name, major_name, class_name, match_status')
+        .in('id', userIds)
+      : { data: [], error: null }
+    assertOk({ error: profileError }, '加载学生信息失败')
+
+    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]))
+    const membersByGroup = new Map<number, any[]>()
+    for (const member of members || []) {
+      if (!membersByGroup.has(member.group_id)) membersByGroup.set(member.group_id, [])
+      const profile = (profileMap.get(member.user_id) || {}) as any
+      membersByGroup.get(member.group_id)!.push({
+        studentId: member.user_id,
+        isInitiator: member.is_initiator || 0,
+        name: profile.name || '',
+        studentNo: profile.student_no || '',
+        collegeName: profile.college_name || '',
+        majorName: profile.major_name || '',
+        className: profile.class_name || '',
+        matchStatus: profile.match_status || '',
+      })
+    }
+
+    return wrap(groupRows.map((group: any) => {
+      const groupMembers = membersByGroup.get(group.id) || []
+      return {
+        ...group,
+        pairingCode: group.pairing_code || `PAIR-${String(group.id).padStart(4, '0')}`,
+        groupSize: groupMembers.length,
+        capacity: group.capacity || defaultCapacity,
+        status: group.status ?? 1,
+        createdAt: group.created_at || '',
+        members: groupMembers,
+      }
+    }))
+  },
+
+  async getUnpairedCompletedStudents() {
+    const sc = getCurrentSchool()
+    const { data: students, error: studentError } = await supabase
+      .from('profiles')
+      .select('id, name, student_no, college_name, major_name, class_name, survey_status, match_status, created_at')
+      .eq('school_code', sc)
+      .eq('role', 'STUDENT')
+      .order('created_at', { ascending: true })
+    assertOk({ error: studentError }, '加载未组队学生失败')
+
+    const studentRows = (students || []).filter((s: any) => surveyStatusToNumber(s.survey_status) === 2)
+    if (studentRows.length === 0) return wrap([])
+
+    const { data: members, error: memberError } = await supabase
+      .from('pair_members')
+      .select('user_id')
+      .in('user_id', studentRows.map((s: any) => s.id))
+    assertOk({ error: memberError }, '加载队伍成员失败')
+
+    const pairedIds = new Set((members || []).map((m: any) => m.user_id))
+    return wrap(studentRows.filter((s: any) => !pairedIds.has(s.id)).map(normalizeStudent))
+  },
+
+  async autoCompletePairGroups() {
+    const sc = getCurrentSchool()
+    const capacity = await getDefaultRoomCapacity()
+    const res = await this.getUnpairedCompletedStudents()
+    const students = res.data.data || []
+    let createdGroups = 0
+    let assignedStudents = 0
+
+    for (let i = 0; i < students.length; i += capacity) {
+      const chunk = students.slice(i, i + capacity)
+      if (chunk.length === 0) continue
+      const { data: group, error: groupError } = await supabase
+        .from('pair_groups')
+        .insert({ school_code: sc, status: 2 })
+        .select('id')
+        .single()
+      assertOk({ error: groupError }, '创建补全队伍失败')
+
+      const memberRows = chunk.map((student: any, index: number) => ({
+        group_id: group.id,
+        user_id: student.id,
+        is_initiator: index === 0 ? 1 : 0,
+      }))
+      const memberResult = await supabase.from('pair_members').insert(memberRows)
+      assertOk(memberResult, '写入补全队伍成员失败')
+      const profileResult = await supabase
+        .from('profiles')
+        .update({ match_status: 'PAIRED' })
+        .in('id', chunk.map((student: any) => student.id))
+      assertOk(profileResult, '更新学生组队状态失败')
+      createdGroups += 1
+      assignedStudents += chunk.length
+    }
+
+    return wrap({ createdGroups, assignedStudents })
+  },
+
+  async confirmPairGroups() {
+    const sc = getCurrentSchool()
+    const result = await supabase
+      .from('pair_groups')
+      .update({ status: 2 })
+      .eq('school_code', sc)
+      .eq('status', 1)
+    assertOk(result, '确认队伍失败')
+    return wrap(null)
+  },
+
+  async getAcceptedInvitesWithoutGroups() {
+    const sc = getCurrentSchool()
+    const { data: invites, error: inviteError } = await supabase
+      .from('invites')
+      .select('*')
+      .eq('school_code', sc)
+      .eq('status', 1)
+      .order('created_at', { ascending: false })
+    assertOk({ error: inviteError }, '加载已接受邀请失败')
+
+    const accepted = invites || []
+    if (accepted.length === 0) return wrap([])
+
+    const userIds = [...new Set(accepted.flatMap((i: any) => [i.from_user_id, i.to_user_id]).filter(Boolean))]
+    const { data: pairMembers, error: memberError } = await supabase
+      .from('pair_members')
+      .select('user_id')
+      .in('user_id', userIds)
+    assertOk({ error: memberError }, '加载配对成员失败')
+
+    const pairedIds = new Set((pairMembers || []).map((m: any) => m.user_id))
+    const broken = accepted.filter((invite: any) => !pairedIds.has(invite.from_user_id) || !pairedIds.has(invite.to_user_id))
+    if (broken.length === 0) return wrap([])
+
+    const brokenUserIds = [...new Set(broken.flatMap((i: any) => [i.from_user_id, i.to_user_id]).filter(Boolean))]
+    const { data: profiles } = brokenUserIds.length
+      ? await supabase.from('profiles').select('id, name, student_no').in('id', brokenUserIds)
+      : { data: [] }
+    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]))
+
+    return wrap(broken.map((invite: any) => ({
+      ...invite,
+      fromName: (profileMap.get(invite.from_user_id) as any)?.name || '',
+      toName: (profileMap.get(invite.to_user_id) as any)?.name || '',
+      fromStudentNo: (profileMap.get(invite.from_user_id) as any)?.student_no || '',
+      toStudentNo: (profileMap.get(invite.to_user_id) as any)?.student_no || '',
+      createdAt: invite.created_at || '',
+    })))
   },
 
   async deleteQuestion(id: number) {

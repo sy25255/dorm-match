@@ -25,6 +25,164 @@ function mapPairGroup(group: any, groupSize = 0) {
   }
 }
 
+function canFallbackFromMissingRpc(error: any) {
+  const message = `${error?.message || ''} ${error?.details || ''}`
+  return /Could not find the function|schema cache|does not exist|not exist/i.test(message)
+}
+
+async function ensurePairingForInvite(invite: any) {
+  if (!invite?.from_user_id || !invite?.to_user_id) {
+    throw new Error('邀请缺少学生信息，无法创建配对组')
+  }
+
+  const capacity = await getDefaultRoomCapacity()
+  const memberIds = [String(invite.from_user_id), String(invite.to_user_id)]
+  const { data: existingMembers, error: existingError } = await supabase
+    .from('pair_members')
+    .select('group_id, user_id')
+    .in('user_id', memberIds)
+
+  if (existingError) throw existingError
+
+  const currentMembers = existingMembers || []
+  const fromMember = currentMembers.find((m: any) => m.user_id === invite.from_user_id)
+  const toMember = currentMembers.find((m: any) => m.user_id === invite.to_user_id)
+
+  if (fromMember?.group_id && toMember?.group_id && fromMember.group_id !== toMember.group_id) {
+    throw new Error('双方已在不同配对组，不能合并')
+  }
+
+  let groupId = fromMember?.group_id || toMember?.group_id
+
+  if (!groupId) {
+    const { data: group, error: groupError } = await supabase
+      .from('pair_groups')
+      .insert({
+        school_code: invite.school_code || getCurrentSchool(),
+        status: 1,
+      })
+      .select('id')
+      .single()
+
+    if (groupError) throw groupError
+    groupId = group?.id
+  }
+
+  if (!groupId) throw new Error('配对组创建失败')
+
+  const { count, error: countError } = await supabase
+    .from('pair_members')
+    .select('*', { count: 'exact', head: true })
+    .eq('group_id', groupId)
+
+  if (countError) throw countError
+
+  const alreadyInGroup = new Set(currentMembers
+    .filter((member: any) => member.group_id === groupId)
+    .map((member: any) => String(member.user_id)))
+  const additions = memberIds.filter(id => !alreadyInGroup.has(id)).length
+
+  if ((count || 0) + additions > capacity) throw new Error('当前配对组已满')
+
+  const { error: memberError } = await supabase.from('pair_members').upsert([
+    { group_id: groupId, user_id: invite.from_user_id, is_initiator: 1 },
+    { group_id: groupId, user_id: invite.to_user_id, is_initiator: 0 },
+  ], { onConflict: 'group_id,user_id' })
+
+  if (memberError) throw memberError
+
+  await supabase
+    .from('profiles')
+    .update({ match_status: 'PAIRED' })
+    .in('id', memberIds)
+
+  return groupId
+}
+
+async function getPairMemberRowsForUser(uid: string) {
+  const { data: members, error: memberError } = await supabase
+    .from('pair_members')
+    .select('group_id')
+    .eq('user_id', uid)
+
+  if (memberError) throw memberError
+  if (members && members.length > 0) return members
+
+    const { data: acceptedInvites, error: acceptedError } = await supabase
+      .from('invites')
+      .select('*')
+      .or(`from_user_id.eq.${uid},to_user_id.eq.${uid}`)
+      .eq('status', 1)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+  if (acceptedError) throw acceptedError
+  const acceptedInvite = acceptedInvites?.[0]
+  if (!acceptedInvite) return []
+
+  try {
+    await ensurePairingForInvite(acceptedInvite)
+  } catch {
+    return []
+  }
+
+  const { data: repairedMembers, error: repairedError } = await supabase
+    .from('pair_members')
+    .select('group_id')
+    .eq('user_id', uid)
+
+  if (repairedError) throw repairedError
+  return repairedMembers || []
+}
+
+async function getLatestAcceptedInviteForUser(uid: string) {
+  const { data, error } = await supabase
+    .from('invites')
+    .select('*')
+    .or(`from_user_id.eq.${uid},to_user_id.eq.${uid}`)
+    .eq('status', 1)
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  if (error) throw error
+  return data?.[0] || null
+}
+
+async function mapInviteToPairing(invite: any) {
+  if (!invite) return null
+  const capacity = await getDefaultRoomCapacity()
+  return {
+    id: `invite-${invite.id}`,
+    school_code: invite.school_code || getCurrentSchool(),
+    pairingCode: `INV-${String(invite.id).padStart(4, '0')}`,
+    groupSize: 2,
+    capacity,
+    status: 1,
+    createdAt: invite.created_at || '',
+    source: 'accepted_invite',
+  }
+}
+
+async function getInvitePairingMembers(invite: any) {
+  if (!invite?.from_user_id || !invite?.to_user_id) return []
+  const ids = [invite.from_user_id, invite.to_user_id]
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select('id, name, avatar_url, college_name, major_name')
+    .in('id', ids)
+
+  if (error) throw error
+  const profileMap = new Map<string, any>((profiles || []).map((p: any) => [p.id, p]))
+  return ids.map((id, index) => ({
+    studentId: id,
+    name: profileMap.get(id)?.name || '',
+    avatarUrl: profileMap.get(id)?.avatar_url || '',
+    collegeName: profileMap.get(id)?.college_name || '',
+    majorName: profileMap.get(id)?.major_name || '',
+    isInitiator: index === 0 ? 1 : 0,
+  }))
+}
+
 export const inviteApi = {
   async send(data: { targetId: string | number; message: string }) {
     const uid = getCurrentUserId()
@@ -35,13 +193,15 @@ export const inviteApi = {
       throw new Error('不能向自己发送邀请')
     }
 
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from('invites')
       .select('id')
       .or(`and(from_user_id.eq.${uid},to_user_id.eq.${targetId}),and(from_user_id.eq.${targetId},to_user_id.eq.${uid})`)
       .eq('status', 0)
       .gt('expires_at', new Date().toISOString())
       .limit(1)
+
+    if (existingError) throw existingError
 
     if ((existing || []).length > 0) {
       throw new Error('已经发送过待处理邀请')
@@ -55,71 +215,34 @@ export const inviteApi = {
       status: 0,
       expires_at: new Date(Date.now() + 72 * 3600000).toISOString(),
     }).select('id').single()
+    if (result.error) throw result.error
     return wrap(result.data)
   },
 
   async accept(inviteId: number) {
+    const rpcResult = await supabase.rpc('accept_invite_and_create_pairing', { p_invite_id: inviteId })
+    if (!rpcResult.error) return wrap(rpcResult.data || null)
+    if (!canFallbackFromMissingRpc(rpcResult.error)) throw rpcResult.error
+
     const { data: invite } = await supabase.from('invites').select('*').eq('id', inviteId).single()
     if (!invite || invite.status !== 0) throw new Error('邀请状态已变化')
     if (invite.expires_at && new Date(invite.expires_at) <= new Date()) {
       await supabase.from('invites').update({ status: 3 }).eq('id', inviteId)
       throw new Error('邀请已过期')
     }
-    if (invite?.from_user_id && invite?.to_user_id) {
-      const fallbackCapacity = await getDefaultRoomCapacity()
-      const memberIds = [invite.from_user_id, invite.to_user_id]
-      const { data: existingMembers } = await supabase
-        .from('pair_members')
-        .select('group_id, user_id')
-        .in('user_id', memberIds)
+    const { error: updateError } = await supabase
+      .from('invites')
+      .update({ status: 1 })
+      .eq('id', inviteId)
+    if (updateError) throw updateError
 
-      const currentMembers = existingMembers || []
-      const fromMember = currentMembers.find((m: any) => m.user_id === invite.from_user_id)
-      const toMember = currentMembers.find((m: any) => m.user_id === invite.to_user_id)
-      if (fromMember?.group_id && toMember?.group_id && fromMember.group_id !== toMember.group_id) {
-        throw new Error('双方已在不同配对组，不能合并')
-      }
-
-      let capacity = fallbackCapacity
-      let groupId = fromMember?.group_id || toMember?.group_id
-      if (!groupId) {
-        const { data: group } = await supabase
-          .from('pair_groups')
-          .insert({
-            school_code: invite.school_code || getCurrentSchool(),
-            status: 1,
-            capacity,
-          })
-          .select('id')
-          .single()
-        groupId = group?.id
-      } else {
-        const { data: group } = await supabase
-          .from('pair_groups')
-          .select('capacity')
-          .eq('id', groupId)
-          .single()
-        capacity = Number(group?.capacity) || fallbackCapacity
-      }
-
-      if (groupId) {
-        const { count } = await supabase
-          .from('pair_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('group_id', groupId)
-        const alreadyInGroup = new Set(currentMembers
-          .filter((member: any) => member.group_id === groupId)
-          .map((member: any) => member.user_id))
-        const additions = memberIds.filter(id => !alreadyInGroup.has(id)).length
-        if ((count || 0) + additions > capacity) throw new Error('当前配对组已满')
-        await supabase.from('pair_members').upsert([
-          { group_id: groupId, user_id: invite.from_user_id, is_initiator: 1 },
-          { group_id: groupId, user_id: invite.to_user_id, is_initiator: 0 },
-        ], { onConflict: 'group_id,user_id' })
-      }
+    let groupId: any = null
+    try {
+      groupId = await ensurePairingForInvite({ ...invite, status: 1 })
+    } catch {
+      groupId = null
     }
-    await supabase.from('invites').update({ status: 1 }).eq('id', inviteId)
-    return wrap(null)
+    return wrap({ groupId })
   },
 
   async reject(inviteId: number) {
@@ -177,12 +300,11 @@ export const inviteApi = {
     const uid = getCurrentUserId()
     const sc = getCurrentSchool()
 
-    const { data: members } = await supabase
-      .from('pair_members')
-      .select('group_id')
-      .eq('user_id', uid)
-
-    if (!members || members.length === 0) return wrap(null)
+    const members = await getPairMemberRowsForUser(uid)
+    if (!members || members.length === 0) {
+      const acceptedInvite = await getLatestAcceptedInviteForUser(uid)
+      return wrap(await mapInviteToPairing(acceptedInvite))
+    }
 
     const groupIds = (members as any[]).map((m: any) => m.group_id)
     const { data: groups } = await supabase
@@ -202,16 +324,72 @@ export const inviteApi = {
     return wrap(mapPairGroup(group, count || 0))
   },
 
+  async getPairingDiagnostics() {
+    const uid = getCurrentUserId()
+    const sc = getCurrentSchool()
+    if (!uid) return wrap({ hasUser: false, acceptedInvites: [], pairMembers: [], groups: [] })
+
+    const { data: acceptedInvites, error: inviteError } = await supabase
+      .from('invites')
+      .select('*')
+      .or(`from_user_id.eq.${uid},to_user_id.eq.${uid}`)
+      .eq('status', 1)
+      .order('created_at', { ascending: false })
+
+    if (inviteError) throw inviteError
+
+    const { data: pairMembers, error: memberError } = await supabase
+      .from('pair_members')
+      .select('group_id, user_id, is_initiator')
+      .eq('user_id', uid)
+
+    if (memberError) throw memberError
+
+    const groupIds = [...new Set((pairMembers || []).map((m: any) => m.group_id).filter(Boolean))]
+    const { data: groups, error: groupError } = groupIds.length
+      ? await supabase.from('pair_groups').select('*').in('id', groupIds).eq('school_code', sc)
+      : { data: [], error: null }
+
+    if (groupError) throw groupError
+
+    return wrap({
+      hasUser: true,
+      acceptedInvites: (acceptedInvites || []).map(mapInvite),
+      pairMembers: pairMembers || [],
+      groups: groups || [],
+      canRepair: (acceptedInvites || []).length > 0 && (pairMembers || []).length === 0,
+    })
+  },
+
+  async repairCurrentPairing() {
+    const uid = getCurrentUserId()
+    if (!uid) throw new Error('当前登录状态无效')
+
+    const { data: acceptedInvites, error: inviteError } = await supabase
+      .from('invites')
+      .select('*')
+      .or(`from_user_id.eq.${uid},to_user_id.eq.${uid}`)
+      .eq('status', 1)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (inviteError) throw inviteError
+    const invite = acceptedInvites?.[0]
+    if (!invite) throw new Error('没有找到已接受的邀请，无法修复配对组')
+
+    const groupId = await ensurePairingForInvite(invite)
+    return wrap({ groupId })
+  },
+
   async getPairingMembers() {
     const uid = getCurrentUserId()
     const sc = getCurrentSchool()
 
-    const { data: members } = await supabase
-      .from('pair_members')
-      .select('group_id')
-      .eq('user_id', uid)
-
-    if (!members || members.length === 0) return wrap([])
+    const members = await getPairMemberRowsForUser(uid)
+    if (!members || members.length === 0) {
+      const acceptedInvite = await getLatestAcceptedInviteForUser(uid)
+      return wrap(await getInvitePairingMembers(acceptedInvite))
+    }
 
     const groupIds = (members as any[]).map((m: any) => m.group_id)
     const { data: allMembers } = await supabase

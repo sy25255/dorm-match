@@ -55,6 +55,15 @@ export const authApi = {
     if (error) throw error
   },
 
+  async claimAdminInvite(schoolCode: string, token: string) {
+    const { data, error } = await supabase.rpc('claim_admin_invite', {
+      p_school_code: schoolCode,
+      p_token: token,
+    })
+    if (error) throw error
+    return data
+  },
+
   async getProfile(userId: string) {
     const { data, error } = await supabase
       .from('profiles')

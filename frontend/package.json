@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:stable": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-local-preview.ps1",
     "build": "vite build",
     "preview": "vite preview",
     "seed": "node scripts/seed-test-users.js"

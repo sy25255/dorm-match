@@ -3,25 +3,59 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { computed, ref, onMounted } from 'vue'
 import { notificationApi } from '@/api/notification'
+import {
+  Bell,
+  ChatLineSquare,
+  Connection,
+  Edit,
+  Expand,
+  Fold,
+  HomeFilled,
+  Message,
+  OfficeBuilding,
+  School,
+  Search,
+  Setting,
+  UserFilled,
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const activeMenu = computed(() => route.path)
 const unreadCount = ref(0)
 const menuOpen = ref(false)
 
 const schoolCode = computed(() => route.params.schoolCode as string || userStore.schoolCode || '')
 const basePath = computed(() => `/${schoolCode.value}`)
+const schoolName = computed(() => userStore.schoolName || localStorage.getItem('schoolName') || schoolCode.value || '当前学校')
+const activeMenu = computed(() => route.path)
+const pageTitle = computed(() => route.meta.title as string || '学生工作台')
+const roleLabel = computed(() => {
+  if (userStore.role === 'ADMIN') return '管理员'
+  if (userStore.role === 'DEVELOPER') return '开发者'
+  return '学生'
+})
 
-const asideWidth = computed(() => menuOpen.value ? '220px' : '0px')
+const menuItems = computed(() => [
+  { path: `${basePath.value}/`, label: '首页', icon: HomeFilled },
+  { path: `${basePath.value}/survey`, label: '偏好问卷', icon: Edit },
+  { path: `${basePath.value}/matches`, label: '舍友推荐', icon: Connection },
+  { path: `${basePath.value}/search`, label: '搜索舍友', icon: Search },
+  { path: `${basePath.value}/invites`, label: '邀请管理', icon: Message },
+  { path: `${basePath.value}/pairing`, label: '我的配对', icon: UserFilled },
+  { path: `${basePath.value}/allocation`, label: '分配结果', icon: OfficeBuilding },
+  { path: `${basePath.value}/profile`, label: '个人信息', icon: Setting },
+  { path: `${basePath.value}/feedback`, label: '建议反馈', icon: ChatLineSquare },
+])
 
 async function loadUnread() {
   try {
     const res = await notificationApi.getUnreadCount()
     unreadCount.value = res.data.data?.count || 0
-  } catch { unreadCount.value = 0 }
+  } catch {
+    unreadCount.value = 0
+  }
 }
 
 function handleLogout() {
@@ -34,7 +68,7 @@ function toggleMenu() {
 }
 
 function closeMenu() {
-  menuOpen.value = false
+  if (window.innerWidth < 1024) menuOpen.value = false
 }
 
 onMounted(() => {
@@ -44,210 +78,308 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="app-root">
-    <div class="test-banner">
-      <span>测试环境 - 非最终交付版本，仅用于功能验证</span>
-      <button class="banner-feedback" @click="router.push(`${basePath}/feedback`)">提交反馈</button>
+  <div class="student-shell">
+    <div class="environment-banner">
+      <span>测试阶段</span>
+      <strong>{{ schoolName }}</strong>
+      <span>当前所有数据会归属到学校代码 {{ schoolCode }}</span>
+      <button class="banner-action" @click="router.push(`${basePath}/feedback`)">反馈问题</button>
     </div>
-    <div class="app-shell">
-      <div class="menu-overlay" v-if="menuOpen" @click="closeMenu" />
 
-    <aside class="sidebar" :class="{ open: menuOpen }">
-      <div class="sidebar-close" @click="closeMenu">
-        <el-icon :size="20"><Close /></el-icon>
-      </div>
-      <div class="logo">
-        <el-icon :size="28"><School /></el-icon>
-        <div class="logo-text">
-          <span class="logo-school">{{ userStore.schoolName || '宿舍选择' }}</span>
-          <span class="logo-sub">舍友自主选择</span>
+    <div class="workspace">
+      <div v-if="menuOpen" class="menu-overlay" @click="menuOpen = false" />
+
+      <aside class="sidebar" :class="{ open: menuOpen }">
+        <div class="brand">
+          <div class="brand-mark"><el-icon><School /></el-icon></div>
+          <div class="brand-text">
+            <strong>{{ schoolName }}</strong>
+            <span>新生舍友匹配</span>
+          </div>
         </div>
-      </div>
 
-      <el-menu :default-active="activeMenu" router class="side-menu">
-        <el-menu-item :index="`${basePath}/search`"><el-icon><Search /></el-icon><span>搜索舍友</span></el-menu-item>
-        <el-menu-item :index="`${basePath}/invites`"><el-icon><Message /></el-icon><span>邀请管理</span></el-menu-item>
-        <el-menu-item :index="`${basePath}/`"><el-icon><HomeFilled /></el-icon><span>首页</span></el-menu-item>
-        <el-menu-item :index="`${basePath}/survey`"><el-icon><Edit /></el-icon><span>偏好问卷</span></el-menu-item>
-        <el-menu-item :index="`${basePath}/matches`"><el-icon><Connection /></el-icon><span>舍友推荐</span></el-menu-item>
-        <el-menu-item :index="`${basePath}/pairing`"><el-icon><UserFilled /></el-icon><span>我的配对</span></el-menu-item>
-        <el-menu-item :index="`${basePath}/allocation`"><el-icon><OfficeBuilding /></el-icon><span>分配结果</span></el-menu-item>
-        <el-menu-item :index="`${basePath}/profile`"><el-icon><Setting /></el-icon><span>个人信息</span></el-menu-item>
-        <el-menu-item :index="`${basePath}/feedback`"><el-icon><ChatLineSquare /></el-icon><span>建议反馈</span></el-menu-item>
-      </el-menu>
+        <el-menu :default-active="activeMenu" router class="side-menu" @select="closeMenu">
+          <el-menu-item v-for="item in menuItems" :key="item.path" :index="item.path">
+            <el-icon>
+              <component :is="item.icon" />
+            </el-icon>
+            <span>{{ item.label }}</span>
+          </el-menu-item>
+        </el-menu>
 
-      <div class="user-info">
-        <span class="username">{{ userStore.username }}</span>
-        <el-button type="danger" text size="small" @click="handleLogout">退出</el-button>
-      </div>
-    </aside>
+        <div class="sidebar-footer">
+          <div class="user-card">
+            <div class="avatar">{{ (userStore.username || 'U').slice(0, 1) }}</div>
+            <div class="user-meta">
+              <strong>{{ userStore.username || '未命名用户' }}</strong>
+              <span>{{ roleLabel }}</span>
+            </div>
+          </div>
+          <el-button text type="danger" class="logout-btn" @click="handleLogout">退出登录</el-button>
+        </div>
+      </aside>
 
-    <div class="main-area">
-      <header class="top-bar">
-        <el-button class="hamburger" text @click="toggleMenu">
-          <el-icon :size="22"><Expand v-if="!menuOpen" /><Fold v-else /></el-icon>
-        </el-button>
-        <div style="flex:1" />
-        <el-button class="feedback-entry" size="small" @click="router.push(`${basePath}/feedback`)">
-          <el-icon :size="16"><ChatLineSquare /></el-icon>
-          <span style="margin-left:4px">反馈</span>
-        </el-button>
-        <el-button v-if="userStore.role === 'ADMIN' || userStore.role === 'DEVELOPER'" class="admin-entry" size="small" @click="router.push(`${basePath}/admin`)">
-          <el-icon :size="16"><Setting /></el-icon>
-          <span style="margin-left:4px">后台管理</span>
-        </el-button>
-        <el-tag v-if="userStore.role === 'DEVELOPER'" type="warning" size="small" effect="dark" class="dev-badge">
-          👑 开发者
-        </el-tag>
-        <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="notification-bell">
-          <el-button text circle @click="router.push(`${basePath}/notifications`)">
-            <el-icon :size="22"><Bell /></el-icon>
-          </el-button>
-        </el-badge>
-      </header>
+      <section class="main-area">
+        <header class="top-bar">
+          <div class="title-area">
+            <el-button class="hamburger" text @click="toggleMenu">
+              <el-icon :size="22"><Expand v-if="!menuOpen" /><Fold v-else /></el-icon>
+            </el-button>
+            <div>
+              <h1>{{ pageTitle }}</h1>
+              <p>{{ schoolName }} · {{ schoolCode }}</p>
+            </div>
+          </div>
 
-      <main class="main-content">
-        <router-view />
-      </main>
-    </div>
+          <div class="top-actions">
+            <el-button class="feedback-entry" @click="router.push(`${basePath}/feedback`)">
+              <el-icon><ChatLineSquare /></el-icon>
+              <span>反馈</span>
+            </el-button>
+            <el-button
+              v-if="userStore.role === 'ADMIN' || userStore.role === 'DEVELOPER'"
+              class="admin-entry"
+              type="primary"
+              plain
+              @click="router.push(`${basePath}/admin`)"
+            >
+              <el-icon><Setting /></el-icon>
+              <span>后台</span>
+            </el-button>
+            <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
+              <el-button circle @click="router.push(`${basePath}/notifications`)">
+                <el-icon><Bell /></el-icon>
+              </el-button>
+            </el-badge>
+          </div>
+        </header>
+
+        <main class="content-surface">
+          <router-view />
+        </main>
+      </section>
     </div>
   </div>
 </template>
 
 <style scoped>
-.app-root { display: flex; flex-direction: column; min-height: 100vh; }
-.app-shell { display: flex; flex: 1; min-height: 0; }
-
-.test-banner {
-  background: linear-gradient(90deg, #ffc069, #fa8c16);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 1px;
-  z-index: 1000;
-  flex-shrink: 0;
-}
-.banner-feedback {
-  border: 1px solid rgba(255,255,255,0.75);
-  background: rgba(255,255,255,0.15);
-  color: #fff;
-  border-radius: 4px;
-  padding: 2px 8px;
-  cursor: pointer;
-  font-size: 12px;
-}
-.banner-feedback:hover { background: rgba(255,255,255,0.25); }
-
-.menu-overlay {
-  display: none;
-}
-
-.sidebar {
-  width: 0;
-  background: #001529;
+.student-shell {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  transition: width 0.25s;
-  overflow: hidden;
-  flex-shrink: 0;
-  position: relative;
+  background: #eef2f7;
+  color: #172033;
 }
-.sidebar.open { width: 220px; }
 
-.sidebar-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10;
-}
-.sidebar-close:hover { background: rgba(255,255,255,0.2); color: #fff; }
-
-.logo {
-  height: 64px;
+.environment-banner {
+  min-height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #fff;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 6px 16px;
+  background: #fff7e6;
+  border-bottom: 1px solid #ffd591;
+  color: #8a4b00;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.environment-banner strong { color: #5c3300; }
+.banner-action {
+  border: 1px solid #d48806;
+  background: #fff;
+  color: #8a4b00;
+  border-radius: 6px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.banner-action:hover { background: #fff1d6; }
+
+.workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.sidebar {
+  width: 0;
   flex-shrink: 0;
+  overflow: hidden;
+  background: #102033;
+  color: #fff;
+  transition: width 0.22s ease;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar.open { width: 248px; }
+
+.brand {
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2f80ed;
+  flex-shrink: 0;
+}
+.brand-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.brand-text strong {
+  font-size: 14px;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
-.logo-text { display: flex; flex-direction: column; line-height: 1.2; }
-.logo-school { font-size: 14px; font-weight: 600; }
-.logo-sub { font-size: 11px; color: rgba(255,255,255,0.5); }
+.brand-text span { font-size: 12px; color: rgba(255,255,255,0.58); }
 
 .side-menu {
   flex: 1;
   border-right: none;
   background: transparent;
-  overflow-y: auto;
-  overflow-x: hidden;
+  padding: 10px;
 }
-.side-menu .el-menu-item { color: rgba(255,255,255,0.65); }
-.side-menu .el-menu-item:hover,
-.side-menu .el-menu-item.is-active { color: #fff; background-color: #1890ff; }
+.side-menu :deep(.el-menu-item) {
+  height: 42px;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.72);
+  margin-bottom: 4px;
+}
+.side-menu :deep(.el-menu-item:hover) {
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+}
+.side-menu :deep(.el-menu-item.is-active) {
+  color: #fff;
+  background: #2f80ed;
+}
 
-.user-info {
-  padding: 16px;
-  border-top: 1px solid rgba(255,255,255,0.1);
+.sidebar-footer {
+  padding: 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e8f2ff;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+.user-meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.user-meta strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-meta span { font-size: 12px; color: rgba(255,255,255,0.55); }
+.logout-btn { width: 100%; margin-top: 10px; justify-content: flex-start; }
+
+.main-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.top-bar {
+  height: 68px;
+  padding: 0 22px;
+  background: #fff;
+  border-bottom: 1px solid #dfe5ef;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   flex-shrink: 0;
 }
-.username { color: rgba(255,255,255,0.85); font-size: 14px; white-space: nowrap; }
-
-.main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-
-.top-bar {
+.title-area {
   display: flex;
   align-items: center;
-  background: #fff;
-  border-bottom: 1px solid #e5e6eb;
-  padding: 0 16px;
-  height: 56px;
+  gap: 10px;
+  min-width: 0;
+}
+.title-area h1 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  color: #172033;
+}
+.title-area p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: #667085;
+}
+.hamburger { width: 38px; height: 38px; }
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
 }
-.hamburger { display: flex; }
 .feedback-entry,
-.admin-entry { border: 1px solid #d9d9d9; color: #666; margin-right: 8px; }
-.feedback-entry:hover,
-.admin-entry:hover { border-color: #667eea; color: #667eea; }
-.dev-badge { margin-right: 8px; }
-.notification-bell { margin-right: 8px; }
+.admin-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.content-surface {
+  flex: 1;
+  min-height: 0;
+  padding: 22px;
+  overflow: auto;
+}
 
-.main-content { background: #f5f7fa; flex: 1; padding: 20px; }
+.menu-overlay { display: none; }
 
 @media (max-width: 768px) {
+  .environment-banner {
+    justify-content: flex-start;
+    padding: 7px 12px;
+  }
   .sidebar {
     position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 200;
+    inset: 0 auto 0 0;
+    z-index: 220;
   }
-  .sidebar.open { width: 220px; }
-
-  .sidebar-close { display: flex; }
-
-  .menu-overlay { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 199; }
-  .main-content { padding: 12px; }
-  .test-banner { justify-content: space-between; letter-spacing: 0; }
+  .sidebar.open { width: min(82vw, 280px); }
+  .menu-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.42);
+    z-index: 210;
+  }
+  .top-bar {
+    height: auto;
+    min-height: 62px;
+    padding: 10px 12px;
+  }
+  .title-area h1 { font-size: 16px; }
+  .top-actions span { display: none; }
+  .content-surface { padding: 12px; }
 }
 </style>

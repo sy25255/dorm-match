@@ -21,6 +21,16 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('schoolName', name)
   }
 
+  function syncProfileSchool(code: string) {
+    const previousCode = localStorage.getItem('schoolCode') || ''
+    schoolCode.value = code
+    localStorage.setItem('schoolCode', code)
+    if (previousCode && previousCode !== code) {
+      schoolName.value = code
+      localStorage.setItem('schoolName', code)
+    }
+  }
+
   function saveRememberedAccount(email: string) {
     localStorage.setItem('remembered_email', email)
   }
@@ -41,8 +51,7 @@ export const useUserStore = defineStore('user', () => {
     username.value = profile?.name || email
     role.value = profile?.role || 'STUDENT'
     if (profile?.school_code) {
-      schoolCode.value = profile.school_code
-      localStorage.setItem('schoolCode', profile.school_code)
+      syncProfileSchool(profile.school_code)
     }
     localStorage.setItem('username', profile?.name || email)
     localStorage.setItem('role', profile?.role || 'STUDENT')
@@ -88,8 +97,7 @@ export const useUserStore = defineStore('user', () => {
       username.value = profile?.name || session.user.email || ''
       role.value = profile?.role || 'STUDENT'
       if (profile?.school_code) {
-        schoolCode.value = profile.school_code
-        localStorage.setItem('schoolCode', profile.school_code)
+        syncProfileSchool(profile.school_code)
       }
       localStorage.setItem('username', profile?.name || session.user.email || '')
       localStorage.setItem('role', profile?.role || 'STUDENT')
@@ -172,8 +180,7 @@ export const useUserStore = defineStore('user', () => {
     username.value = profile?.name || data.user.email || ''
     role.value = profile?.role || 'STUDENT'
     if (profile?.school_code) {
-      schoolCode.value = profile.school_code
-      localStorage.setItem('schoolCode', profile.school_code)
+      syncProfileSchool(profile.school_code)
     }
     setAuthState(data.user.id, data.session.access_token, data.session.refresh_token || '')
     saveRememberedAccount(email)

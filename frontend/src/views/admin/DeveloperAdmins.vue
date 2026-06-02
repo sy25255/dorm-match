@@ -7,10 +7,12 @@ const admins = ref<any[]>([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const isEdit = ref(false)
-const form = ref({ id: null as number | null, username: '', role: 'ADMIN', schoolCode: '', schoolName: '', status: 1 })
+const form = ref({ id: null as number | null, username: '', email: '', role: 'ADMIN', schoolCode: '', schoolName: '', status: 1 })
+const createdInvite = ref<{ email: string; schoolCode: string; token: string } | null>(null)
 
 function resetForm() {
-  form.value = { id: null, username: '', role: 'ADMIN', schoolCode: '', schoolName: '', status: 1 }
+  form.value = { id: null, username: '', email: '', role: 'ADMIN', schoolCode: '', schoolName: '', status: 1 }
+  createdInvite.value = null
 }
 
 async function loadAdmins() {
@@ -32,7 +34,14 @@ async function saveAdmin() {
     await devApi.updateAdmin(form.value.id, form.value)
     ElMessage.success('管理员信息已更新')
   } else {
-    await devApi.createAdmin(form.value)
+    const res = await devApi.createAdmin(form.value)
+    createdInvite.value = {
+      email: form.value.email,
+      schoolCode: form.value.schoolCode,
+      token: res.data.data.token,
+    }
+    ElMessage.success('管理员激活码已生成')
+    return
   }
   dialogVisible.value = false
   loadAdmins()
@@ -101,6 +110,9 @@ onMounted(loadAdmins)
           <el-form-item label="用户名">
             <el-input v-model="form.username" placeholder="管理员用户名" />
           </el-form-item>
+          <el-form-item v-if="!isEdit" label="登录邮箱">
+            <el-input v-model="form.email" placeholder="老师用于登录的邮箱" />
+          </el-form-item>
           <el-form-item label="所属学校">
             <el-select v-model="form.schoolCode" placeholder="选择学校" style="width:100%">
               <el-option
@@ -117,6 +129,21 @@ onMounted(loadAdmins)
             <el-switch v-model="form.status" :active-value="1" :inactive-value="0" active-text="正常" inactive-text="禁用" />
           </el-form-item>
         </el-form>
+        <el-alert
+          v-if="createdInvite"
+          type="success"
+          :closable="false"
+          show-icon
+          style="margin-top: 12px"
+        >
+          <template #title>管理员激活码已生成</template>
+          <div style="line-height: 1.8">
+            <div>邮箱：{{ createdInvite.email }}</div>
+            <div>学校：{{ createdInvite.schoolCode }}</div>
+            <div>激活码：<strong>{{ createdInvite.token }}</strong></div>
+            <div style="color:#6b7280">请让老师先用该邮箱注册/登录学生端，再在登录页进入“老师激活”。此激活码只显示一次。</div>
+          </div>
+        </el-alert>
         <template #footer>
           <el-button @click="dialogVisible = false">取消</el-button>
           <el-button type="primary" @click="saveAdmin">保存</el-button>

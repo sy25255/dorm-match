@@ -21,6 +21,7 @@ const classes = ref<Clazz[]>([])
 const results = ref<any[]>([])
 const loading = ref(false)
 const searched = ref(false)
+const sendingInviteIds = ref<Set<string | number>>(new Set())
 
 async function loadColleges() {
   try { const res = await schoolApi.getColleges(); colleges.value = res.data.data || [] } catch {}
@@ -55,10 +56,18 @@ async function handleSearch() {
 }
 
 async function sendInvite(targetId: string | number) {
+  if (sendingInviteIds.value.has(targetId)) return
+  sendingInviteIds.value.add(targetId)
   try {
     await inviteApi.send({ targetId, message: '' })
     ElMessage.success('邀请已发送')
-  } catch {}
+  } catch (err: any) {
+    ElMessage.error(err?.message || '发送邀请失败')
+  } finally {
+    const next = new Set(sendingInviteIds.value)
+    next.delete(targetId)
+    sendingInviteIds.value = next
+  }
 }
 
 function quickSearch(nextCollegeId: number, nextMajorId: number) {
@@ -113,7 +122,14 @@ function quickSearch(nextCollegeId: number, nextMajorId: number) {
         </div>
         <p class="card-meta">{{ item.collegeName }} · {{ item.majorName }}{{ item.className ? ' · ' + item.className : '' }}</p>
         <p class="card-bio">{{ item.bio || '暂无简介' }}</p>
-        <el-button type="primary" size="small" @click="sendInvite(item.studentId)">发送邀请</el-button>
+        <button
+          class="send-invite-btn"
+          type="button"
+          :disabled="sendingInviteIds.has(item.studentId) || loading"
+          @click="sendInvite(item.studentId)"
+        >
+          {{ sendingInviteIds.has(item.studentId) ? '发送中...' : '发送邀请' }}
+        </button>
       </el-card>
     </div>
   </div>
@@ -131,4 +147,18 @@ function quickSearch(nextCollegeId: number, nextMajorId: number) {
 .student-no { font-size: 11px; color: #c9cdd4; }
 .card-meta { font-size: 12px; color: #86909c; margin-bottom: 8px; }
 .card-bio { font-size: 13px; color: #4e5969; margin-bottom: 12px; min-height: 20px; }
+.send-invite-btn {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: #409eff;
+  color: #fff;
+  cursor: pointer;
+}
+.send-invite-btn:hover { background: #337ecc; }
+.send-invite-btn:disabled {
+  cursor: not-allowed;
+  background: #a0cfff;
+}
 </style>

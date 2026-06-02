@@ -4,6 +4,7 @@ import { inviteApi } from '@/api/invite'
 import { studentApi } from '@/api/student'
 import { ElMessage } from 'element-plus'
 import { getDefaultRoomCapacity } from '@/api/dormitory'
+import { useRouter, useRoute } from 'vue-router'
 
 interface InviteItem {
   id: number
@@ -25,6 +26,8 @@ const activeTab = ref('received')
 const loading = ref(false)
 const studentNames = ref<Record<string, string>>({})
 const processingId = ref<number | null>(null)
+const router = useRouter()
+const route = useRoute()
 
 onMounted(() => {
   loadRoomCapacity()
@@ -75,9 +78,12 @@ async function accept(id: number) {
   processingId.value = id
   try {
     await inviteApi.accept(id)
-    ElMessage.success('配对成功！')
-    loadAll()
-  } catch { ElMessage.error('接受邀请失败') } finally {
+    ElMessage.success('配对成功，已组成队伍')
+    await loadAll()
+    router.push(`/${route.params.schoolCode}/pairing`)
+  } catch (err: any) {
+    ElMessage.error(err?.message || '接受邀请失败，配对组没有创建成功')
+  } finally {
     processingId.value = null
   }
 }

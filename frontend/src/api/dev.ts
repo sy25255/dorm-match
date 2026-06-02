@@ -2,6 +2,18 @@ import { supabase, getCurrentSchool } from '@/lib/supabase'
 
 const wrap = (data: any) => ({ data: { code: 200, message: 'ok', data } })
 
+async function sha256Hex(input: string) {
+  const bytes = new TextEncoder().encode(input)
+  const hash = await crypto.subtle.digest('SHA-256', bytes)
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+function createInviteToken() {
+  const bytes = new Uint8Array(24)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 export const devApi = {
   async getPlatformStats() {
     const { count: totalSchools } = await supabase.from('schools').select('*', { count: 'exact', head: true })
@@ -77,8 +89,17 @@ export const devApi = {
   },
 
   async createAdmin(adminData: any) {
-    await supabase.from('profiles').insert({ ...adminData, role: 'ADMIN' })
-    return wrap(null)
+    const token = createInviteToken()
+    const tokenHash = await sha256Hex(token)
+    const expiresAt = adminData.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    const { data, error } = await supabase.rpc('create_admin_invite', {
+      p_school_code: adminData.schoolCode,
+      p_email: adminData.email,
+      p_token_hash: tokenHash,
+      p_expires_at: expiresAt,
+    })
+    if (error) throw error
+    return wrap({ invite: data, token })
   },
 
   async updateAdmin(id: number, adminData: any) {

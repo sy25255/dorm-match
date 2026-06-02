@@ -38,7 +38,9 @@ async function checkSurveyCompletion() {
 
 const pairing = ref<any>(null)
 const members = ref<Member[]>([])
+const diagnostics = ref<any>(null)
 const loading = ref(false)
+const repairing = ref(false)
 const showInviteDialog = ref(false)
 const recommendations = ref<any[]>([])
 const inviteMessage = ref('')
@@ -47,14 +49,31 @@ async function loadData() {
   if (!surveyCompleted.value) return
   loading.value = true
   try {
-    const [p, m] = await Promise.all([
+    const [p, m, d] = await Promise.all([
       inviteApi.getPairing(),
       inviteApi.getPairingMembers(),
+      inviteApi.getPairingDiagnostics(),
     ])
     pairing.value = p.data.data
     members.value = m.data.data || []
-  } catch { ElMessage.error('加载配对数据失败') } finally {
+    diagnostics.value = d.data.data
+  } catch (err: any) {
+    ElMessage.error(err?.message || '加载配对数据失败')
+  } finally {
     loading.value = false
+  }
+}
+
+async function repairPairing() {
+  repairing.value = true
+  try {
+    await inviteApi.repairCurrentPairing()
+    ElMessage.success('已修复配对组')
+    await loadData()
+  } catch (err: any) {
+    ElMessage.error(err?.message || '修复配对组失败')
+  } finally {
+    repairing.value = false
   }
 }
 
@@ -102,10 +121,34 @@ onMounted(async () => {
         </template>
       </el-empty>
 
-      <el-empty v-else-if="!pairing" description="您还没有完成配对">
-        <el-button type="primary" @click="router.push(`/${route.params.schoolCode}/matches`)">去查看推荐</el-button>
-        <el-button style="margin-left:8px" @click="router.push(`/${route.params.schoolCode}/invites`)">查看邀请</el-button>
-      </el-empty>
+      <template v-else-if="!pairing">
+        <el-alert
+          v-if="diagnostics?.canRepair"
+          type="warning"
+          show-icon
+          :closable="false"
+          class="pairing-alert"
+          title="检测到已接受邀请，但配对组缺失"
+          description="可以尝试把历史邀请补成队伍。"
+        />
+        <el-alert
+          v-else-if="diagnostics?.acceptedInvites?.length"
+          type="info"
+          show-icon
+          :closable="false"
+          class="pairing-alert"
+          title="检测到已接受邀请，但当前账号还没有队伍记录"
+          description="请刷新状态；如果仍为空，需要管理员在队伍管理页处理。"
+        />
+        <el-empty description="您还没有完成配对">
+          <el-button type="primary" @click="router.push(`/${route.params.schoolCode}/matches`)">去查看推荐</el-button>
+          <el-button style="margin-left:8px" @click="router.push(`/${route.params.schoolCode}/invites`)">查看邀请</el-button>
+          <el-button style="margin-left:8px" @click="loadData">刷新状态</el-button>
+          <el-button v-if="diagnostics?.canRepair" type="warning" style="margin-left:8px" :loading="repairing" @click="repairPairing">
+            一键修复队伍
+          </el-button>
+        </el-empty>
+      </template>
 
       <template v-else>
         <el-alert :type="pairing.status === 1 ? 'success' : 'warning'" :closable="false" class="pairing-alert">

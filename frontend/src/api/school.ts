@@ -64,6 +64,37 @@ function mapClass(row: any) {
 }
 
 export const schoolApi = {
+  async verifyStudentInviteCode(schoolCode: string, code: string) {
+    const { data, error } = await supabase.rpc('verify_student_invite_code', {
+      p_school_code: schoolCode,
+      p_code: code,
+    })
+    assertOk({ error }, '邀请码无效或已过期')
+    return wrap(data)
+  },
+  async getStudentInviteCodes() {
+    const sc = getCurrentSchool()
+    const { data, error } = await supabase
+      .from('student_invite_codes')
+      .select('*')
+      .eq('school_code', sc)
+      .order('created_at', { ascending: false })
+    assertOk({ error }, '加载学生邀请码失败')
+    return wrap(data || [])
+  },
+  async createStudentInviteCode(data: any) {
+    const sc = getCurrentSchool()
+    const code = String(data.code || '').trim().toUpperCase()
+    const result = await supabase.from('student_invite_codes').insert({
+      school_code: sc,
+      code,
+      name: data.name || '新生入学邀请码',
+      max_uses: data.maxUses || null,
+      expires_at: data.expiresAt || null,
+    })
+    assertOk(result, '创建学生邀请码失败')
+    return wrap(null)
+  },
   async getConfig() {
     const sc = getCurrentSchool()
     const { data, error } = await supabase.from('schools').select('*').eq('code', sc).single()

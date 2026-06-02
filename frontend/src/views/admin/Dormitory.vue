@@ -422,7 +422,7 @@ const allocations = ref<Allocation[]>([])
 async function loadAllocState() {
   const res = await adminApi.getAllocationResults(batchCode.value)
   allocations.value = res.data.data || []
-  if (allocations.value.length === 0 && batchCode.value === 'BATCH-001') {
+  if (allocations.value.length === 0) {
     const latest = await adminApi.getResults()
     const latestRows = latest.data.data || []
     if (latestRows.length > 0) {
@@ -448,17 +448,33 @@ async function executeAlloc() {
 }
 
 async function publishResults() {
-  await ElMessageBox.confirm('确认发布分配结果？学生将看到自己的宿舍分配信息。', '确认发布', { type: 'warning' })
-  await adminApi.publishResults(batchCode.value)
-  await loadAllocState()
-  ElMessage.success('分配结果已发布')
+  try {
+    await ElMessageBox.confirm('确认发布分配结果？学生将看到自己的宿舍分配信息。', '确认发布', { type: 'warning' })
+    await adminApi.publishResults(batchCode.value)
+    await loadAllocState()
+    if (!allocations.value.some(a => a.status === 'PUBLISHED' || a.status === 'FINALIZED')) {
+      throw new Error('发布后没有读取到已公示状态，请刷新后重试')
+    }
+    ElMessage.success('分配结果已发布')
+  } catch (error: any) {
+    if (error === 'cancel' || error === 'close') return
+    ElMessage.error(error?.message || '发布分配结果失败')
+  }
 }
 
 async function finalizeResults() {
-  await ElMessageBox.confirm('确认最终确定？确定后不可修改。', '确认', { type: 'warning' })
-  await adminApi.finalizeResults(batchCode.value)
-  await loadAllocState()
-  ElMessage.success('分配结果已确认')
+  try {
+    await ElMessageBox.confirm('确认最终确定？确定后不可修改。', '确认', { type: 'warning' })
+    await adminApi.finalizeResults(batchCode.value)
+    await loadAllocState()
+    if (!allocations.value.some(a => a.status === 'FINALIZED')) {
+      throw new Error('确认后没有读取到已确认状态，请刷新后重试')
+    }
+    ElMessage.success('分配结果已确认')
+  } catch (error: any) {
+    if (error === 'cancel' || error === 'close') return
+    ElMessage.error(error?.message || '确认分配结果失败')
+  }
 }
 
 async function resetAlloc() {
