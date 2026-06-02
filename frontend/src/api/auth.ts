@@ -1,7 +1,16 @@
 import { supabase } from '@/lib/supabase'
 
 export const authApi = {
-  async signUp(email: string, password: string, name: string, schoolCode: string, studentNo: string) {
+  async signUp(
+    email: string,
+    password: string,
+    name: string,
+    schoolCode: string,
+    studentNo: string,
+    collegeName = '',
+    majorName = '',
+    className = '',
+  ) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -10,6 +19,9 @@ export const authApi = {
           name,
           school_code: schoolCode,
           student_no: studentNo,
+          college_name: collegeName,
+          major_name: majorName,
+          class_name: className,
           role: 'STUDENT',
         },
       },
@@ -22,6 +34,9 @@ export const authApi = {
         school_code: schoolCode,
         student_no: studentNo,
         name,
+        college_name: collegeName,
+        major_name: majorName,
+        class_name: className,
         role: 'STUDENT',
       })
     }

@@ -7,6 +7,8 @@ Run these SQL files in Supabase SQL Editor, in this order:
 3. `supabase/migrations/20260529_accept_invite_pairing_rpc.sql`
 4. `supabase/migrations/20260529_admin_invite_activation.sql`
 5. `supabase/migrations/20260601_student_invite_codes.sql`
+6. `supabase/migrations/20260602_platform_school_creation.sql`
+7. `supabase/migrations/20260603_profiles_academic_fields.sql`
 
 After running them, verify these RPC functions exist:
 

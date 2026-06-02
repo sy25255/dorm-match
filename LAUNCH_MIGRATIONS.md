@@ -5,8 +5,10 @@
 在 Supabase SQL Editor 中执行：
 
 1. `supabase/migrations/20260602_platform_school_creation.sql`
+2. `supabase/migrations/20260603_profiles_academic_fields.sql`
 
 执行完成后，平台开发者后台的“添加学校”才可以正常创建学校编码，并同步生成管理员激活记录。
+第二个迁移用于确保学生注册写入学院、专业、班级时，`profiles` 表具备对应字段。
 
 ## 验证
 

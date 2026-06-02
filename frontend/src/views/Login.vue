@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, onMounted, computed } from 'vue'
+import { reactive, ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { schoolApi } from '@/api/school'
@@ -11,6 +11,7 @@ const route = useRoute()
 const userStore = useUserStore()
 const loading = ref(false)
 const inviteChecking = ref(false)
+const schoolDataLoading = ref(false)
 const studentInvite = reactive({ code: '', verified: false, name: '' })
 const activeTab = ref('register')
 const schoolCode = computed(() => route.params.schoolCode as string)
@@ -22,6 +23,85 @@ const loginForm = reactive({ email: '', password: '' })
 const registerForm = reactive({
   email: '', password: '', confirmPassword: '',
   realName: '', studentNo: '',
+  collegeId: null as number | null,
+  majorId: null as number | null,
+  classId: null as number | null,
+  collegeName: '',
+  majorName: '',
+  className: '',
+})
+const colleges = ref<any[]>([])
+const majors = ref<any[]>([])
+const classes = ref<any[]>([])
+const hasAcademicOptions = computed(() => colleges.value.length > 0)
+const academicReady = computed(() => {
+  if (isTeacherEntry.value) return true
+  return !!registerForm.collegeId && !!registerForm.majorId && !!registerForm.classId
+})
+const registerDisabled = computed(() => (
+  loading.value ||
+  (!studentInvite.verified && !isAdminActivation.value) ||
+  (!isTeacherEntry.value && (!hasAcademicOptions.value || !academicReady.value))
+))
+
+async function loadColleges() {
+  if (isTeacherEntry.value) return
+  schoolDataLoading.value = true
+  try {
+    const res = await schoolApi.getColleges()
+    colleges.value = res.data.data || []
+  } catch (error: any) {
+    colleges.value = []
+    ElMessage.warning(error?.message || '加载学院列表失败，请联系学校管理员')
+  } finally {
+    schoolDataLoading.value = false
+  }
+}
+
+async function loadMajors(collegeId: number) {
+  const res = await schoolApi.getMajors(collegeId)
+  majors.value = res.data.data || []
+}
+
+async function loadClasses(majorId: number) {
+  const res = await schoolApi.getClasses(majorId)
+  classes.value = res.data.data || []
+}
+
+watch(() => registerForm.collegeId, async (collegeId) => {
+  registerForm.majorId = null
+  registerForm.classId = null
+  registerForm.majorName = ''
+  registerForm.className = ''
+  majors.value = []
+  classes.value = []
+  const college = colleges.value.find((item: any) => item.id === collegeId)
+  registerForm.collegeName = college?.name || ''
+  if (!collegeId) return
+  try {
+    await loadMajors(collegeId)
+  } catch (error: any) {
+    ElMessage.warning(error?.message || '加载专业列表失败')
+  }
+})
+
+watch(() => registerForm.majorId, async (majorId) => {
+  registerForm.classId = null
+  registerForm.className = ''
+  classes.value = []
+  const major = majors.value.find((item: any) => item.id === majorId)
+  registerForm.majorName = major?.name || ''
+  if (!majorId) return
+  try {
+    await loadClasses(majorId)
+  } catch (error: any) {
+    ElMessage.warning(error?.message || '加载班级列表失败')
+  }
+})
+
+watch(() => registerForm.classId, (classId) => {
+  const clazz = classes.value.find((item: any) => item.id === classId)
+  registerForm.className = clazz?.name || ''
 })
 
 async function verifyStudentInvite() {
@@ -79,6 +159,9 @@ const registerRules = {
     },
   ],
   realName: [{ required: true, message: '请填写真实姓名', trigger: 'blur' }],
+  collegeId: [{ required: true, message: '请选择学院', trigger: 'change' }],
+  majorId: [{ required: true, message: '请选择专业', trigger: 'change' }],
+  classId: [{ required: true, message: '请选择班级', trigger: 'change' }],
 }
 
 function landingPathForCurrentUser(fallbackSchool = schoolCode.value) {
@@ -113,6 +196,7 @@ onMounted(async () => {
     registerForm.email = remembered
     activeTab.value = 'login'
   }
+  await loadColleges()
 })
 
 async function handleLogin() {
@@ -149,6 +233,14 @@ async function handleRegister() {
     ElMessage.warning('请填写真实姓名')
     return
   }
+  if (!isTeacherEntry.value && !hasAcademicOptions.value) {
+    ElMessage.warning('请联系学校管理员先配置学院、专业和班级')
+    return
+  }
+  if (!isTeacherEntry.value && !academicReady.value) {
+    ElMessage.warning('请选择学院、专业和班级')
+    return
+  }
   loading.value = true
   try {
     await userStore.supabaseRegister(
@@ -156,7 +248,10 @@ async function handleRegister() {
       registerForm.password,
       registerForm.realName.trim(),
       userStore.schoolCode || schoolCode.value,
-      registerForm.studentNo || ''
+      registerForm.studentNo || '',
+      registerForm.collegeName,
+      registerForm.majorName,
+      registerForm.className,
     )
     userStore.saveRememberedAccount(registerForm.email)
     if (isAdminActivation.value) {
@@ -238,13 +333,62 @@ function backToSchoolEntry() {
             <el-form-item label="学号（选填）">
               <el-input v-model="registerForm.studentNo" placeholder="请输入录取通知书上的学号" size="large" />
             </el-form-item>
+            <template v-if="!isTeacherEntry">
+              <el-alert
+                v-if="!schoolDataLoading && !hasAcademicOptions"
+                type="warning"
+                :closable="false"
+                show-icon
+                title="请联系学校管理员先配置学院、专业和班级"
+                class="academic-alert"
+              />
+              <el-form-item label="学院" prop="collegeId">
+                <el-select
+                  v-model="registerForm.collegeId"
+                  placeholder="请选择学院"
+                  size="large"
+                  filterable
+                  style="width: 100%"
+                  :loading="schoolDataLoading"
+                  :disabled="schoolDataLoading || !hasAcademicOptions"
+                >
+                  <el-option v-for="item in colleges" :key="item.id" :label="item.name" :value="item.id" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="专业" prop="majorId">
+                <el-select
+                  v-model="registerForm.majorId"
+                  placeholder="请选择专业"
+                  size="large"
+                  filterable
+                  style="width: 100%"
+                  :disabled="!registerForm.collegeId || majors.length === 0"
+                >
+                  <el-option v-for="item in majors" :key="item.id" :label="item.name" :value="item.id" />
+                </el-select>
+                <p v-if="registerForm.collegeId && majors.length === 0" class="form-tip">当前学院还没有配置专业。</p>
+              </el-form-item>
+              <el-form-item label="班级" prop="classId">
+                <el-select
+                  v-model="registerForm.classId"
+                  placeholder="请选择班级"
+                  size="large"
+                  filterable
+                  style="width: 100%"
+                  :disabled="!registerForm.majorId || classes.length === 0"
+                >
+                  <el-option v-for="item in classes" :key="item.id" :label="item.name" :value="item.id" />
+                </el-select>
+                <p v-if="registerForm.majorId && classes.length === 0" class="form-tip">当前专业还没有配置班级。</p>
+              </el-form-item>
+            </template>
             <el-form-item label="密码" prop="password">
               <el-input v-model="registerForm.password" type="password" placeholder="设置登录密码（至少6位）" size="large" show-password />
             </el-form-item>
             <el-form-item label="确认密码" prop="confirmPassword">
               <el-input v-model="registerForm.confirmPassword" type="password" placeholder="再次输入密码" size="large" show-password />
             </el-form-item>
-            <el-button type="primary" size="large" :loading="loading" :disabled="!studentInvite.verified && !isAdminActivation" native-type="submit" class="login-btn">注 册</el-button>
+            <el-button type="primary" size="large" :loading="loading" :disabled="registerDisabled" native-type="submit" class="login-btn">注 册</el-button>
           </el-form>
         </el-tab-pane>
 
@@ -335,6 +479,14 @@ function backToSchoolEntry() {
 .login-tabs :deep(.el-tabs__item) { flex: 1; text-align: center; font-size: 15px; }
 .login-tabs :deep(.el-form-item) { margin-bottom: 14px; }
 .login-btn { width: 100%; margin-top: 4px; }
+.academic-alert { margin-bottom: 14px; }
+.form-tip {
+  width: 100%;
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #e6a23c;
+}
 .admin-activation-entry {
   display: flex;
   flex-direction: column;

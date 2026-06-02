@@ -60,9 +60,19 @@ export const useUserStore = defineStore('user', () => {
 
   async function supabaseRegister(
     email: string, password: string, name: string,
-    schoolCodeParam: string, studentNo: string
+    schoolCodeParam: string, studentNo: string,
+    collegeName = '', majorName = '', className = '',
   ) {
-    const data = await authApi.signUp(email, password, name, schoolCodeParam, studentNo)
+    const data = await authApi.signUp(
+      email,
+      password,
+      name,
+      schoolCodeParam,
+      studentNo,
+      collegeName,
+      majorName,
+      className,
+    )
 
     if (data.session && data.user) {
       userId.value = data.user.id
