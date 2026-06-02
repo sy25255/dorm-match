@@ -31,20 +31,10 @@ jobs:
         working-directory: frontend
         run: npx vue-tsc --noEmit --pretty false
 
-      - name: Verify deployment env
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-        run: |
-          test -n "$VITE_SUPABASE_URL"
-          test -n "$VITE_SUPABASE_ANON_KEY"
-
       - name: Build frontend
         working-directory: frontend
         env:
           VITE_BASE_PATH: /
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_ALLOW_LEGACY_SURVEY_FALLBACK: "false"
           VITE_SHOW_TEST_ACCOUNTS: "false"
         run: npm run build
