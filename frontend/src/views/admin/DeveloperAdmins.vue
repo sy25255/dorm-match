@@ -4,6 +4,7 @@ import { devApi } from '@/api/dev'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const admins = ref<any[]>([])
+const schools = ref<any[]>([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const isEdit = ref(false)
@@ -18,8 +19,15 @@ function resetForm() {
 async function loadAdmins() {
   loading.value = true
   try {
-    const res = await devApi.getAdmins()
+    const [adminRes, schoolRes] = await Promise.all([devApi.getAdmins(), devApi.getSchools()])
+    const schoolMap = new Map((schoolRes.data.data || []).map((s: any) => [s.code, s.name]))
+    schools.value = schoolRes.data.data || []
+    const res = adminRes
     admins.value = res.data.data || []
+    admins.value = admins.value.map((a: any) => ({
+      ...a,
+      schoolName: schoolMap.get(a.schoolCode) || a.schoolCode,
+    }))
   } finally { loading.value = false }
 }
 
@@ -61,10 +69,6 @@ const statusMap: Record<number, { label: string; type: string }> = {
   0: { label: '已禁用', type: 'danger' },
 }
 
-const schoolNameMap: Record<string, string> = {
-  'DEMO-UNI': '示范大学', 'TEST': '测试学院', 'BJ-UNI': '北京大学', 'SH-UNI': '上海大学',
-}
-
 onMounted(loadAdmins)
 </script>
 
@@ -88,7 +92,7 @@ onMounted(loadAdmins)
         <el-table-column prop="role" label="角色" width="100" />
         <el-table-column label="所属学校" min-width="160">
           <template #default="{ row }">
-            <el-tag type="primary" size="small">{{ schoolNameMap[row.schoolCode] || row.schoolCode }}</el-tag>
+            <el-tag type="primary" size="small">{{ row.schoolName || row.schoolCode }}</el-tag>
             <span style="margin-left:8px;color:#6b7280;font-size:12px">{{ row.schoolCode }}</span>
           </template>
         </el-table-column>
@@ -115,14 +119,7 @@ onMounted(loadAdmins)
           </el-form-item>
           <el-form-item label="所属学校">
             <el-select v-model="form.schoolCode" placeholder="选择学校" style="width:100%">
-              <el-option
-                v-for="s in [
-                  { code: 'DEMO-UNI', name: '示范大学' },
-                  { code: 'TEST', name: '测试学院' },
-                  { code: 'BJ-UNI', name: '北京大学' },
-                  { code: 'SH-UNI', name: '上海大学' },
-                ]" :key="s.code" :label="s.name" :value="s.code"
-              />
+              <el-option v-for="s in schools" :key="s.code" :label="`${s.name}（${s.code}）`" :value="s.code" />
             </el-select>
           </el-form-item>
           <el-form-item label="状态">

@@ -8,9 +8,21 @@ const loading = ref(false)
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const form = ref({ code: '', name: '', shortName: '', adminEmail: '', description: '', status: 1 })
+const createdAdminInvite = ref<{ email: string; schoolCode: string; token: string; link: string } | null>(null)
 
 function resetForm() {
   form.value = { code: '', name: '', shortName: '', adminEmail: '', description: '', status: 1 }
+  createdAdminInvite.value = null
+}
+
+function generateSchoolCode() {
+  const base = (form.value.shortName || form.value.name || 'SCHOOL')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 10) || 'SCHOOL'
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase()
+  form.value.code = `${base}-${suffix}`
 }
 
 async function loadSchools() {
@@ -28,11 +40,27 @@ function openEdit(row?: any) {
 }
 
 async function saveSchool() {
+  if (!form.value.name.trim()) {
+    ElMessage.warning('请填写学校名称')
+    return
+  }
+  if (!form.value.code.trim()) generateSchoolCode()
   if (isEdit.value) {
     await devApi.updateSchoolConfig(form.value.code, form.value)
     ElMessage.success('学校信息已更新')
   } else {
-    ElMessage.success('学校创建功能开发中')
+    const res = await devApi.createSchoolWithAdminInvite(form.value)
+    const payload = res.data.data
+    const invite = payload.adminInvite
+    createdAdminInvite.value = invite?.token ? {
+      email: form.value.adminEmail,
+      schoolCode: payload.school.code,
+      token: invite.token,
+      link: `${window.location.origin}${window.location.pathname}#/${payload.school.code}/login?activate=admin`,
+    } : null
+    ElMessage.success(createdAdminInvite.value ? '学校已创建，管理员激活信息已生成' : '学校已创建')
+    await loadSchools()
+    return
   }
   dialogVisible.value = false
   loadSchools()
@@ -68,7 +96,7 @@ onMounted(loadSchools)
     <el-card>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <span style="color:#6b7280;font-size:13px">共 {{ schools.length }} 所学校</span>
-        <el-button type="primary" @click="openEdit()" disabled>添加学校（开发中）</el-button>
+        <el-button type="primary" @click="openEdit()">添加学校</el-button>
       </div>
 
       <el-table :data="schools" v-loading="loading" stripe>
@@ -99,7 +127,11 @@ onMounted(loadSchools)
       <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑学校' : '添加学校'" width="500px" destroy-on-close>
         <el-form :model="form" label-width="100px">
           <el-form-item label="学校编码">
-            <el-input v-model="form.code" :disabled="isEdit" placeholder="如 DEMO-UNI" />
+            <el-input v-model="form.code" :disabled="isEdit" placeholder="自动生成或手动填写">
+              <template v-if="!isEdit" #append>
+                <el-button @click="generateSchoolCode">生成</el-button>
+              </template>
+            </el-input>
           </el-form-item>
           <el-form-item label="学校名称">
             <el-input v-model="form.name" placeholder="如 示范大学" />
@@ -117,6 +149,21 @@ onMounted(loadSchools)
             <el-switch v-model="form.status" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="禁用" />
           </el-form-item>
         </el-form>
+        <el-alert
+          v-if="createdAdminInvite"
+          type="success"
+          :closable="false"
+          show-icon
+          style="margin-top: 12px"
+        >
+          <template #title>学校已创建，管理员激活信息只显示一次</template>
+          <div style="line-height: 1.8">
+            <div>学校编码：{{ createdAdminInvite.schoolCode }}</div>
+            <div>老师邮箱：{{ createdAdminInvite.email }}</div>
+            <div>激活码：<strong>{{ createdAdminInvite.token }}</strong></div>
+            <div>激活入口：{{ createdAdminInvite.link }}</div>
+          </div>
+        </el-alert>
         <template #footer>
           <el-button @click="dialogVisible = false">取消</el-button>
           <el-button type="primary" @click="saveSchool">保存</el-button>

@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { devApi } from '@/api/dev'
 import { Monitor, School, User, ChatLineSquare, Notification, SwitchButton } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const schools = ref<any[]>([])
 
 const activeMenu = computed(() => route.path)
 const devBase = '/dev'
@@ -19,10 +21,17 @@ function handleLogout() {
 function goToSchool(code: string) {
   localStorage.setItem('dev_referrer', 'true')
   localStorage.setItem('schoolCode', code)
-  const school = { 'DEMO-UNI': '示范大学', 'TEST': '测试学院', 'BJ-UNI': '北京大学', 'SH-UNI': '上海大学' } as Record<string, string>
-  localStorage.setItem('schoolName', school[code] || code)
+  const school = schools.value.find(s => s.code === code)
+  localStorage.setItem('schoolName', school?.name || code)
   router.push(`/${code}/admin`)
 }
+
+async function loadSchools() {
+  const res = await devApi.getSchools()
+  schools.value = res.data.data || []
+}
+
+onMounted(loadSchools)
 </script>
 
 <template>
@@ -66,16 +75,11 @@ function goToSchool(code: string) {
       <div class="dev-schools-section">
         <div class="dev-section-title">学校管理后台</div>
         <div
-          v-for="s in [
-            { code: 'DEMO-UNI', name: '示范大学', color: '#667eea' },
-            { code: 'TEST', name: '测试学院', color: '#13c2c2' },
-            { code: 'BJ-UNI', name: '北京大学', color: '#fa8c16' },
-            { code: 'SH-UNI', name: '上海大学', color: '#52c41a' },
-          ]" :key="s.code"
+          v-for="s in schools" :key="s.code"
           class="dev-school-item"
           @click="goToSchool(s.code)"
         >
-          <span class="dev-school-dot" :style="{ background: s.color }"></span>
+          <span class="dev-school-dot"></span>
           <span>{{ s.name }}</span>
         </div>
       </div>

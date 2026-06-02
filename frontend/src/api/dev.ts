@@ -14,6 +14,37 @@ function createInviteToken() {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
+function mapSchool(row: any) {
+  return {
+    ...row,
+    code: row.code || '',
+    name: row.name || '',
+    shortName: row.short_name || row.shortName || '',
+    adminEmail: row.admin_email || row.adminEmail || '',
+    description: row.description || '',
+    status: row.status ?? 1,
+  }
+}
+
+function schoolPayload(data: any) {
+  return {
+    name: data.name,
+    short_name: data.shortName || data.short_name || null,
+    admin_email: data.adminEmail || data.admin_email || null,
+    description: data.description || null,
+    status: data.status ?? 1,
+  }
+}
+
+function mapAdmin(row: any) {
+  return {
+    ...row,
+    username: row.username || row.name || '',
+    schoolCode: row.school_code || row.schoolCode || '',
+    status: row.status ?? 1,
+  }
+}
+
 export const devApi = {
   async getPlatformStats() {
     const { count: totalSchools } = await supabase.from('schools').select('*', { count: 'exact', head: true })
@@ -21,18 +52,30 @@ export const devApi = {
     const { count: totalBuildings } = await supabase.from('dormitory_buildings').select('*', { count: 'exact', head: true })
     const { count: totalRooms } = await supabase.from('dormitory_rooms').select('*', { count: 'exact', head: true })
     const { count: totalAllocations } = await supabase.from('allocations').select('*', { count: 'exact', head: true })
+    const { data: schools } = await supabase.from('schools').select('*').eq('status', 1).order('created_at', { ascending: false })
+    const schoolStats = await Promise.all((schools || []).map(async (row: any) => {
+      const school = mapSchool(row)
+      const stats = await this.getSchoolStatistics(school.code)
+      return { ...school, ...stats.data.data }
+    }))
     return wrap({
-      totalSchools: totalSchools || 0,
-      totalStudents: totalStudents || 0,
-      totalBuildings: totalBuildings || 0,
-      totalRooms: totalRooms || 0,
-      totalAllocations: totalAllocations || 0,
+      totals: {
+        schoolCount: totalSchools || 0,
+        totalStudents: totalStudents || 0,
+        totalBuildings: totalBuildings || 0,
+        totalRooms: totalRooms || 0,
+        allocated: totalAllocations || 0,
+        completedSurvey: schoolStats.reduce((sum: number, s: any) => sum + (s.completedSurvey || 0), 0),
+        paired: schoolStats.reduce((sum: number, s: any) => sum + (s.paired || 0), 0),
+        pendingObjections: schoolStats.reduce((sum: number, s: any) => sum + (s.objections || 0), 0),
+      },
+      schoolStats,
     })
   },
 
   async getSchools() {
     const { data } = await supabase.from('schools').select('*').order('created_at', { ascending: false })
-    return wrap(data || [])
+    return wrap((data || []).map(mapSchool))
   },
 
   async getSchoolStatistics(code: string) {
@@ -44,6 +87,7 @@ export const devApi = {
       totalStudents: totalStudents || 0,
       completedSurvey: completedSurvey || 0,
       allocated: allocatedCount || 0,
+      paired: 0,
       objections: objectionsCount || 0,
     })
   },
@@ -75,17 +119,41 @@ export const devApi = {
 
   async getSchoolConfig(code: string) {
     const { data } = await supabase.from('schools').select('*').eq('code', code).single()
-    return wrap(data)
+    return wrap(mapSchool(data))
   },
 
   async updateSchoolConfig(code: string, config: any) {
-    await supabase.from('schools').update(config).eq('code', code)
+    const { error } = await supabase.from('schools').update(schoolPayload(config)).eq('code', code)
+    if (error) throw error
     return wrap(null)
+  },
+
+  async createSchool(config: any) {
+    const { data, error } = await supabase.rpc('create_school_for_platform', {
+      p_code: config.code,
+      p_name: config.name,
+      p_short_name: config.shortName || null,
+      p_admin_email: config.adminEmail || null,
+      p_description: config.description || null,
+    })
+    if (error) throw error
+    return wrap(mapSchool(data))
+  },
+
+  async createSchoolWithAdminInvite(config: any) {
+    const school = await this.createSchool(config)
+    if (!config.adminEmail) return wrap({ school: school.data.data, adminInvite: null })
+    const admin = await this.createAdmin({
+      username: config.adminEmail,
+      email: config.adminEmail,
+      schoolCode: school.data.data.code,
+    })
+    return wrap({ school: school.data.data, adminInvite: admin.data.data })
   },
 
   async getAdmins() {
     const { data } = await supabase.from('profiles').select('*').eq('role', 'ADMIN').order('created_at', { ascending: false })
-    return wrap(data || [])
+    return wrap((data || []).map(mapAdmin))
   },
 
   async createAdmin(adminData: any) {

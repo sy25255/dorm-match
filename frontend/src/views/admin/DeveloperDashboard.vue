@@ -51,8 +51,8 @@ function buildCharts() {
 
 function enterSchool(code: string) {
   localStorage.setItem('schoolCode', code)
-  const school = { 'DEMO-UNI': '示范大学', 'TEST': '测试学院', 'BJ-UNI': '北京大学', 'SH-UNI': '上海大学' } as Record<string, string>
-  localStorage.setItem('schoolName', school[code] || code)
+  const school = (platformStats.value.schoolStats || []).find((s: any) => s.code === code)
+  localStorage.setItem('schoolName', school?.name || code)
   router.push(`/${code}/admin`)
 }
 
