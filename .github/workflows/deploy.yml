@@ -34,7 +34,7 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         env:
-          VITE_BASE_PATH: /
+          VITE_BASE_PATH: ./
           VITE_ALLOW_LEGACY_SURVEY_FALLBACK: "false"
           VITE_SHOW_TEST_ACCOUNTS: "false"
         run: npm run build
