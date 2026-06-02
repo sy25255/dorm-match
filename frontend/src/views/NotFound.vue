@@ -2,7 +2,11 @@
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const schoolCode = localStorage.getItem('schoolCode') || 'DEMO-UNI'
+const schoolCode = localStorage.getItem('schoolCode') || ''
+
+function goHome() {
+  router.push(schoolCode ? `/${schoolCode}/` : '/')
+}
 </script>
 
 <template>
@@ -12,7 +16,7 @@ const schoolCode = localStorage.getItem('schoolCode') || 'DEMO-UNI'
       <h1>页面未找到</h1>
       <p>您访问的页面不存在或已被移除</p>
       <div class="not-found-actions">
-        <el-button type="primary" @click="router.push(`/${schoolCode}/`)">返回首页</el-button>
+        <el-button type="primary" @click="goHome">返回首页</el-button>
         <el-button @click="router.back()">返回上页</el-button>
       </div>
     </div>

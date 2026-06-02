@@ -1,43 +1,20 @@
 <script setup lang="ts">
-import { reactive, ref, onMounted, computed, watch } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { schoolApi } from '@/api/school'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, UserFilled } from '@element-plus/icons-vue'
+import { ArrowLeft } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const loading = ref(false)
 const inviteChecking = ref(false)
-const guestDialogVisible = ref(false)
-const guestForm = reactive({ name: '', collegeId: null as number | null, majorId: null as number | null })
 const studentInvite = reactive({ code: '', verified: false, name: '' })
 const activeTab = ref('register')
 const schoolCode = computed(() => route.params.schoolCode as string)
 const isAdminActivation = computed(() => route.query.activate === 'admin')
-
-// 学院/专业下拉数据
-const colleges = ref<{ id: number; name: string }[]>([])
-const majors = ref<{ id: number; name: string; collegeId: number }[]>([])
-
-const filteredMajors = computed(() => {
-  if (!guestForm.collegeId) return []
-  return majors.value.filter(m => m.collegeId === guestForm.collegeId)
-})
-
-// 默认演示数据（数据库无数据时使用）
-const DEMO_COLLEGES = [
-  { id: 1, name: '计算机科学与技术学院' },
-  { id: 2, name: '经济管理学院' },
-]
-const DEMO_MAJORS = [
-  { id: 101, name: '计算机科学与技术', collegeId: 1 },
-  { id: 102, name: '软件工程', collegeId: 1 },
-  { id: 201, name: '工商管理', collegeId: 2 },
-  { id: 202, name: '会计学', collegeId: 2 },
-]
 
 const loginForm = reactive({ email: '', password: '' })
 const registerForm = reactive({
@@ -132,32 +109,6 @@ onMounted(async () => {
   }
 })
 
-// 加载学院/专业列表
-async function loadCollegesAndMajors() {
-  try {
-    const colRes = await schoolApi.getColleges()
-    colleges.value = (colRes.data.data || []).map((c: any) => ({ id: c.id, name: c.name }))
-    const majRes = await schoolApi.getMajors()
-    majors.value = (majRes.data.data || []).map((m: any) => ({ id: m.id, name: m.name, collegeId: m.college_id || m.collegeId }))
-  } catch { /* ignore */ }
-  // 数据库无数据时使用默认演示数据
-  if (colleges.value.length === 0) {
-    colleges.value = DEMO_COLLEGES
-    majors.value = DEMO_MAJORS
-  }
-}
-
-watch(colleges, () => {
-  if (colleges.value.length > 0) {
-    majors.value = colleges.value.length > 0 && majors.value.length === 0 ? DEMO_MAJORS : majors.value
-  }
-})
-
-// 选择学院时清空专业
-watch(() => guestForm.collegeId, () => {
-  guestForm.majorId = null
-})
-
 async function handleLogin() {
   loading.value = true
   try {
@@ -223,75 +174,6 @@ function backToSchoolEntry() {
   userStore.logout()
   router.push('/')
 }
-
-async function handleGuestLogin() {
-  if (!(await ensureStudentInvite())) return
-  // 先加载学院/专业数据
-  await loadCollegesAndMajors()
-
-  // 检查是否有记住的免登录账号
-  const savedGuest = userStore.getGuestAccount()
-  if (savedGuest && savedGuest.schoolCode === (userStore.schoolCode || schoolCode.value)) {
-    // 尝试用记住的邮箱 + 固定密码重新登录
-    try {
-      await userStore.guestReLogin(savedGuest.email)
-      ElMessage.success(`欢迎回来，${savedGuest.name}！`)
-      router.push(`/${schoolCode.value}/`)
-      return
-    } catch {
-      // 账号可能已被清理，清除记录，重新创建
-      userStore.clearGuestAccount()
-    }
-  }
-
-  // 预填上次的姓名
-  if (savedGuest) {
-    guestForm.name = savedGuest.name
-    // 尝试匹配上次的学院和专业
-    const prevCollege = colleges.value.find(c => c.name === savedGuest.collegeName)
-    if (prevCollege) {
-      guestForm.collegeId = prevCollege.id
-      const prevMajor = filteredMajors.value.find(m => m.name === savedGuest.majorName)
-      if (prevMajor) guestForm.majorId = prevMajor.id
-    }
-  } else {
-    guestForm.name = ''
-  }
-  guestForm.collegeId = guestForm.collegeId || null
-  guestForm.majorId = guestForm.majorId || null
-  guestDialogVisible.value = true
-}
-
-async function confirmGuestLogin() {
-  if (!guestForm.name.trim()) {
-    ElMessage.warning('请输入姓名')
-    return
-  }
-  if (!guestForm.collegeId) {
-    ElMessage.warning('请选择学院')
-    return
-  }
-  if (!guestForm.majorId) {
-    ElMessage.warning('请选择专业')
-    return
-  }
-  const college = colleges.value.find(c => c.id === guestForm.collegeId)
-  const major = majors.value.find(m => m.id === guestForm.majorId)
-  loading.value = true
-  try {
-    await userStore.guestLogin(
-      userStore.schoolCode || schoolCode.value,
-      guestForm.name.trim(),
-      college?.name || '',
-      major?.name || '',
-    )
-    guestDialogVisible.value = false
-    ElMessage.success(`欢迎 ${guestForm.name.trim()}！请先完成偏好问卷`)
-    router.push(`/${schoolCode.value}/survey`)
-  } catch (err: any) {
-    ElMessage.error(err?.message || '免登录失败，请重试')
-  } finally { loading.value = false }
-}
 </script>
 
 <template>
@@ -301,6 +183,7 @@ async function confirmGuestLogin() {
         <div class="school-brand">
           <el-icon :size="36" color="#667eea"><School /></el-icon>
           <span class="school-name">{{ userStore.schoolName || '宿舍选择系统' }}</span>
+          <span class="school-code-badge">{{ schoolCode }}</span>
           <span style="font-size:13px;color:#86909c;margin-top:4px">新生宿舍舍友自主选择系统</span>
         </div>
         <p style="font-size:14px;color:#4e5969;margin-top:4px">完成偏好问卷，智能匹配理想舍友</p>
@@ -330,17 +213,6 @@ async function confirmGuestLogin() {
           show-icon
           :title="`已通过：${studentInvite.name}`"
         />
-      </div>
-
-      <div class="test-entry-panel">
-        <div>
-          <h2>测试体验</h2>
-          <p>填写姓名、学院和专业后进入完整流程，不需要先注册正式账号。</p>
-        </div>
-        <el-button type="primary" size="large" class="test-entry-btn" :disabled="!studentInvite.verified" @click="handleGuestLogin">
-          <el-icon :size="16"><UserFilled /></el-icon>
-          填写测试信息进入
-        </el-button>
       </div>
 
       <el-tabs v-model="activeTab" class="login-tabs">
@@ -385,39 +257,6 @@ async function confirmGuestLogin() {
         <span>受邀老师请先登录或注册，再输入平台方发放的激活码。</span>
       </div>
 
-      <!-- 免登录弹窗 -->
-      <el-dialog v-model="guestDialogVisible" title="测试信息填写" width="420px" :close-on-click-modal="false" @opened="loadCollegesAndMajors">
-        <el-form label-position="top" @submit.prevent="confirmGuestLogin">
-          <el-form-item label="姓名" required>
-            <el-input v-model="guestForm.name" placeholder="请输入你的姓名（如：张三）" size="large" maxlength="20" />
-          </el-form-item>
-          <el-form-item label="学院" required>
-            <el-select v-model="guestForm.collegeId" placeholder="请选择学院" size="large" style="width:100%">
-              <el-option
-                v-for="c in colleges"
-                :key="c.id"
-                :label="c.name"
-                :value="c.id"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="专业" required>
-            <el-select v-model="guestForm.majorId" placeholder="请先选择学院" size="large" style="width:100%" :disabled="!guestForm.collegeId">
-              <el-option
-                v-for="m in filteredMajors"
-                :key="m.id"
-                :label="m.name"
-                :value="m.id"
-              />
-            </el-select>
-          </el-form-item>
-        </el-form>
-        <template #footer>
-          <el-button @click="guestDialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="loading" @click="confirmGuestLogin">进入系统</el-button>
-        </template>
-      </el-dialog>
-
       <div class="switch-school" @click="backToSchoolEntry">
         <el-icon :size="14"><ArrowLeft /></el-icon>
         <span>切换学校</span>
@@ -449,6 +288,15 @@ async function confirmGuestLogin() {
 .login-header { text-align: center; margin-bottom: 16px; }
 .school-brand { display: flex; flex-direction: column; align-items: center; }
 .school-name { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-top: 6px; }
+.school-code-badge {
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f2f3f5;
+  color: #4e5969;
+  font-size: 12px;
+  font-weight: 600;
+}
 .invite-gate {
   display: grid;
   gap: 12px;
@@ -458,23 +306,9 @@ async function confirmGuestLogin() {
   background: #f8fafc;
   margin-bottom: 16px;
 }
-.test-entry-panel {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 14px;
-  align-items: center;
-  padding: 16px;
-  border: 1px solid #dbeafe;
-  border-radius: 10px;
-  background: #f8fbff;
-  margin-bottom: 16px;
-}
 .invite-gate h2 { margin: 0 0 4px; font-size: 16px; color: #1d2129; }
 .invite-gate p { margin: 0; font-size: 13px; line-height: 1.5; color: #5f6b7a; }
 .invite-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
-.test-entry-panel h2 { margin: 0 0 4px; font-size: 16px; color: #1d2129; }
-.test-entry-panel p { margin: 0; font-size: 13px; line-height: 1.5; color: #5f6b7a; }
-.test-entry-btn { min-width: 150px; }
 .login-tabs :deep(.el-tabs__nav) { width: 100%; display: flex; }
 .login-tabs :deep(.el-tabs__item) { flex: 1; text-align: center; font-size: 15px; }
 .login-tabs :deep(.el-form-item) { margin-bottom: 14px; }
@@ -491,15 +325,9 @@ async function confirmGuestLogin() {
 }
 .switch-school { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; font-size: 13px; color: #a0aec0; cursor: pointer; }
 .switch-school:hover { color: #667eea; }
-.guest-section { text-align: center; }
-.guest-btn { width: 100%; margin-left: 0; border: 2px dashed #c0c4cc; color: #606266; background: #fafafa; }
-.guest-btn:hover { border-color: #667eea; color: #667eea; background: #f0f0ff; }
-
 @media (max-width: 640px) {
   .login-container { align-items: flex-start; padding: 12px; }
   .login-card { padding: 22px 18px; max-height: none; }
-  .invite-row,
-  .test-entry-panel { grid-template-columns: 1fr; }
-  .test-entry-btn { width: 100%; }
+  .invite-row { grid-template-columns: 1fr; }
 }
 </style>

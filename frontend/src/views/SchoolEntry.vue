@@ -30,13 +30,7 @@ async function validateSchoolCode() {
       .single()
 
     if (error) {
-      try {
-        const mod = await import('@/mock/data')
-        const school = mod.getSchoolByCode(code)
-        validatedSchool.value = school || null
-      } catch {
-        validatedSchool.value = null
-      }
+      validatedSchool.value = null
     } else if (data) {
       validatedSchool.value = data
     } else {
@@ -58,20 +52,12 @@ async function enterSchool() {
   }
 
   if (!validatedSchool.value) {
-    ElMessage.warning('学校编码无效，请检查后重试')
+    ElMessage.warning('学校编码不存在，请确认后重试')
     return
   }
 
   userStore.setSchoolInfo(validatedSchool.value.code, validatedSchool.value.name)
   router.push(`/${validatedSchool.value.code}/login`)
-}
-
-function enterDemoSchool() {
-  const demoSchool = { code: 'DEMO-UNI', name: '示范大学' }
-  schoolCode.value = demoSchool.code
-  validatedSchool.value = demoSchool
-  userStore.setSchoolInfo(demoSchool.code, demoSchool.name)
-  router.push(`/${demoSchool.code}/login`)
 }
 
 function onKeyUp(e: KeyboardEvent) {
@@ -88,7 +74,7 @@ function onKeyUp(e: KeyboardEvent) {
           <el-icon :size="44" color="#667eea"><School /></el-icon>
         </div>
         <h1 class="entry-title">新生宿舍舍友选择系统</h1>
-        <p class="entry-subtitle">输入学校编码进入；测试者可免注册体验完整流程</p>
+        <p class="entry-subtitle">输入学校发放的学校编码，进入对应学校的新生系统</p>
       </div>
 
       <div class="form-section">
@@ -97,7 +83,7 @@ function onKeyUp(e: KeyboardEvent) {
           <div class="school-code-row">
             <el-input
               v-model="schoolCode"
-              placeholder="例如：DEMO-UNI"
+              placeholder="请输入学校编码"
               size="large"
               :maxlength="20"
               class="code-input"
@@ -115,7 +101,7 @@ function onKeyUp(e: KeyboardEvent) {
             </span>
           </div>
           <p v-if="codeTouched && schoolCode && !validatedSchool && !validating" class="form-hint" style="color:#f53f3f">
-            学校编码无效，请检查后重试
+            学校编码不存在，请确认后重试
           </p>
         </div>
 
@@ -128,20 +114,6 @@ function onKeyUp(e: KeyboardEvent) {
         >
           进入登录
         </el-button>
-        <el-button
-          size="large"
-          class="demo-btn"
-          @click="enterDemoSchool"
-        >
-          免注册进入测试体验
-        </el-button>
-      </div>
-
-      <div class="known-codes">
-        <p class="codes-label">测试学校编码</p>
-        <div class="codes-list">
-          <span class="code-tag" @click="enterDemoSchool">DEMO-UNI 示范大学</span>
-        </div>
       </div>
     </div>
     </div>
@@ -212,28 +184,4 @@ function onKeyUp(e: KeyboardEvent) {
 .form-hint { font-size: 12px; margin: 4px 0 0; }
 
 .submit-btn { width: 100%; height: 46px; font-size: 16px; border-radius: 10px; }
-.demo-btn {
-  width: 100%;
-  height: 44px;
-  margin: 12px 0 0;
-  border-radius: 10px;
-  border: 1px solid #667eea;
-  color: #667eea;
-}
-
-.known-codes { margin-top: 24px; padding-top: 20px; border-top: 1px solid #f0f0f0; text-align: center; }
-.codes-label { font-size: 12px; color: #86909c; margin: 0 0 10px; }
-.codes-list { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-.code-tag {
-  display: inline-block;
-  padding: 6px 14px;
-  border-radius: 6px;
-  background: #f5f3ff;
-  color: #667eea;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid #e8e0ff;
-}
-.code-tag:hover { background: #667eea; color: #fff; }
 </style>

@@ -76,7 +76,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export { supabase }
 
 export function getCurrentSchool(): string {
-  return localStorage.getItem('schoolCode') || 'DEMO-UNI'
+  return localStorage.getItem('schoolCode') || ''
 }
 
 export function getCurrentUserId(): string {

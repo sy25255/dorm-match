@@ -87,6 +87,16 @@ function generateInviteCode() {
   inviteForm.value.code = `${sc}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
 }
 
+async function copySchoolCode() {
+  const code = String(config.value.schoolCode || '').trim()
+  if (!code) {
+    ElMessage.warning('暂无可复制的学校编码')
+    return
+  }
+  await navigator.clipboard.writeText(code)
+  ElMessage.success('学校编码已复制')
+}
+
 async function createInviteCode() {
   try {
     if (!inviteForm.value.code.trim()) generateInviteCode()
@@ -209,6 +219,33 @@ onMounted(async () => {
 <template>
   <div>
     <div class="page-toolbar"><h2>学校管理</h2></div>
+
+    <el-card style="margin-bottom:16px">
+      <template #header><span style="font-weight:600">学生进入学校区域</span></template>
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        title="学生先在首页输入学校编码进入本校区域，再凭学生邀请码完成注册。学校编码用于定位学校，不等同于注册授权。"
+        style="margin-bottom:12px"
+      />
+      <el-row :gutter="16" align="middle">
+        <el-col :span="10">
+          <el-form-item label="本校学校编码">
+            <el-input :model-value="config.schoolCode" readonly>
+              <template #append>
+                <el-button @click="copySchoolCode">复制</el-button>
+              </template>
+            </el-input>
+          </el-form-item>
+        </el-col>
+        <el-col :span="14">
+          <div class="school-entry-preview">
+            学生入口：dormmatch.cn/#/ → 输入 {{ config.schoolCode || '学校编码' }}
+          </div>
+        </el-col>
+      </el-row>
+    </el-card>
 
     <el-card style="margin-bottom:16px">
       <template #header><span style="font-weight:600">学校基本信息</span></template>
@@ -362,4 +399,11 @@ onMounted(async () => {
 <style scoped>
 .page-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .page-toolbar h2 { margin: 0; font-size: 18px; }
+.school-entry-preview {
+  color: #4e5969;
+  background: #f7f8fa;
+  border: 1px solid #e5e6eb;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
 </style>
