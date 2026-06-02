@@ -14,7 +14,9 @@ const inviteChecking = ref(false)
 const studentInvite = reactive({ code: '', verified: false, name: '' })
 const activeTab = ref('register')
 const schoolCode = computed(() => route.params.schoolCode as string)
+const isAdminLogin = computed(() => route.query.admin === '1')
 const isAdminActivation = computed(() => route.query.activate === 'admin')
+const isTeacherEntry = computed(() => isAdminLogin.value || isAdminActivation.value)
 
 const loginForm = reactive({ email: '', password: '' })
 const registerForm = reactive({
@@ -44,6 +46,7 @@ async function verifyStudentInvite() {
 }
 
 async function ensureStudentInvite() {
+  if (isAdminActivation.value) return true
   if (studentInvite.verified) return true
   return verifyStudentInvite()
 }
@@ -96,6 +99,9 @@ onMounted(async () => {
   if (userStore.token) {
     router.push(isAdminActivation.value ? `/${userStore.schoolCode || schoolCode.value}/admin-activate` : landingPathForCurrentUser())
     return
+  }
+  if (isTeacherEntry.value) {
+    activeTab.value = 'login'
   }
   if (!userStore.schoolName && schoolCode.value) {
     const name = localStorage.getItem('schoolName') || '未知学校'
@@ -189,7 +195,12 @@ function backToSchoolEntry() {
         <p style="font-size:14px;color:#4e5969;margin-top:4px">完成偏好问卷，智能匹配理想舍友</p>
       </div>
 
-      <div class="invite-gate">
+      <div v-if="isTeacherEntry" class="admin-login-note">
+        <h2>{{ isAdminActivation ? '管理员激活' : '管理员/老师登录' }}</h2>
+        <p>{{ isAdminActivation ? '受邀老师可先注册或登录账号，再输入平台发放的管理员激活码。' : '请使用学校管理员账号登录。登录成功后，系统会自动进入本校管理后台。' }}</p>
+      </div>
+
+      <div v-else class="invite-gate">
         <div>
           <h2>学生邀请码</h2>
           <p>请先输入学校发放的邀请码，系统会把你绑定到当前学校后再进入问卷和舍友选择流程。</p>
@@ -216,7 +227,7 @@ function backToSchoolEntry() {
       </div>
 
       <el-tabs v-model="activeTab" class="login-tabs">
-        <el-tab-pane label="新生注册" name="register">
+        <el-tab-pane v-if="!isAdminLogin" label="新生注册" name="register">
           <el-form :model="registerForm" :rules="registerRules" label-position="top" @submit.prevent="handleRegister">
             <el-form-item label="邮箱" prop="email">
               <el-input v-model="registerForm.email" placeholder="请输入邮箱（登录使用）" size="large" />
@@ -233,7 +244,7 @@ function backToSchoolEntry() {
             <el-form-item label="确认密码" prop="confirmPassword">
               <el-input v-model="registerForm.confirmPassword" type="password" placeholder="再次输入密码" size="large" show-password />
             </el-form-item>
-            <el-button type="primary" size="large" :loading="loading" :disabled="!studentInvite.verified" native-type="submit" class="login-btn">注 册</el-button>
+            <el-button type="primary" size="large" :loading="loading" :disabled="!studentInvite.verified && !isAdminActivation" native-type="submit" class="login-btn">注 册</el-button>
           </el-form>
         </el-tab-pane>
 
@@ -306,8 +317,19 @@ function backToSchoolEntry() {
   background: #f8fafc;
   margin-bottom: 16px;
 }
+.admin-login-note {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  margin-bottom: 16px;
+}
 .invite-gate h2 { margin: 0 0 4px; font-size: 16px; color: #1d2129; }
 .invite-gate p { margin: 0; font-size: 13px; line-height: 1.5; color: #5f6b7a; }
+.admin-login-note h2 { margin: 0; font-size: 16px; color: #1e3a8a; }
+.admin-login-note p { margin: 0; font-size: 13px; line-height: 1.5; color: #475569; }
 .invite-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
 .login-tabs :deep(.el-tabs__nav) { width: 100%; display: flex; }
 .login-tabs :deep(.el-tabs__item) { flex: 1; text-align: center; font-size: 15px; }

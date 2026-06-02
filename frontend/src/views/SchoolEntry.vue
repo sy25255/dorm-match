@@ -43,7 +43,7 @@ async function validateSchoolCode() {
   }
 }
 
-async function enterSchool() {
+async function enterSchool(mode: 'student' | 'admin' = 'student') {
   const code = schoolCode.value.trim().toUpperCase()
   if (!code) { ElMessage.warning('请输入学校编码'); return }
 
@@ -57,7 +57,10 @@ async function enterSchool() {
   }
 
   userStore.setSchoolInfo(validatedSchool.value.code, validatedSchool.value.name)
-  router.push(`/${validatedSchool.value.code}/login`)
+  router.push({
+    path: `/${validatedSchool.value.code}/login`,
+    query: mode === 'admin' ? { admin: '1' } : undefined,
+  })
 }
 
 function onKeyUp(e: KeyboardEvent) {
@@ -110,9 +113,17 @@ function onKeyUp(e: KeyboardEvent) {
           size="large"
           :loading="validating"
           class="submit-btn"
-          @click="enterSchool"
+          @click="() => enterSchool('student')"
         >
-          进入登录
+          学生进入
+        </el-button>
+        <el-button
+          size="large"
+          :loading="validating"
+          class="admin-btn"
+          @click="enterSchool('admin')"
+        >
+          管理员/老师登录
         </el-button>
       </div>
     </div>
@@ -184,4 +195,13 @@ function onKeyUp(e: KeyboardEvent) {
 .form-hint { font-size: 12px; margin: 4px 0 0; }
 
 .submit-btn { width: 100%; height: 46px; font-size: 16px; border-radius: 10px; }
+.admin-btn {
+  width: 100%;
+  height: 44px;
+  margin: 12px 0 0;
+  border-radius: 10px;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
 </style>
