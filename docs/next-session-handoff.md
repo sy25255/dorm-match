@@ -7,9 +7,10 @@
 - 后端：Supabase Auth + PostgreSQL + RLS。
 - `20260602_platform_school_creation.sql` 已在 Supabase SQL Editor 执行，RPC 已验证存在。
 - 已清理旧规则文件，并精简 `.trae/rules/project_rules.md`。
-- 最新提交 `e3df58d Add academic fields to student registration` 已推送到 GitHub `master`。
+- 学生注册学院/专业/班级改动和交接文档更新均已推送到 GitHub `master`；如需最新哈希，以 `git log --oneline -5` 为准。
 - GitHub Actions `Deploy frontend to GitHub Pages` 已成功完成，线上已包含学生注册学院/专业/班级字段。
 - 线上已验证 `profiles.college_name`、`profiles.major_name`、`profiles.class_name` 字段可读。
+- 已用学校 A 的新学生注册链路完成线上验证：邀请码校验、学院/专业/班级级联读取、注册、`profiles` 写入、密码登录均通过。
 
 ## 已创建的演示学校
 
@@ -48,7 +49,6 @@
 
 1. 新开 Trae/Codex 会话后先阅读本文件。
 2. 学生注册页如仍显示旧内容，先强制刷新浏览器缓存。
-3. 用 `STU-A-2026` 注册多个学校 A 学生，确认学院/专业/班级会写入学生档案。
-4. 跑问卷、邀请组队、管理员分配宿舍流程。
-5. 用学校 B 重复测试，确认数据不会跨学校串联。
-6. 如需要完整迁移记录，在 Supabase SQL Editor 复核或执行 `20260603_profiles_academic_fields.sql`；该迁移是幂等字段保障。
+3. 继续跑问卷、邀请组队、管理员分配宿舍流程。
+4. 用学校 B 重复完整学生流程，确认数据不会跨学校串联。
+5. 如需要完整迁移记录，在 Supabase SQL Editor 复核或执行 `20260603_profiles_academic_fields.sql`；该迁移是幂等字段保障。
