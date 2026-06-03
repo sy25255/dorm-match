@@ -126,6 +126,52 @@ function toStudentCard(profile: any, matchScore?: number) {
   }
 }
 
+const publicSurveyDimensionMeta: Record<string, { key: string; title: string; desc: string }> = {
+  LIFESTYLE: { key: 'lifestyle', title: '生活习惯', desc: '生活习惯与健康信息' },
+  SLEEP: { key: 'sleep', title: '生活作息', desc: '睡眠和作息习惯' },
+  HYGIENE: { key: 'hygiene', title: '卫生习惯', desc: '个人卫生与公共区域维护' },
+  STUDY: { key: 'study', title: '学习习惯', desc: '学习时间与环境偏好' },
+  HOBBY: { key: 'hobby', title: '兴趣爱好', desc: '运动、音乐、游戏等兴趣偏好' },
+  SOCIAL: { key: 'social', title: '社交偏好', desc: '社交习惯与沟通方式' },
+  SPENDING: { key: 'spending', title: '消费观念', desc: '消费习惯与共享态度' },
+  EXTENSION: { key: 'extension', title: '扩展信息', desc: '学习规划与宿舍生活偏好' },
+}
+
+function normalizeSurveyDimensionKey(section: any) {
+  const raw = String(section?.dimension || section?.key || '').trim()
+  const upper = raw.toUpperCase()
+  if (publicSurveyDimensionMeta[upper]) return upper
+  const byLowerKey = Object.entries(publicSurveyDimensionMeta)
+    .find(([, meta]) => meta.key === raw.toLowerCase())
+  return byLowerKey?.[0] || upper
+}
+
+function normalizeStudentSurvey(payload: any) {
+  if (!payload) return null
+  const rawSections = Array.isArray(payload.sections)
+    ? payload.sections
+    : Object.values(payload.sections || {})
+
+  return {
+    ...payload,
+    sections: rawSections.map((section: any) => {
+      const dimKey = normalizeSurveyDimensionKey(section)
+      const meta = publicSurveyDimensionMeta[dimKey]
+      return {
+        ...section,
+        key: meta?.key || String(section?.key || dimKey).toLowerCase(),
+        dimension: dimKey,
+        title: meta?.title || section?.title || dimKey,
+        desc: meta?.desc || section?.desc || '',
+        questions: (section?.questions || []).map((q: any) => ({
+          ...q,
+          answerText: q?.answerText || q?.answerValue || '未作答',
+        })),
+      }
+    }),
+  }
+}
+
 export const matchApi = {
   async calculate() {
     return wrap(null)
@@ -261,7 +307,7 @@ export const matchApi = {
   async getStudentSurvey(targetId: string | number) {
     const rpcResult = await supabase.rpc('get_public_student_survey', { p_target_id: String(targetId) })
     if (!rpcResult.error) {
-      return wrap(rpcResult.data)
+      return wrap(normalizeStudentSurvey(rpcResult.data))
     }
     if (rpcResult.error && !isMissingRpc(rpcResult.error)) {
       console.warn('[match] get_public_student_survey failed:', rpcResult.error)
@@ -350,6 +396,6 @@ export const matchApi = {
       })
     }
 
-    return wrap({ sections })
+    return wrap(normalizeStudentSurvey({ sections }))
   },
 }

@@ -86,7 +86,9 @@ async function sendInvite() {
   try {
     await inviteApi.send({ targetId, message: '' })
     ElMessage.success('邀请已发送')
-  } catch {} finally {
+  } catch (err: any) {
+    ElMessage.error(err?.message || '发送邀请失败')
+  } finally {
     inviting.value = false
   }
 }

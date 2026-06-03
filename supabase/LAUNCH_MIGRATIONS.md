@@ -9,10 +9,13 @@ Run these SQL files in Supabase SQL Editor, in this order:
 5. `supabase/migrations/20260601_student_invite_codes.sql`
 6. `supabase/migrations/20260602_platform_school_creation.sql`
 7. `supabase/migrations/20260603_profiles_academic_fields.sql`
+8. `supabase/migrations/20260603_invite_pairing_public_survey_rpc.sql`
 
 After running them, verify these RPC functions exist:
 
 - `accept_invite_and_create_pairing`
+- `send_invite_to_student`
+- `get_public_student_survey`
 - `claim_admin_invite`
 - `create_admin_invite`
 - `verify_student_invite_code`

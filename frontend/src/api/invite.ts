@@ -30,6 +30,24 @@ function canFallbackFromMissingRpc(error: any) {
   return /Could not find the function|schema cache|does not exist|not exist/i.test(message)
 }
 
+function getInviteErrorMessage(error: any, fallback = '邀请操作失败') {
+  const raw = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`
+  if (canFallbackFromMissingRpc(error)) return '邀请接口还没有部署，请先在 Supabase 执行最新迁移'
+  if (/NOT_AUTHENTICATED/i.test(raw)) return '登录状态已失效，请重新登录'
+  if (/INVITE_SELF_NOT_ALLOWED/i.test(raw)) return '不能邀请自己'
+  if (/SENDER_NOT_STUDENT/i.test(raw)) return '当前账号不是学生账号，不能发送邀请'
+  if (/TARGET_NOT_STUDENT/i.test(raw)) return '目标学生不存在或不是学生账号'
+  if (/INVITE_CROSS_SCHOOL_DENIED|INVITE_SCHOOL_MISMATCH|PAIR_GROUP_SCHOOL_MISMATCH/i.test(raw)) return '只能邀请同一学校的学生'
+  if (/INVITE_ALREADY_PENDING/i.test(raw)) return '双方已有待处理邀请，请先处理现有邀请'
+  if (/INVITE_PERMISSION_DENIED/i.test(raw)) return '你没有权限处理这条邀请'
+  if (/INVITE_STATUS_CHANGED/i.test(raw)) return '邀请状态已变化，请刷新后查看'
+  if (/INVITE_EXPIRED/i.test(raw)) return '邀请已过期，请重新发送'
+  if (/INVITE_NOT_FOUND/i.test(raw)) return '邀请不存在或已被删除'
+  if (/USERS_ALREADY_IN_DIFFERENT_GROUPS/i.test(raw)) return '双方已在不同配对组，不能合并'
+  if (/PAIR_GROUP_FULL/i.test(raw)) return '当前配对组已满，不能再加入'
+  return error?.message || fallback
+}
+
 async function ensurePairingForInvite(invite: any) {
   if (!invite?.from_user_id || !invite?.to_user_id) {
     throw new Error('邀请缺少学生信息，无法创建配对组')
@@ -120,6 +138,8 @@ async function getPairMemberRowsForUser(uid: string) {
   const acceptedInvite = acceptedInvites?.[0]
   if (!acceptedInvite) return []
 
+  if (!import.meta.env.DEV) return []
+
   try {
     await ensurePairingForInvite(acceptedInvite)
   } catch {
@@ -186,43 +206,26 @@ async function getInvitePairingMembers(invite: any) {
 export const inviteApi = {
   async send(data: { targetId: string | number; message: string }) {
     const uid = getCurrentUserId()
-    const sc = getCurrentSchool()
     const targetId = String(data.targetId)
 
     if (!uid || !targetId || uid === targetId) {
-      throw new Error('不能向自己发送邀请')
+      throw new Error('不能邀请自己')
     }
 
-    const { data: existing, error: existingError } = await supabase
-      .from('invites')
-      .select('id')
-      .or(`and(from_user_id.eq.${uid},to_user_id.eq.${targetId}),and(from_user_id.eq.${targetId},to_user_id.eq.${uid})`)
-      .eq('status', 0)
-      .gt('expires_at', new Date().toISOString())
-      .limit(1)
-
-    if (existingError) throw existingError
-
-    if ((existing || []).length > 0) {
-      throw new Error('已经发送过待处理邀请')
-    }
-
-    const result = await supabase.from('invites').insert({
-      from_user_id: uid,
-      to_user_id: targetId,
-      school_code: sc,
-      message: data.message,
-      status: 0,
-      expires_at: new Date(Date.now() + 72 * 3600000).toISOString(),
-    }).select('id').single()
-    if (result.error) throw result.error
+    const result = await supabase.rpc('send_invite_to_student', {
+      p_target_id: targetId,
+      p_message: data.message || '',
+    })
+    if (result.error) throw new Error(getInviteErrorMessage(result.error, '发送邀请失败'))
     return wrap(result.data)
   },
 
   async accept(inviteId: number) {
     const rpcResult = await supabase.rpc('accept_invite_and_create_pairing', { p_invite_id: inviteId })
     if (!rpcResult.error) return wrap(rpcResult.data || null)
-    if (!canFallbackFromMissingRpc(rpcResult.error)) throw rpcResult.error
+    if (!canFallbackFromMissingRpc(rpcResult.error) || !import.meta.env.DEV) {
+      throw new Error(getInviteErrorMessage(rpcResult.error, '接受邀请失败'))
+    }
 
     const { data: invite } = await supabase.from('invites').select('*').eq('id', inviteId).single()
     if (!invite || invite.status !== 0) throw new Error('邀请状态已变化')
