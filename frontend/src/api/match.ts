@@ -180,7 +180,17 @@ export const matchApi = {
   async getRecommendations() {
     const rpcResult = await supabase.rpc('get_match_recommendations', { p_limit: 20 })
     if (!rpcResult.error && Array.isArray(rpcResult.data)) {
-      return wrap(rpcResult.data.map(mapRpcStudent))
+      const rows = rpcResult.data.map(mapRpcStudent)
+      const ids = rows.map((row: any) => row.id).filter(Boolean)
+      if (ids.length === 0) return wrap([])
+      const { data: validProfiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('id', ids)
+        .eq('survey_status', 'COMPLETED')
+        .eq('is_valid', true)
+      const validIds = new Set((validProfiles || []).map((profile: any) => profile.id))
+      return wrap(rows.filter((row: any) => validIds.has(row.id)))
     }
     if (rpcResult.error && !isMissingRpc(rpcResult.error)) {
       console.warn('[match] get_match_recommendations failed, falling back to client scoring:', rpcResult.error)
@@ -208,6 +218,7 @@ export const matchApi = {
       .select('*')
       .eq('school_code', sc)
       .eq('survey_status', 'COMPLETED')
+      .eq('is_valid', true)
       .neq('id', uid)
 
     if (!others) return wrap([])
@@ -237,7 +248,14 @@ export const matchApi = {
     const sc = getCurrentSchool()
     const uid = getCurrentUserId()
 
-    let q = supabase.from('profiles').select('*').eq('school_code', sc).neq('id', uid)
+    let q = supabase
+      .from('profiles')
+      .select('*')
+      .eq('school_code', sc)
+      .eq('role', 'STUDENT')
+      .eq('survey_status', 'COMPLETED')
+      .eq('is_valid', true)
+      .neq('id', uid)
 
     if (params.collegeId) {
       const { data: college } = await supabase.from('colleges').select('name').eq('id', params.collegeId).single()

@@ -21,7 +21,6 @@ export const studentApi = {
     const payload = {
       bio: data.bio,
       hometown: data.hometown,
-      class_name: data.className ?? data.class_name,
       visibility_settings: data.visibilitySettings ?? data.visibility_settings,
     }
     const { error } = await supabase.from('profiles').update(payload).eq('id', uid)
@@ -31,7 +30,6 @@ export const studentApi = {
       await supabase.from('profiles').update({
         bio: payload.bio,
         hometown: payload.hometown,
-        class_name: payload.class_name,
       }).eq('id', uid)
     }
     return wrap(null)

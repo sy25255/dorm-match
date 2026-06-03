@@ -7,9 +7,13 @@ import { ElMessage } from 'element-plus'
 const userStore = useUserStore()
 
 const form = reactive({
+  name: '',
+  studentNo: '',
+  collegeName: '',
+  majorName: '',
+  className: '',
   bio: '',
   hometown: '',
-  className: '',
 })
 
 const visibilitySettings = reactive({
@@ -30,9 +34,13 @@ async function loadProfile() {
     const res = await studentApi.getStudent(userStore.userId)
     const data = res.data.data
     if (data) {
+      form.name = data.name || ''
+      form.studentNo = data.student_no || data.studentNo || ''
+      form.collegeName = data.college_name || data.collegeName || ''
+      form.majorName = data.major_name || data.majorName || ''
+      form.className = data.class_name || data.className || ''
       form.bio = data.bio || ''
       form.hometown = data.hometown || ''
-      form.className = data.className || ''
       Object.assign(visibilitySettings, data.visibility_settings || data.visibilitySettings || {})
     }
   } catch {
@@ -48,7 +56,6 @@ async function saveProfile() {
     await studentApi.updateProfile({
       bio: form.bio,
       hometown: form.hometown,
-      className: form.className,
       visibilitySettings,
     })
     ElMessage.success('个人信息已更新')
@@ -77,13 +84,22 @@ onMounted(loadProfile)
 
         <el-form :model="form" label-position="top">
           <el-form-item label="姓名">
-            <el-input :model-value="userStore.username" disabled />
+            <el-input :model-value="form.name || userStore.username" disabled />
+          </el-form-item>
+          <el-form-item label="学号">
+            <el-input v-model="form.studentNo" disabled />
           </el-form-item>
           <el-form-item label="角色">
             <el-tag>{{ userStore.role === 'STUDENT' ? '学生' : userStore.role }}</el-tag>
           </el-form-item>
+          <el-form-item label="学院">
+            <el-input v-model="form.collegeName" disabled />
+          </el-form-item>
+          <el-form-item label="专业">
+            <el-input v-model="form.majorName" disabled />
+          </el-form-item>
           <el-form-item label="班级">
-            <el-input v-model="form.className" placeholder="请输入班级" />
+            <el-input v-model="form.className" disabled />
           </el-form-item>
           <el-form-item label="生源地">
             <el-input v-model="form.hometown" placeholder="请输入生源地" />

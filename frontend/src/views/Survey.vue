@@ -315,16 +315,49 @@ function buildSections() {
 
 interface OptionItem { label: string; value: string; text: string; trait?: string }
 
+function hashSeed(input: string) {
+  let hash = 2166136261
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return Math.abs(hash)
+}
+
+function stableShuffle<T>(arr: T[], seedText: string): T[] {
+  const copy = [...arr]
+  let seed = hashSeed(seedText) || 1
+  for (let i = copy.length - 1; i > 0; i--) {
+    seed = (seed * 48271) % 2147483647
+    const j = seed % (i + 1)
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
+
+function shouldShuffleOptions(q: Question) {
+  return ['SINGLE_CHOICE', 'MULTI_CHOICE', 'SCENARIO', 'VALUE_JUDGE'].includes(q.questionType)
+}
+
 function getOption(q: Question): OptionItem[] {
   if (!q.optionsJson) return []
   try {
-    if (typeof q.optionsJson === 'string') {
-      return JSON.parse(q.optionsJson)
-    }
-    return q.optionsJson as unknown as OptionItem[]
+    const raw = typeof q.optionsJson === 'string'
+      ? JSON.parse(q.optionsJson)
+      : q.optionsJson as unknown as OptionItem[]
+    if (!Array.isArray(raw) || !shouldShuffleOptions(q)) return raw
+    return stableShuffle(raw, `${getCurrentUserId() || 'anonymous'}:${q.id}`)
   } catch {
     return []
   }
+}
+
+function getDisplayIndexForAnswer(questionId: number, value: string) {
+  const q = questions.value.find(item => item.id === questionId)
+  if (!q || !value) return undefined
+  const firstValue = String(value).split(',').filter(Boolean)[0]
+  const index = getOption(q).findIndex(opt => opt.value === firstValue)
+  return index >= 0 ? index : undefined
 }
 
 function setAnswer(questionId: number, value: string) {
@@ -447,11 +480,18 @@ async function handleSubmit() {
     const allItems: AnswerItem[] = Object.entries(answers.value).map(([qid, val]) => ({
       questionId: Number(qid),
       answerValue: val,
+      displayIndex: getDisplayIndexForAnswer(Number(qid), val),
     }))
     persistIntroDraft()
     persistSupplementDraft()
     await saveIntroToProfile().catch(() => {})
-    await surveyApi.submit(allItems)
+    const submitResult = await surveyApi.submit(allItems)
+    const status = submitResult.data.data?.status
+    if (status === 'NEEDS_RETAKE') {
+      ElMessage.warning(`问卷需要重填：${submitResult.data.data?.reason || '验证未通过'}`)
+      submitted.value = false
+      return
+    }
     const userId = localStorage.getItem('userId') || '0'
     localStorage.removeItem('demo_survey_intro')
     localStorage.removeItem('demo_survey_supplements')

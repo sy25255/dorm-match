@@ -1,101 +1,104 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { adminApi } from '@/api/admin'
-import { schoolApi } from '@/api/school'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-interface College { id: number; name: string }
-interface Major { id: number; name: string; code: string; collegeId?: number }
-interface Clazz { id: number; majorId: number; name: string; grade: number }
-
 const students = ref<any[]>([])
+const rosters = ref<any[]>([])
 const loading = ref(false)
+const rosterLoading = ref(false)
+const activeTab = ref('rosters')
 const searchKeyword = ref('')
-const filterCollegeId = ref<number | null>(null)
-const filterMajorId = ref<number | null>(null)
-const filterClassId = ref<number | null>(null)
-const filterStatus = ref<number | null>(null)
+const rosterStatus = ref('')
+const importDialogVisible = ref(false)
+const resetDialogVisible = ref(false)
+const importText = ref('')
+const resetCode = ref('')
+const resetTarget = ref<any>(null)
 
-const allColleges = ref<College[]>([])
-const availableMajors = ref<Major[]>([])
-const availableClasses = ref<Clazz[]>([])
-const inviteCodeDialog = ref(false)
-const inviteCodes = ref<any[]>([])
-const editDialogVisible = ref(false)
-const isEdit = ref(false)
+const importTemplate = [
+  '学号,姓名,性别,学院,专业,班级,初始码',
+  '20260001,张三,男,信息科学技术学院,计算机科学与技术,计科2601班,A12345',
+  '20260002,李四,女,信息科学技术学院,软件工程,软件2601班,B12345',
+].join('\n')
 
-const form = ref({
-  id: null as string | number | null,
-  studentNo: '', name: '', gender: 1,
-  collegeId: null as number | null, collegeName: '',
-  majorId: null as number | null, majorName: '',
-  classId: null as number | null, className: '',
-  hometown: '', status: 1,
-})
-
-function resetForm() {
-  form.value = { id: null, studentNo: '', name: '', gender: 1, collegeId: null, collegeName: '', majorId: null, majorName: '', classId: null, className: '', hometown: '', status: 1 }
-}
-
-watch(filterCollegeId, async (cid) => {
-  filterMajorId.value = null
-  filterClassId.value = null
-  if (!cid) { availableMajors.value = []; availableClasses.value = []; return }
-  try { const res = await schoolApi.getMajors(cid); availableMajors.value = res.data.data || [] } catch { ElMessage.error('加载专业列表失败') }
-})
-
-watch(filterMajorId, async (mid) => {
-  filterClassId.value = null
-  if (!mid) { availableClasses.value = []; return }
-  try { const res = await schoolApi.getClasses(mid); availableClasses.value = res.data.data || [] } catch { ElMessage.error('加载班级列表失败') }
-})
-
-watch(() => form.value.collegeId, async (cid) => {
-  form.value.majorId = null; form.value.classId = null
-  availableClasses.value = []
-  if (cid) {
-    form.value.collegeName = allColleges.value.find(c => c.id === cid)?.name || ''
-    try { const res = await schoolApi.getMajors(cid); availableMajors.value = res.data.data || [] } catch { ElMessage.error('加载专业列表失败') }
-  } else {
-    availableMajors.value = []
-  }
-})
-
-watch(() => form.value.majorId, async (mid) => {
-  form.value.classId = null
-  if (mid && form.value.collegeId) {
-    try { const res = await schoolApi.getMajors(form.value.collegeId)
-      const list = res.data.data || []
-      form.value.majorName = list.find((m: any) => m.id === mid)?.name || ''
-    } catch { ElMessage.error('加载院系列表失败') }
-    try { const res = await schoolApi.getClasses(mid); availableClasses.value = res.data.data || [] } catch { ElMessage.error('加载班级列表失败') }
-  } else {
-    availableClasses.value = []
-  }
-})
-
-watch(() => form.value.classId, (cid) => {
-  if (cid) form.value.className = availableClasses.value.find(c => c.id === cid)?.name || ''
-})
-
-const filteredStudents = computed(() => {
-  return (students.value || []).filter(s => {
-    if (searchKeyword.value && !String(s.name || '').includes(searchKeyword.value) && !String(s.studentNo || '').includes(searchKeyword.value)) return false
-    if (filterCollegeId.value && s.collegeName !== allColleges.value.find(c => c.id === filterCollegeId.value)?.name) return false
-    if (filterClassId.value && s.className !== availableClasses.value.find(c => c.id === filterClassId.value)?.name) return false
-    if (filterStatus.value !== null && filterStatus.value !== undefined && s.status !== filterStatus.value) return false
+const filteredRosters = computed(() => {
+  return (rosters.value || []).filter(row => {
+    const keyword = searchKeyword.value.trim()
+    if (keyword && !String(row.name || '').includes(keyword) && !String(row.studentNo || '').includes(keyword)) return false
+    if (rosterStatus.value && row.activationStatus !== rosterStatus.value) return false
     return true
   })
 })
 
-const surveyStatusMap: Record<number, string> = { 0: '未填写', 1: '填写中', 2: '已完成' }
-const matchStatusMap: Record<number, string> = { 0: '待匹配', 1: '邀请中', 2: '已配对', 3: '已分配' }
+const filteredStudents = computed(() => {
+  return (students.value || []).filter(row => {
+    const keyword = searchKeyword.value.trim()
+    if (!keyword) return true
+    return String(row.name || '').includes(keyword) || String(row.studentNo || '').includes(keyword)
+  })
+})
 
-async function loadColleges() {
+const statusLabel: Record<string, string> = {
+  PENDING: '未激活',
+  ACTIVE: '已激活',
+  DISABLED: '已禁用',
+}
+
+const surveyStatusMap: Record<number, string> = {
+  0: '未填写',
+  1: '填写中',
+  2: '已完成',
+  3: '需重填',
+}
+
+const matchStatusMap: Record<number, string> = {
+  0: '待匹配',
+  1: '邀请中',
+  2: '已配对',
+  3: '已分配',
+}
+
+function genderToNumber(value: string) {
+  const text = String(value || '').trim()
+  if (text === '女' || text === '0' || /^female$/i.test(text)) return 0
+  return 1
+}
+
+function parseRosterText(text: string) {
+  const lines = text
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+
+  const rows: any[] = []
+  for (const [index, line] of lines.entries()) {
+    if (index === 0 && /学号|student/i.test(line)) continue
+    const cols = line.split(',').map(col => col.trim())
+    if (cols.length < 7) continue
+    rows.push({
+      studentNo: cols[0],
+      name: cols[1],
+      gender: genderToNumber(cols[2]),
+      collegeName: cols[3],
+      majorName: cols[4],
+      className: cols[5],
+      initialCode: cols[6],
+    })
+  }
+  return rows
+}
+
+async function loadRosters() {
+  rosterLoading.value = true
   try {
-    const res = await schoolApi.getColleges()
-    allColleges.value = res.data.data || []
-  } catch { ElMessage.error('加载院系列表失败') }
+    const res = await adminApi.getStudentRosters()
+    rosters.value = res.data.data || []
+  } catch (error: any) {
+    ElMessage.error(error?.message || '加载学生名册失败')
+  } finally {
+    rosterLoading.value = false
+  }
 }
 
 async function loadStudents() {
@@ -104,160 +107,238 @@ async function loadStudents() {
     const res = await adminApi.getStudents({ size: 1000 })
     const payload = res.data.data || {}
     students.value = Array.isArray(payload) ? payload : payload.items || []
-  } catch {
-    ElMessage.error('加载学生列表失败')
-  } finally { loading.value = false }
-}
-
-async function toggleStatus(row: any) {
-  const newStatus = row.status === 1 ? 0 : 1
-  try {
-    await ElMessageBox.confirm(`确认${newStatus === 0 ? '禁用' : '启用'}学生"${row.name}"吗？`, '提示', { type: 'warning' })
-    await adminApi.toggleStudent(row.id, newStatus)
-    row.status = newStatus
-  } catch (e: any) {
-    if (e !== 'cancel' && e !== 'close') ElMessage.error('操作失败')
+  } catch (error: any) {
+    ElMessage.error(error?.message || '加载已激活学生失败')
+  } finally {
+    loading.value = false
   }
 }
 
-function openEdit(row?: any) {
-  if (row) {
-    isEdit.value = true
-    form.value = { ...row, collegeId: row.collegeId || 1, majorId: row.majorId || 1, classId: row.classId || null }
-  } else {
-    isEdit.value = false
-    resetForm()
+function openImportDialog() {
+  importText.value = importTemplate
+  importDialogVisible.value = true
+}
+
+async function beforeRosterUpload(file: any) {
+  const text = await file.text()
+  importText.value = text
+  return false
+}
+
+async function importRosters() {
+  const rows = parseRosterText(importText.value)
+  if (rows.length === 0) {
+    ElMessage.warning('没有解析到有效名册行，请检查 CSV 内容')
+    return
   }
-  editDialogVisible.value = true
-}
-
-async function saveStudent() {
   try {
-    const data = { ...form.value }
-    if (isEdit.value && data.id) {
-      await adminApi.updateStudent(data.id, data)
-    } else {
-      await adminApi.createStudent(data)
-    }
-    editDialogVisible.value = false
-    loadStudents()
-  } catch { ElMessage.error('保存学生信息失败，请重试') }
+    const res = await adminApi.importStudentRosters(rows)
+    const imported = res.data.data?.imported ?? rows.length
+    ElMessage.success(`已导入/更新 ${imported} 名学生`)
+    importDialogVisible.value = false
+    await loadRosters()
+  } catch (error: any) {
+    ElMessage.error(error?.message || '导入学生名册失败')
+  }
 }
 
-async function loadInviteCodes() {
-  const res = await adminApi.getInviteCodes(); inviteCodes.value = res.data.data || []; inviteCodeDialog.value = true
-}
-async function generateCode() {
-  const res = await adminApi.generateInviteCode()
-  const row = res.data.data || {}
-  inviteCodes.value.unshift({
-    code: row.code,
-    isUsed: row.is_used ?? row.isUsed ?? false,
-    createdAt: row.created_at || row.createdAt || new Date().toISOString(),
-  })
+function openResetDialog(row: any) {
+  resetTarget.value = row
+  resetCode.value = ''
+  resetDialogVisible.value = true
 }
 
-onMounted(() => { loadStudents(); loadColleges() })
+async function resetInitialCode() {
+  if (!resetTarget.value || !resetCode.value.trim()) {
+    ElMessage.warning('请输入新的初始码')
+    return
+  }
+  try {
+    await adminApi.resetStudentInitialCode(resetTarget.value.id, resetCode.value.trim())
+    ElMessage.success('初始码已重置，学生需要重新激活')
+    resetDialogVisible.value = false
+    await Promise.all([loadRosters(), loadStudents()])
+  } catch (error: any) {
+    ElMessage.error(error?.message || '重置初始码失败')
+  }
+}
+
+async function setRosterStatus(row: any, status: 'PENDING' | 'ACTIVE' | 'DISABLED') {
+  const label = status === 'DISABLED' ? '禁用' : status === 'ACTIVE' ? '启用' : '改为未激活'
+  try {
+    await ElMessageBox.confirm(`确认${label}学生“${row.name}”吗？`, '确认操作', { type: 'warning' })
+    await adminApi.setStudentRosterStatus(row.id, status)
+    ElMessage.success('名册状态已更新')
+    await Promise.all([loadRosters(), loadStudents()])
+  } catch (error: any) {
+    if (error !== 'cancel' && error !== 'close') ElMessage.error(error?.message || '更新状态失败')
+  }
+}
+
+onMounted(() => {
+  loadRosters()
+  loadStudents()
+})
 </script>
 
 <template>
-  <div>
+  <div class="students-page">
     <div class="page-toolbar">
-      <h2>学生管理</h2>
+      <div>
+        <h2>学生管理</h2>
+        <p>正式流程以学校导入的新生名册为准。学生用学号和初始码首次激活，不再自填邮箱和学院班级。</p>
+      </div>
       <div class="toolbar-right">
         <el-input v-model="searchKeyword" placeholder="搜索学号/姓名" clearable style="width:180px" />
-        <el-select v-model="filterCollegeId" placeholder="学院" clearable style="width:140px">
-          <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
+        <el-select v-model="rosterStatus" placeholder="名册状态" clearable style="width:120px">
+          <el-option label="未激活" value="PENDING" />
+          <el-option label="已激活" value="ACTIVE" />
+          <el-option label="已禁用" value="DISABLED" />
         </el-select>
-        <el-select v-model="filterMajorId" placeholder="专业" clearable style="width:160px" :disabled="!filterCollegeId">
-          <el-option v-for="m in availableMajors" :key="m.id" :label="m.name" :value="m.id" />
-        </el-select>
-        <el-select v-model="filterClassId" placeholder="班级" clearable style="width:160px" :disabled="!filterMajorId">
-          <el-option v-for="c in availableClasses" :key="c.id" :label="c.name" :value="c.id" />
-        </el-select>
-        <el-select v-model="filterStatus" placeholder="状态" clearable style="width:100px">
-          <el-option label="正常" :value="1" />
-          <el-option label="已禁用" :value="0" />
-        </el-select>
-        <el-button type="primary" @click="loadInviteCodes">邀请学生</el-button>
+        <el-button @click="loadRosters">刷新名册</el-button>
+        <el-button type="primary" @click="openImportDialog">批量导入名册</el-button>
       </div>
     </div>
 
-    <el-table :data="filteredStudents" v-loading="loading" stripe>
-      <el-table-column prop="studentNo" label="学号" width="120" />
-      <el-table-column prop="name" label="姓名" width="90" />
-      <el-table-column prop="gender" label="性别" width="60"><template #default="{ row }">{{ row.gender === 1 ? '男' : '女' }}</template></el-table-column>
-      <el-table-column prop="collegeName" label="学院" width="120" />
-      <el-table-column prop="majorName" label="专业" width="150" />
-      <el-table-column prop="className" label="班级" width="120" />
-      <el-table-column prop="hometown" label="生源地" width="80" />
-      <el-table-column prop="surveyStatus" label="问卷" width="80">
-        <template #default="{ row }"><el-tag :type="row.surveyStatus === 2 ? 'success' : row.surveyStatus === 1 ? 'warning' : 'info'" size="small">{{ surveyStatusMap[row.surveyStatus] }}</el-tag></template>
-      </el-table-column>
-      <el-table-column prop="matchStatus" label="匹配" width="80">
-        <template #default="{ row }"><el-tag :type="row.matchStatus >= 2 ? 'success' : row.matchStatus === 1 ? 'warning' : 'info'" size="small">{{ matchStatusMap[row.matchStatus] }}</el-tag></template>
-      </el-table-column>
-      <el-table-column prop="status" label="账号" width="70">
-        <template #default="{ row }"><el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status === 1 ? '正常' : '禁用' }}</el-tag></template>
-      </el-table-column>
-      <el-table-column label="操作" width="160" fixed="right">
-        <template #default="{ row }">
-          <el-button type="primary" link size="small" @click="openEdit(row)">编辑</el-button>
-          <el-button :type="row.status === 1 ? 'danger' : 'success'" link size="small" @click="toggleStatus(row)">{{ row.status === 1 ? '禁用' : '启用' }}</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-alert
+      type="warning"
+      :closable="false"
+      show-icon
+      title="学生邀请码和学生邮箱注册已降级为旧入口，不再作为正式学校上线流程。"
+      class="legacy-alert"
+    />
 
-    <el-dialog v-model="editDialogVisible" :title="isEdit ? '编辑学生' : '新增学生'" width="550px">
-      <el-form :model="form" label-width="80px">
-        <el-row :gutter="12">
-          <el-col :span="12"><el-form-item label="学号"><el-input v-model="form.studentNo" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="姓名"><el-input v-model="form.name" /></el-form-item></el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="12"><el-form-item label="性别"><el-radio-group v-model="form.gender"><el-radio :value="1">男</el-radio><el-radio :value="0">女</el-radio></el-radio-group></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="生源地"><el-input v-model="form.hometown" /></el-form-item></el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="学院">
-              <el-select v-model="form.collegeId" style="width:100%" placeholder="选择学院">
-                <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="专业">
-              <el-select v-model="form.majorId" style="width:100%" placeholder="选择专业" :disabled="!form.collegeId">
-                <el-option v-for="m in availableMajors" :key="m.id" :label="m.name" :value="m.id" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="班级">
-              <el-select v-model="form.classId" style="width:100%" placeholder="选择班级" :disabled="!form.majorId">
-                <el-option v-for="c in availableClasses" :key="c.id" :label="c.name" :value="c.id" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-      <template #footer><el-button @click="editDialogVisible = false">取消</el-button><el-button type="primary" @click="saveStudent">保存</el-button></template>
+    <el-tabs v-model="activeTab">
+      <el-tab-pane label="学校新生名册" name="rosters">
+        <el-table :data="filteredRosters" v-loading="rosterLoading" stripe>
+          <el-table-column prop="studentNo" label="学号" width="130" />
+          <el-table-column prop="name" label="姓名" width="100" />
+          <el-table-column prop="gender" label="性别" width="70">
+            <template #default="{ row }">{{ row.gender === 0 ? '女' : '男' }}</template>
+          </el-table-column>
+          <el-table-column prop="collegeName" label="学院" min-width="150" />
+          <el-table-column prop="majorName" label="专业" min-width="150" />
+          <el-table-column prop="className" label="班级" min-width="120" />
+          <el-table-column prop="activationStatus" label="激活状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.activationStatus === 'ACTIVE' ? 'success' : row.activationStatus === 'DISABLED' ? 'danger' : 'info'" size="small">
+                {{ statusLabel[row.activationStatus] || row.activationStatus }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="activatedAt" label="激活时间" min-width="170" />
+          <el-table-column label="操作" width="190" fixed="right">
+            <template #default="{ row }">
+              <el-button type="primary" link size="small" @click="openResetDialog(row)">重置初始码</el-button>
+              <el-button v-if="row.activationStatus !== 'DISABLED'" type="danger" link size="small" @click="setRosterStatus(row, 'DISABLED')">禁用</el-button>
+              <el-button v-else type="success" link size="small" @click="setRosterStatus(row, row.authUserId ? 'ACTIVE' : 'PENDING')">启用</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="已激活学生档案" name="profiles">
+        <el-table :data="filteredStudents" v-loading="loading" stripe>
+          <el-table-column prop="studentNo" label="学号" width="130" />
+          <el-table-column prop="name" label="姓名" width="100" />
+          <el-table-column prop="gender" label="性别" width="70">
+            <template #default="{ row }">{{ row.gender === 0 ? '女' : '男' }}</template>
+          </el-table-column>
+          <el-table-column prop="collegeName" label="学院" min-width="150" />
+          <el-table-column prop="majorName" label="专业" min-width="150" />
+          <el-table-column prop="className" label="班级" min-width="120" />
+          <el-table-column prop="surveyStatus" label="问卷" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.surveyStatus === 2 ? 'success' : row.surveyStatus === 3 ? 'danger' : row.surveyStatus === 1 ? 'warning' : 'info'" size="small">
+                {{ surveyStatusMap[row.surveyStatus] || '需重填' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="matchStatus" label="匹配" width="90">
+            <template #default="{ row }">
+              <el-tag :type="row.matchStatus >= 2 ? 'success' : row.matchStatus === 1 ? 'warning' : 'info'" size="small">
+                {{ matchStatusMap[row.matchStatus] }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="账号" width="90">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status === 1 ? '正常' : '禁用' }}</el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+    </el-tabs>
+
+    <el-dialog v-model="importDialogVisible" title="批量导入学生名册" width="780px">
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        title="CSV 列顺序：学号、姓名、性别、学院、专业、班级、初始码。重复学号会更新原记录，不会创建重复学生。"
+        style="margin-bottom:12px"
+      />
+      <div class="import-actions">
+        <el-upload :auto-upload="false" :show-file-list="false" accept=".csv,.txt" :before-upload="beforeRosterUpload">
+          <el-button>选择 CSV 文件</el-button>
+        </el-upload>
+        <el-button @click="importText = importTemplate">填入模板</el-button>
+      </div>
+      <el-input v-model="importText" type="textarea" :rows="14" spellcheck="false" />
+      <template #footer>
+        <el-button @click="importDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="importRosters">导入名册</el-button>
+      </template>
     </el-dialog>
 
-    <el-dialog v-model="inviteCodeDialog" title="邀请码管理" width="500px">
-      <div style="margin-bottom:12px"><el-button type="primary" @click="generateCode">生成新邀请码</el-button></div>
-      <el-table :data="inviteCodes" size="small">
-        <el-table-column prop="code" label="邀请码" width="200" />
-        <el-table-column prop="isUsed" label="状态" width="100"><template #default="{ row }"><el-tag :type="row.isUsed ? 'info' : 'success'" size="small">{{ row.isUsed ? '已使用' : '未使用' }}</el-tag></template></el-table-column>
-        <el-table-column prop="createdAt" label="生成时间" />
-      </el-table>
+    <el-dialog v-model="resetDialogVisible" title="重置学生初始码" width="420px">
+      <p class="reset-copy">学生：{{ resetTarget?.studentNo }} {{ resetTarget?.name }}</p>
+      <el-input v-model="resetCode" placeholder="请输入新的初始码" />
+      <template #footer>
+        <el-button @click="resetDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="resetInitialCode">确认重置</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
 
 <style scoped>
-.page-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
-.page-toolbar h2 { margin: 0; font-size: 18px; }
-.toolbar-right { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.students-page {
+  display: grid;
+  gap: 14px;
+}
+.page-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.page-toolbar h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.page-toolbar p {
+  margin: 6px 0 0;
+  color: #667085;
+  font-size: 13px;
+}
+.toolbar-right {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.legacy-alert {
+  margin-bottom: 4px;
+}
+.import-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.reset-copy {
+  margin: 0 0 12px;
+  color: #4e5969;
+}
 </style>

@@ -10,13 +10,14 @@ function assertOk(result: { error?: any }, message = '操作失败') {
   }
 }
 
-type StudentStatus = 'NOT_STARTED' | 'DRAFT' | 'COMPLETED' | number | null | undefined
+type StudentStatus = 'NOT_STARTED' | 'DRAFT' | 'COMPLETED' | 'NEEDS_RETAKE' | number | null | undefined
 type MatchStatus = 'WAITING' | 'INVITING' | 'PAIRED' | 'ALLOCATED' | number | null | undefined
 
 function surveyStatusToNumber(status: StudentStatus) {
   if (typeof status === 'number') return status
   if (status === 'COMPLETED') return 2
   if (status === 'DRAFT') return 1
+  if (status === 'NEEDS_RETAKE') return 3
   return 0
 }
 
@@ -42,11 +43,31 @@ function normalizeStudent(s: any) {
     className: s.class_name || s.className || '',
     studentNo: s.student_no || s.studentNo || '',
     surveyStatus,
+    surveyInvalidReason: s.survey_invalid_reason || s.surveyInvalidReason || '',
     matchStatus,
     status: isValid ? 1 : 0,
     isValid,
     email: s.email || '',
     phone: s.phone || '',
+  }
+}
+
+function normalizeRoster(row: any) {
+  return {
+    ...row,
+    id: row.id,
+    schoolCode: row.school_code || row.schoolCode || '',
+    studentNo: row.student_no || row.studentNo || '',
+    name: row.name || '',
+    gender: row.gender ?? 1,
+    collegeName: row.college_name || row.collegeName || '',
+    majorName: row.major_name || row.majorName || '',
+    className: row.class_name || row.className || '',
+    activationStatus: row.activation_status || row.activationStatus || 'PENDING',
+    authUserId: row.auth_user_id || row.authUserId || '',
+    activatedAt: row.activated_at || row.activatedAt || '',
+    createdAt: row.created_at || row.createdAt || '',
+    updatedAt: row.updated_at || row.updatedAt || '',
   }
 }
 
@@ -362,6 +383,50 @@ export const adminApi = {
     if (data.status !== undefined) payload.is_valid = data.status === 1
     await supabase.from('profiles').update(payload).eq('id', String(id))
     return wrap(null)
+  },
+
+  async getStudentRosters(params?: { keyword?: string; status?: string }) {
+    const sc = getCurrentSchool()
+    let q = supabase
+      .from('student_rosters')
+      .select('*')
+      .eq('school_code', sc)
+      .order('created_at', { ascending: false })
+
+    if (params?.keyword) {
+      q = q.or(`name.ilike.%${params.keyword}%,student_no.ilike.%${params.keyword}%`)
+    }
+    if (params?.status) {
+      q = q.eq('activation_status', params.status)
+    }
+
+    const { data, error } = await q
+    assertOk({ error }, '加载学生名册失败')
+    return wrap((data || []).map(normalizeRoster))
+  },
+
+  async importStudentRosters(rows: any[]) {
+    const { data, error } = await supabase.rpc('admin_import_student_rosters', { p_rows: rows })
+    assertOk({ error }, '导入学生名册失败')
+    return wrap(data || { imported: 0 })
+  },
+
+  async resetStudentInitialCode(rosterId: number, initialCode: string) {
+    const { data, error } = await supabase.rpc('admin_reset_student_initial_code', {
+      p_roster_id: rosterId,
+      p_initial_code: initialCode,
+    })
+    assertOk({ error }, '重置初始码失败')
+    return wrap(data || null)
+  },
+
+  async setStudentRosterStatus(rosterId: number, status: 'PENDING' | 'ACTIVE' | 'DISABLED') {
+    const { data, error } = await supabase.rpc('admin_set_student_roster_status', {
+      p_roster_id: rosterId,
+      p_status: status,
+    })
+    assertOk({ error }, '更新名册状态失败')
+    return wrap(data || null)
   },
 
   async getInviteCodes() {

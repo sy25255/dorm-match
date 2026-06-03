@@ -5,6 +5,7 @@ const wrap = (data: any) => ({ data: { code: 200, message: 'ok', data } })
 export interface AnswerItem {
   questionId: number
   answerValue: string
+  displayIndex?: number
 }
 
 export const surveyApi = {
@@ -81,21 +82,10 @@ export const surveyApi = {
   },
 
   async submit(answers: AnswerItem[]) {
-    const uid = getCurrentUserId()
     const validAnswers = answers.filter(a => Number(a.questionId) > 0)
-    if (validAnswers.length > 0) {
-      const rows = validAnswers.map(a => ({
-        user_id: uid,
-        question_id: a.questionId,
-        answer_value: a.answerValue,
-        updated_at: new Date().toISOString(),
-      }))
-      const { error } = await supabase.from('survey_answers').upsert(rows, { onConflict: 'user_id,question_id' })
-      if (error) throw error
-    }
-    const { error } = await supabase.from('profiles').update({ survey_status: 'COMPLETED' }).eq('id', uid)
+    const { data, error } = await supabase.rpc('submit_survey_answers', { p_answers: validAnswers })
     if (error) throw error
-    return wrap(null)
+    return wrap(data || null)
   },
 
   async getMySurvey() {

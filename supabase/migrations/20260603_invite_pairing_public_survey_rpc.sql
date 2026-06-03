@@ -247,8 +247,12 @@ begin
   v_group_id := coalesce(v_from_group_id, v_to_group_id);
 
   if v_group_id is null then
-    insert into public.pair_groups (school_code, status)
-    values (v_from_school_code, 1)
+    insert into public.pair_groups (school_code, pairing_code, status)
+    values (
+      v_from_school_code,
+      'PAIR-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10)),
+      1
+    )
     returning id into v_group_id;
   else
     perform 1
@@ -318,9 +322,10 @@ begin
   select p.school_code
     into v_target_school_code
     from public.profiles p
-   where p.id::text = p_target_id
+     where p.id::text = p_target_id
      and p.role = 'STUDENT'
-     and p.survey_status = 'COMPLETED';
+     and p.survey_status = 'COMPLETED'
+     and coalesce(p.is_valid, true) = true;
 
   if v_school_code is null or v_target_school_code is null or v_school_code <> v_target_school_code then
     return null;

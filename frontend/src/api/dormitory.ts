@@ -1,13 +1,7 @@
 import { supabase, getCurrentSchool } from '@/lib/supabase'
 
 function getFallbackCapacity() {
-  try {
-    const stored = localStorage.getItem('demo_room_capacity')
-    const value = stored ? Number(stored) : 8
-    return Number.isFinite(value) && value > 0 ? value : 8
-  } catch {
-    return 8
-  }
+  return 8
 }
 
 export async function getDefaultRoomCapacity() {

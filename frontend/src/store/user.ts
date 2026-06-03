@@ -39,23 +39,46 @@ export const useUserStore = defineStore('user', () => {
     return localStorage.getItem('remembered_email') || ''
   }
 
-  // ========== Supabase 真实登录/注册 ==========
-  async function supabaseLogin(email: string, password: string) {
-    const result = await authApi.signIn(email, password)
-    const profile = result.profile
+  function saveRememberedStudentNo(studentNo: string) {
+    localStorage.setItem('remembered_student_no', studentNo)
+  }
 
+  function getRememberedStudentNo(): string {
+    return localStorage.getItem('remembered_student_no') || ''
+  }
+
+  function applyAuthResult(result: any, fallbackName: string) {
+    const profile = result.profile
     setAuthState(result.user.id, result.session.access_token, result.session.refresh_token || '')
     userId.value = result.user.id
     token.value = result.session.access_token
     refreshToken.value = result.session.refresh_token || ''
-    username.value = profile?.name || email
+    username.value = profile?.name || fallbackName
     role.value = profile?.role || 'STUDENT'
     if (profile?.school_code) {
       syncProfileSchool(profile.school_code)
     }
-    localStorage.setItem('username', profile?.name || email)
+    localStorage.setItem('username', profile?.name || fallbackName)
     localStorage.setItem('role', profile?.role || 'STUDENT')
+  }
+
+  // ========== Supabase 真实登录/注册 ==========
+  async function supabaseLogin(email: string, password: string) {
+    const result = await authApi.signIn(email, password)
+    applyAuthResult(result, email)
     saveRememberedAccount(email)
+  }
+
+  async function studentLogin(schoolCodeParam: string, studentNo: string, password: string) {
+    const result = await authApi.signInStudent(schoolCodeParam, studentNo, password)
+    applyAuthResult(result, studentNo)
+    saveRememberedStudentNo(studentNo)
+  }
+
+  async function activateStudent(schoolCodeParam: string, studentNo: string, initialCode: string, password: string) {
+    const result = await authApi.activateStudent(schoolCodeParam, studentNo, initialCode, password)
+    applyAuthResult(result, studentNo)
+    saveRememberedStudentNo(studentNo)
   }
 
   async function supabaseRegister(
@@ -131,6 +154,7 @@ export const useUserStore = defineStore('user', () => {
     schoolCode, schoolName, isLoggedIn,
     setSchoolInfo,
     getRememberedAccount, saveRememberedAccount,
-    logout, supabaseLogin, supabaseRegister, restoreSession,
+    getRememberedStudentNo, saveRememberedStudentNo,
+    logout, supabaseLogin, supabaseRegister, studentLogin, activateStudent, restoreSession,
   }
 })

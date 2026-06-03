@@ -226,7 +226,7 @@ onMounted(async () => {
         type="info"
         :closable="false"
         show-icon
-        title="学生先在首页输入学校编码进入本校区域，再凭学生邀请码完成注册。学校编码用于定位学校，不等同于注册授权。"
+        title="学生先在首页输入学校编码进入本校区域。正式流程中，学生凭学号和初始码激活；学校编码只用于定位学校，不等同于权限凭证。"
         style="margin-bottom:12px"
       />
       <el-row :gutter="16" align="middle">
@@ -272,12 +272,12 @@ onMounted(async () => {
     </el-card>
 
     <el-card style="margin-bottom:16px">
-      <template #header><span style="font-weight:600">学生入学邀请码</span></template>
+      <template #header><span style="font-weight:600">学生邀请码（旧入口/批次入口码）</span></template>
       <el-alert
         type="info"
         :closable="false"
         show-icon
-        title="正式流程：学校先生成邀请码，再发给本校新生。学生必须凭邀请码进入问卷和舍友选择流程。"
+        title="名册制上线后，正式流程改为导入学生名册并发放初始码。这里的邀请码只保留为旧入口或临时批次入口，不再作为正式注册主流程。"
         style="margin-bottom:12px"
       />
       <el-row :gutter="16">
