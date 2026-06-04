@@ -65,14 +65,21 @@
       </el-col>
     </el-row>
 
-    <!-- 宿舍容量设置 -->
+    <!-- 新增房间默认容量，仅作为录入辅助 -->
     <el-card shadow="hover" style="margin-top: 20px">
       <template #header>
         <div class="card-header">
-          <span>默认房间容量</span>
-          <span style="font-size: 12px; color: #909399;">当前默认：{{ roomCapacity }} 人/间 | 新增房间时自动带入，实际分配以每个房间容量为准</span>
+          <span>新增房间默认容量</span>
+          <span style="font-size: 12px; color: #909399;">当前默认：{{ roomCapacity }} 人/间 | 只影响新增房间表单</span>
         </div>
       </template>
+      <el-alert
+        type="info"
+        show-icon
+        :closable="false"
+        title="正式分配以每个房间保存的容量为准；这里是本机录入辅助，不作为学校级分配规则。"
+        style="margin-bottom:12px"
+      />
       <el-row :gutter="20" align="middle">
         <el-col :span="6">
           <el-input-number v-model="roomCapacityInput" :min="2" :max="12" :step="1" size="small" style="width: 100%" />
@@ -478,7 +485,15 @@ async function finalizeResults() {
 }
 
 async function resetAlloc() {
-  await ElMessageBox.confirm('确认清空当前批次分配结果？此操作会释放相关宿舍床位。', '确认重置', { type: 'warning' })
+  const finalized = allocations.value.some(a => a.status === 'FINALIZED' || a.status === 'CONFIRMED')
+  const message = finalized
+    ? '当前批次已经正式确认。清空会释放已确认床位并撤回学生结果，请确认这是学校批准的重新分配操作。'
+    : '确认清空当前批次分配结果？此操作会释放相关宿舍床位。'
+  await ElMessageBox.confirm(message, finalized ? '高风险重置确认' : '确认重置', {
+    type: finalized ? 'error' : 'warning',
+    confirmButtonText: finalized ? '确认清空已确认分配' : '确认重置',
+    cancelButtonText: '取消',
+  })
   await adminApi.clearAllocations(batchCode.value)
   currentStep.value = 0
   allocations.value = []
@@ -550,7 +565,7 @@ async function loadUnallocatedStudents() {
   const payload = res.data.data || {}
   const allStudents = Array.isArray(payload) ? payload : payload.items || []
   unallocatedStudents.value = allStudents
-    .filter((s: any) => !allocatedIds.has(String(s.id)))
+    .filter((s: any) => !allocatedIds.has(String(s.id)) && s.status === 1 && s.surveyStatus === 2)
     .map((s: any) => ({ id: String(s.id), name: s.name, studentNo: s.studentNo, collegeName: s.collegeName }))
 }
 

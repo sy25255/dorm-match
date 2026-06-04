@@ -518,7 +518,9 @@ export const adminApi = {
     assertOk({ error: studentError }, '加载待分配学生失败')
     if (!students || students.length === 0) return wrap({ allocated: 0 })
 
-    const studentIds = (students as any[]).map((s: any) => s.id)
+    const studentRows = students as any[]
+    const studentIds = studentRows.map((s: any) => s.id)
+    const studentMap = new Map<string, any>(studentRows.map((student: any) => [String(student.id), student]))
     const deleteResult = await supabase
       .from('allocations')
       .delete()
@@ -538,7 +540,7 @@ export const adminApi = {
     const rooms = (roomRows || []).filter((room: any) => (room.occupied || 0) < (room.capacity || 0))
     if (rooms.length === 0) return wrap({ allocated: 0 })
 
-    const roomCapacity = (rooms as any[])[0]?.capacity || 4
+    const maxRoomCapacity = Math.max(...(rooms as any[]).map((room: any) => Number(room.capacity) || 0), 4)
 
     // Step 1: 拉取所有学生的问卷答案
     const { data: allAnswers } = await supabase
@@ -562,9 +564,41 @@ export const adminApi = {
       return count > 0 ? 1 - totalDiff / (count * 4) : 0
     }
 
-    // Step 3: 贪心分组 — 每次选一个学生当"锚点"，拉最相似的 roomCapacity-1 人组队
-    const unassigned = [...(students as any[])]
-    const groups: any[][] = []
+    type AllocationGroup = { students: any[]; allocationType: string }
+    const groups: AllocationGroup[] = []
+    const lockedStudentIds = new Set<string>()
+
+    const { data: pairGroups, error: pairGroupError } = await supabase
+      .from('pair_groups')
+      .select('id, status')
+      .eq('school_code', sc)
+      .gte('status', 2)
+    assertOk({ error: pairGroupError }, '加载已确认队伍失败')
+
+    const pairGroupIds = (pairGroups || []).map((group: any) => group.id)
+    if (pairGroupIds.length > 0) {
+      const { data: pairMembers, error: pairMemberError } = await supabase
+        .from('pair_members')
+        .select('group_id, user_id')
+        .in('group_id', pairGroupIds)
+      assertOk({ error: pairMemberError }, '加载队伍成员失败')
+
+      const membersByGroup = new Map<number, any[]>()
+      for (const member of pairMembers || []) {
+        const student = studentMap.get(String(member.user_id))
+        if (!student) continue
+        if (!membersByGroup.has(member.group_id)) membersByGroup.set(member.group_id, [])
+        membersByGroup.get(member.group_id)!.push(student)
+        lockedStudentIds.add(String(member.user_id))
+      }
+
+      for (const group of membersByGroup.values()) {
+        if (group.length > 0) groups.push({ students: group, allocationType: 'SELF_SELECT' })
+      }
+    }
+
+    // Step 3: 剩余学生按问卷相似度贪心补齐，已确认队伍不拆散。
+    const unassigned = studentRows.filter((student: any) => !lockedStudentIds.has(String(student.id)))
 
     while (unassigned.length > 0) {
       const anchor = unassigned.shift()!
@@ -577,7 +611,7 @@ export const adminApi = {
           score: answerMap.has(s.id) ? calcSimilarity(anchorAnswers, answerMap.get(s.id)!) : 0,
         }))
         scored.sort((a, b) => b.score - a.score)
-        const need = roomCapacity - 1
+        const need = maxRoomCapacity - 1
         for (let i = 0; i < Math.min(need, scored.length); i++) {
           group.push(scored[i].student)
           const idx = unassigned.indexOf(scored[i].student)
@@ -585,51 +619,44 @@ export const adminApi = {
         }
       }
 
-      groups.push(group)
+      groups.push({ students: group, allocationType: data.type || 'ALGORITHM' })
     }
 
-    // Step 4: 按组分配到宿舍房间
+    // Step 4: 按组分配到可容纳的宿舍房间，避免拆散已确认队伍。
     const batchCode = 'BATCH-' + Date.now()
     let allocated = 0
-    let roomIdx = 0
 
     for (const group of groups) {
-      if (roomIdx >= rooms.length) break
-      let studentIdx = 0
+      const room = (rooms as any[]).find((candidate: any) => {
+        const remaining = Number(candidate.capacity || 0) - Number(candidate.occupied || 0)
+        return remaining >= group.students.length
+      })
+      if (!room) continue
 
-      while (studentIdx < group.length && roomIdx < rooms.length) {
-        const room = (rooms as any[])[roomIdx]
-        let bedNo = room.occupied || 0
-
-        while (studentIdx < group.length && bedNo < room.capacity) {
-          const student = group[studentIdx]
-          bedNo++
-          const insertResult = await supabase.from('allocations').insert({
-            school_code: sc,
-            user_id: student.id,
-            room_id: room.id,
-            room_number: room.room_number,
-            bed_no: bedNo,
-            allocation_type: data.type || 'ALGORITHM',
-            batch_code: batchCode,
-          })
-          assertOk(insertResult, '写入分配结果失败')
-          const profileResult = await supabase.from('profiles').update({ match_status: 'ALLOCATED' }).eq('id', student.id)
-          assertOk(profileResult, '更新学生分配状态失败')
-          allocated++
-          studentIdx++
-        }
-
-        room.occupied = bedNo
-        const roomResult = await supabase.from('dormitory_rooms').update({
-          occupied: bedNo,
-          status: roomStatusFromOccupancy(bedNo, room.capacity, room.status),
-        }).eq('id', room.id)
-        assertOk(roomResult, '更新房间状态失败')
-
-        if (bedNo >= room.capacity) roomIdx++
-        else if (studentIdx < group.length) roomIdx++
+      let bedNo = Number(room.occupied || 0)
+      for (const student of group.students) {
+        bedNo++
+        const insertResult = await supabase.from('allocations').insert({
+          school_code: sc,
+          user_id: student.id,
+          room_id: room.id,
+          room_number: room.room_number,
+          bed_no: bedNo,
+          allocation_type: group.allocationType,
+          batch_code: batchCode,
+        })
+        assertOk(insertResult, '写入分配结果失败')
+        const profileResult = await supabase.from('profiles').update({ match_status: 'ALLOCATED' }).eq('id', student.id)
+        assertOk(profileResult, '更新学生分配状态失败')
+        allocated++
       }
+
+      room.occupied = bedNo
+      const roomResult = await supabase.from('dormitory_rooms').update({
+        occupied: bedNo,
+        status: roomStatusFromOccupancy(bedNo, room.capacity, room.status),
+      }).eq('id', room.id)
+      assertOk(roomResult, '更新房间状态失败')
     }
 
     return wrap({ allocated, batchCode })
@@ -914,9 +941,10 @@ export const adminApi = {
     const sc = getCurrentSchool()
     const { data: students, error: studentError } = await supabase
       .from('profiles')
-      .select('id, name, student_no, college_name, major_name, class_name, survey_status, match_status, created_at')
+      .select('id, name, student_no, college_name, major_name, class_name, survey_status, match_status, is_valid, created_at')
       .eq('school_code', sc)
       .eq('role', 'STUDENT')
+      .or('is_valid.is.null,is_valid.eq.true')
       .order('created_at', { ascending: true })
     assertOk({ error: studentError }, '加载未组队学生失败')
 

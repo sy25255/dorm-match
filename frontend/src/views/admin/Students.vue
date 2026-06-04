@@ -13,6 +13,7 @@ const rosterStatus = ref('')
 const importDialogVisible = ref(false)
 const resetDialogVisible = ref(false)
 const importText = ref('')
+const importErrors = ref<string[]>([])
 const resetCode = ref('')
 const resetTarget = ref<any>(null)
 
@@ -66,6 +67,7 @@ function genderToNumber(value: string) {
 }
 
 function parseRosterText(text: string) {
+  importErrors.value = []
   const lines = text
     .split(/\r?\n/)
     .map(line => line.trim())
@@ -75,7 +77,11 @@ function parseRosterText(text: string) {
   for (const [index, line] of lines.entries()) {
     if (index === 0 && /学号|student/i.test(line)) continue
     const cols = line.split(',').map(col => col.trim())
-    if (cols.length < 7) continue
+    const lineNo = index + 1
+    if (cols.length < 7 || cols.slice(0, 7).some(col => !col)) {
+      importErrors.value.push(`第 ${lineNo} 行缺少必填字段`)
+      continue
+    }
     rows.push({
       studentNo: cols[0],
       name: cols[1],
@@ -132,6 +138,10 @@ async function beforeRosterUpload(file: any) {
 
 async function importRosters() {
   const rows = parseRosterText(importText.value)
+  if (importErrors.value.length > 0) {
+    ElMessage.warning(importErrors.value.slice(0, 3).join('；'))
+    return
+  }
   if (rows.length === 0) {
     ElMessage.warning('没有解析到有效名册行，请检查 CSV 内容')
     return
@@ -294,6 +304,14 @@ onMounted(() => {
         </el-upload>
         <el-button @click="importText = importTemplate">填入模板</el-button>
       </div>
+      <el-alert
+        v-if="importErrors.length"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="importErrors.join('；')"
+        style="margin-bottom:12px"
+      />
       <el-input v-model="importText" type="textarea" :rows="14" spellcheck="false" />
       <template #footer>
         <el-button @click="importDialogVisible = false">取消</el-button>

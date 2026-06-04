@@ -427,6 +427,7 @@ export const allocationApi = {
       .from('allocations')
       .select('*, dormitory_rooms(*)')
       .eq('user_id', uid)
+      .in('status', ['PUBLISHED', 'FINALIZED', 'CONFIRMED'])
       .order('created_at', { ascending: false })
       .limit(1)
     const allocation = data?.[0]
@@ -440,6 +441,7 @@ export const allocationApi = {
       .from('allocations')
       .select('*, profiles(id, name, avatar_url, bio, college_name, major_name)')
       .eq('room_id', allocation.room_id)
+      .in('status', ['PUBLISHED', 'FINALIZED', 'CONFIRMED'])
       .neq('user_id', uid)
 
     const roommates = (roommateRows || []).map((row: any) => {

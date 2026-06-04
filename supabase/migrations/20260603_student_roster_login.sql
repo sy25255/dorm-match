@@ -100,8 +100,13 @@ begin
 
   for v_row in select value from jsonb_array_elements(coalesce(p_rows, '[]'::jsonb))
   loop
-    if nullif(trim(coalesce(v_row ->> 'studentNo', v_row ->> 'student_no')), '') is null then
-      continue;
+    if nullif(trim(coalesce(v_row ->> 'studentNo', v_row ->> 'student_no')), '') is null
+       or nullif(trim(coalesce(v_row ->> 'name', '')), '') is null
+       or nullif(trim(coalesce(v_row ->> 'collegeName', v_row ->> 'college_name', '')), '') is null
+       or nullif(trim(coalesce(v_row ->> 'majorName', v_row ->> 'major_name', '')), '') is null
+       or nullif(trim(coalesce(v_row ->> 'className', v_row ->> 'class_name', '')), '') is null
+       or nullif(trim(coalesce(v_row ->> 'initialCode', v_row ->> 'initial_code', '')), '') is null then
+      raise exception 'ROSTER_REQUIRED_FIELDS_MISSING';
     end if;
 
     insert into public.student_rosters (

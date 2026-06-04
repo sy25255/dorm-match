@@ -150,7 +150,7 @@ async function submitObjection() {
         </template>
       </el-empty>
 
-      <el-empty v-else-if="!allocation" description="暂无分配结果，请等待管理员分配" />
+      <el-empty v-else-if="!allocation" description="暂无已发布分配结果，请等待管理员发布" />
 
       <template v-else>
         <div class="allocation-layout">
