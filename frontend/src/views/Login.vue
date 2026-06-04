@@ -60,6 +60,9 @@ function landingPathForCurrentUser(fallbackSchool = schoolCode.value) {
 }
 
 function mapLoginError(message: string) {
+  if (message.includes('Could not find the function') || message.includes('student_rosters') || message.includes('schema cache')) {
+    return '名册制登录尚未完成数据库迁移，请学校管理员先执行 Supabase 名册制迁移'
+  }
   if (message.includes('Invalid login credentials')) return '学号或密码错误'
   if (message.includes('STUDENT_ROSTER_NOT_FOUND')) return '学校名册中没有这个学号'
   if (message.includes('STUDENT_ROSTER_DISABLED')) return '该学生已被学校禁用'

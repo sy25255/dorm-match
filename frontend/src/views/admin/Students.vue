@@ -95,7 +95,12 @@ async function loadRosters() {
     const res = await adminApi.getStudentRosters()
     rosters.value = res.data.data || []
   } catch (error: any) {
-    ElMessage.error(error?.message || '加载学生名册失败')
+    const raw = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`
+    if (raw.includes('student_rosters') || raw.includes('schema cache') || raw.includes('Could not find')) {
+      ElMessage.error('学生名册数据库迁移尚未执行，请先在 Supabase SQL Editor 执行 20260603_student_roster_login.sql')
+    } else {
+      ElMessage.error(error?.message || '加载学生名册失败')
+    }
   } finally {
     rosterLoading.value = false
   }
@@ -138,7 +143,12 @@ async function importRosters() {
     importDialogVisible.value = false
     await loadRosters()
   } catch (error: any) {
-    ElMessage.error(error?.message || '导入学生名册失败')
+    const raw = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`
+    if (raw.includes('admin_import_student_rosters') || raw.includes('schema cache') || raw.includes('Could not find')) {
+      ElMessage.error('名册导入 RPC 尚未部署，请先执行 Supabase 名册制迁移')
+    } else {
+      ElMessage.error(error?.message || '导入学生名册失败')
+    }
   }
 }
 
