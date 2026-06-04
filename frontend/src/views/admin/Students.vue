@@ -14,6 +14,10 @@ const importDialogVisible = ref(false)
 const resetDialogVisible = ref(false)
 const importText = ref('')
 const importErrors = ref<string[]>([])
+const importWarnings = ref<string[]>([])
+const previewRows = ref<any[]>([])
+const rosterSummary = ref<any>({})
+const expectedInput = ref(0)
 const resetCode = ref('')
 const resetTarget = ref<any>(null)
 
@@ -38,6 +42,26 @@ const filteredStudents = computed(() => {
     if (!keyword) return true
     return String(row.name || '').includes(keyword) || String(row.studentNo || '').includes(keyword)
   })
+})
+
+const existingRosterNos = computed(() => new Set((rosters.value || []).map(row => String(row.studentNo || '').toUpperCase())))
+
+const summaryCards = computed(() => {
+  const s = rosterSummary.value || {}
+  const total = s.totalRosters ?? rosters.value.length
+  const expected = s.expectedNewStudents ?? expectedInput.value ?? 0
+  return [
+    { label: '预计新生', value: expected },
+    { label: '已导入名册', value: total },
+    { label: '差额人数', value: Math.max(Number(expected || 0) - Number(total || 0), 0) },
+    { label: '未激活', value: s.pendingActivation ?? rosters.value.filter(r => r.activationStatus === 'PENDING').length },
+    { label: '已激活', value: s.activeStudents ?? rosters.value.filter(r => r.activationStatus === 'ACTIVE').length },
+    { label: '已禁用', value: s.disabledStudents ?? rosters.value.filter(r => r.activationStatus === 'DISABLED').length },
+    { label: '已完成问卷', value: s.completedSurvey ?? students.value.filter(r => r.surveyStatus === 2).length },
+    { label: '需重填', value: s.needsRetake ?? students.value.filter(r => r.surveyStatus === 3).length },
+    { label: '已组队', value: s.pairedStudents ?? students.value.filter(r => r.matchStatus >= 2).length },
+    { label: '已分配', value: s.allocatedStudents ?? students.value.filter(r => r.matchStatus === 3).length },
+  ]
 })
 
 const statusLabel: Record<string, string> = {
@@ -66,24 +90,58 @@ function genderToNumber(value: string) {
   return 1
 }
 
+function splitCsvLine(line: string) {
+  const cols: string[] = []
+  let current = ''
+  let quoted = false
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    const next = line[i + 1]
+    if (char === '"' && quoted && next === '"') {
+      current += '"'
+      i++
+    } else if (char === '"') {
+      quoted = !quoted
+    } else if (char === ',' && !quoted) {
+      cols.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  cols.push(current.trim())
+  return cols
+}
+
 function parseRosterText(text: string) {
   importErrors.value = []
+  importWarnings.value = []
   const lines = text
     .split(/\r?\n/)
     .map(line => line.trim())
     .filter(Boolean)
 
   const rows: any[] = []
+  const seen = new Set<string>()
   for (const [index, line] of lines.entries()) {
     if (index === 0 && /学号|student/i.test(line)) continue
-    const cols = line.split(',').map(col => col.trim())
+    const cols = splitCsvLine(line)
     const lineNo = index + 1
     if (cols.length < 7 || cols.slice(0, 7).some(col => !col)) {
       importErrors.value.push(`第 ${lineNo} 行缺少必填字段`)
       continue
     }
+    const studentNo = cols[0].toUpperCase()
+    if (seen.has(studentNo)) {
+      importErrors.value.push(`第 ${lineNo} 行学号 ${studentNo} 在本次文件中重复`)
+      continue
+    }
+    if (existingRosterNos.value.has(studentNo)) {
+      importWarnings.value.push(`学号 ${studentNo} 已在名册中，确认导入后会更新原记录`)
+    }
+    seen.add(studentNo)
     rows.push({
-      studentNo: cols[0],
+      studentNo,
       name: cols[1],
       gender: genderToNumber(cols[2]),
       collegeName: cols[3],
@@ -93,6 +151,19 @@ function parseRosterText(text: string) {
     })
   }
   return rows
+}
+
+function parseImportPreview() {
+  previewRows.value = parseRosterText(importText.value)
+  if (importErrors.value.length > 0) {
+    ElMessage.warning(importErrors.value.slice(0, 3).join('；'))
+    return
+  }
+  if (previewRows.value.length === 0) {
+    ElMessage.warning('没有解析到有效名册行，请检查 CSV 内容')
+    return
+  }
+  ElMessage.success(`已解析 ${previewRows.value.length} 行，请确认预览后导入`)
 }
 
 async function loadRosters() {
@@ -112,6 +183,21 @@ async function loadRosters() {
   }
 }
 
+async function loadRosterSummary() {
+  try {
+    const res = await adminApi.getRosterImportSummary()
+    rosterSummary.value = res.data.data || {}
+    expectedInput.value = Number(rosterSummary.value.expectedNewStudents || 0)
+  } catch (error: any) {
+    const raw = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`
+    if (raw.includes('admin_get_roster_import_summary') || raw.includes('schema cache') || raw.includes('Could not find')) {
+      rosterSummary.value = {}
+    } else {
+      ElMessage.error(error?.message || '加载名册统计失败')
+    }
+  }
+}
+
 async function loadStudents() {
   loading.value = true
   try {
@@ -127,17 +213,23 @@ async function loadStudents() {
 
 function openImportDialog() {
   importText.value = importTemplate
+  previewRows.value = []
+  importErrors.value = []
+  importWarnings.value = []
   importDialogVisible.value = true
 }
 
 async function beforeRosterUpload(file: any) {
   const text = await file.text()
   importText.value = text
+  previewRows.value = []
+  importErrors.value = []
+  importWarnings.value = []
   return false
 }
 
 async function importRosters() {
-  const rows = parseRosterText(importText.value)
+  const rows = previewRows.value.length ? previewRows.value : parseRosterText(importText.value)
   if (importErrors.value.length > 0) {
     ElMessage.warning(importErrors.value.slice(0, 3).join('；'))
     return
@@ -151,7 +243,8 @@ async function importRosters() {
     const imported = res.data.data?.imported ?? rows.length
     ElMessage.success(`已导入/更新 ${imported} 名学生`)
     importDialogVisible.value = false
-    await loadRosters()
+    previewRows.value = []
+    await Promise.all([loadRosters(), loadStudents(), loadRosterSummary()])
   } catch (error: any) {
     const raw = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`
     if (raw.includes('admin_import_student_rosters') || raw.includes('schema cache') || raw.includes('Could not find')) {
@@ -159,6 +252,17 @@ async function importRosters() {
     } else {
       ElMessage.error(error?.message || '导入学生名册失败')
     }
+  }
+}
+
+async function saveExpectedCount() {
+  try {
+    const res = await adminApi.setExpectedNewStudents(expectedInput.value)
+    rosterSummary.value = res.data.data || {}
+    expectedInput.value = Number(rosterSummary.value.expectedNewStudents || 0)
+    ElMessage.success('预计新生人数已保存')
+  } catch (error: any) {
+    ElMessage.error(error?.message || '保存预计新生人数失败')
   }
 }
 
@@ -177,7 +281,7 @@ async function resetInitialCode() {
     await adminApi.resetStudentInitialCode(resetTarget.value.id, resetCode.value.trim())
     ElMessage.success('初始码已重置，学生需要重新激活')
     resetDialogVisible.value = false
-    await Promise.all([loadRosters(), loadStudents()])
+    await Promise.all([loadRosters(), loadStudents(), loadRosterSummary()])
   } catch (error: any) {
     ElMessage.error(error?.message || '重置初始码失败')
   }
@@ -189,7 +293,7 @@ async function setRosterStatus(row: any, status: 'PENDING' | 'ACTIVE' | 'DISABLE
     await ElMessageBox.confirm(`确认${label}学生“${row.name}”吗？`, '确认操作', { type: 'warning' })
     await adminApi.setStudentRosterStatus(row.id, status)
     ElMessage.success('名册状态已更新')
-    await Promise.all([loadRosters(), loadStudents()])
+    await Promise.all([loadRosters(), loadStudents(), loadRosterSummary()])
   } catch (error: any) {
     if (error !== 'cancel' && error !== 'close') ElMessage.error(error?.message || '更新状态失败')
   }
@@ -198,6 +302,7 @@ async function setRosterStatus(row: any, status: 'PENDING' | 'ACTIVE' | 'DISABLE
 onMounted(() => {
   loadRosters()
   loadStudents()
+  loadRosterSummary()
 })
 </script>
 
@@ -227,6 +332,26 @@ onMounted(() => {
       title="学生邀请码和学生邮箱注册已降级为旧入口，不再作为正式学校上线流程。"
       class="legacy-alert"
     />
+
+    <el-card shadow="never">
+      <div class="expected-row">
+        <div>
+          <h3>学校新生导入进度</h3>
+          <p>正式学号来自学校教务/招生系统。请将 Excel 另存为 CSV 后导入，系统按当前管理员所属学校入库。</p>
+        </div>
+        <div class="expected-control">
+          <span>预计新生人数</span>
+          <el-input-number v-model="expectedInput" :min="0" :step="1" controls-position="right" />
+          <el-button type="primary" @click="saveExpectedCount">保存</el-button>
+        </div>
+      </div>
+      <div class="summary-grid">
+        <div v-for="item in summaryCards" :key="item.label" class="summary-item">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+        </div>
+      </div>
+    </el-card>
 
     <el-tabs v-model="activeTab">
       <el-tab-pane label="学校新生名册" name="rosters">
@@ -290,12 +415,12 @@ onMounted(() => {
       </el-tab-pane>
     </el-tabs>
 
-    <el-dialog v-model="importDialogVisible" title="批量导入学生名册" width="780px">
+    <el-dialog v-model="importDialogVisible" title="学校新生名册导入向导" width="980px">
       <el-alert
         type="info"
         :closable="false"
         show-icon
-        title="CSV 列顺序：学号、姓名、性别、学院、专业、班级、初始码。重复学号会更新原记录，不会创建重复学生。"
+        title="学校从教务/招生系统导出 Excel 后，请另存为 CSV。列顺序固定为：学号、姓名、性别、学院、专业、班级、初始码。"
         style="margin-bottom:12px"
       />
       <div class="import-actions">
@@ -303,6 +428,7 @@ onMounted(() => {
           <el-button>选择 CSV 文件</el-button>
         </el-upload>
         <el-button @click="importText = importTemplate">填入模板</el-button>
+        <el-button type="primary" plain @click="parseImportPreview">解析并预览</el-button>
       </div>
       <el-alert
         v-if="importErrors.length"
@@ -312,10 +438,32 @@ onMounted(() => {
         :title="importErrors.join('；')"
         style="margin-bottom:12px"
       />
+      <el-alert
+        v-if="importWarnings.length"
+        type="warning"
+        :closable="false"
+        show-icon
+        :title="importWarnings.join('；')"
+        style="margin-bottom:12px"
+      />
       <el-input v-model="importText" type="textarea" :rows="14" spellcheck="false" />
+      <div v-if="previewRows.length" class="preview-block">
+        <div class="preview-title">预览 {{ previewRows.length }} 名学生</div>
+        <el-table :data="previewRows" height="260" stripe>
+          <el-table-column prop="studentNo" label="学号" width="130" />
+          <el-table-column prop="name" label="姓名" width="100" />
+          <el-table-column prop="gender" label="性别" width="70">
+            <template #default="{ row }">{{ row.gender === 0 ? '女' : '男' }}</template>
+          </el-table-column>
+          <el-table-column prop="collegeName" label="学院" min-width="150" />
+          <el-table-column prop="majorName" label="专业" min-width="150" />
+          <el-table-column prop="className" label="班级" min-width="120" />
+          <el-table-column prop="initialCode" label="初始码" width="120" />
+        </el-table>
+      </div>
       <template #footer>
         <el-button @click="importDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="importRosters">导入名册</el-button>
+        <el-button type="primary" :disabled="!previewRows.length || importErrors.length > 0" @click="importRosters">确认导入/更新</el-button>
       </template>
     </el-dialog>
 
@@ -360,10 +508,61 @@ onMounted(() => {
 .legacy-alert {
   margin-bottom: 4px;
 }
+.expected-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.expected-row h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.expected-row p {
+  margin: 6px 0 0;
+  color: #667085;
+  font-size: 13px;
+}
+.expected-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.summary-item {
+  border: 1px solid #eef0f3;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #fafafa;
+}
+.summary-item span {
+  display: block;
+  color: #667085;
+  font-size: 12px;
+}
+.summary-item strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+}
 .import-actions {
   display: flex;
   gap: 8px;
   margin-bottom: 12px;
+}
+.preview-block {
+  margin-top: 14px;
+}
+.preview-title {
+  margin-bottom: 8px;
+  font-weight: 600;
 }
 .reset-copy {
   margin: 0 0 12px;

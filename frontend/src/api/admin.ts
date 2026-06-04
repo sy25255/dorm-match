@@ -411,6 +411,21 @@ export const adminApi = {
     return wrap(data || { imported: 0 })
   },
 
+  async getRosterImportSummary() {
+    const { data, error } = await supabase.rpc('admin_get_roster_import_summary')
+    assertOk({ error }, '加载名册统计失败')
+    return wrap(data || {})
+  },
+
+  async setExpectedNewStudents(expectedCount: number) {
+    const safeCount = Math.max(0, Math.floor(Number(expectedCount) || 0))
+    const { data, error } = await supabase.rpc('admin_set_expected_new_students', {
+      p_expected_count: safeCount,
+    })
+    assertOk({ error }, '保存预计新生人数失败')
+    return wrap(data || {})
+  },
+
   async resetStudentInitialCode(rosterId: number, initialCode: string) {
     const { data, error } = await supabase.rpc('admin_reset_student_initial_code', {
       p_roster_id: rosterId,
