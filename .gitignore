@@ -1,6 +1,8 @@
 node_modules/
 dist/
 target/
+.understand-anything/
+frontend/test-screenshots/
 *.class
 *.jar
 .vscode/
