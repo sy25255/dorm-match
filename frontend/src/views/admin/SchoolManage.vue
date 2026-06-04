@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { schoolApi } from '@/api/school'
+import { adminApi } from '@/api/admin'
 import { ElMessage } from 'element-plus'
 
 const config = ref<any>({})
@@ -8,10 +9,13 @@ const colleges = ref<any[]>([])
 const majors = ref<any[]>([])
 const classes = ref<any[]>([])
 const inviteCodes = ref<any[]>([])
+const rosterRows = ref<any[]>([])
+const rosterSummary = ref<any>({})
 
 const collegeDialog = ref(false)
 const majorDialog = ref(false)
 const classDialog = ref(false)
+const rosterImportDialog = ref(false)
 const isEditCollege = ref(false)
 const isEditMajor = ref(false)
 const isEditClass = ref(false)
@@ -20,9 +24,20 @@ const collegeForm = ref({ id: null as number | null, name: '', code: '', descrip
 const majorForm = ref({ id: null as number | null, collegeId: null as number | null, name: '', code: '' })
 const classForm = ref({ id: null as number | null, majorId: null as number | null, name: '', grade: 2024 })
 const inviteForm = ref({ name: '新生入学邀请码', code: '', maxUses: 200 })
+const expectedInput = ref(0)
+const rosterImportText = ref('')
+const rosterImportErrors = ref<string[]>([])
+const rosterImportWarnings = ref<string[]>([])
+const rosterPreviewRows = ref<any[]>([])
 
 const selectedCollegeId = ref<number | null>(null)
 const selectedMajorId = ref<number | null>(null)
+
+const rosterTemplate = [
+  '学号,姓名,性别,学院,专业,班级,初始码',
+  '20269901,测试学生一,男,信息科学技术学院,计算机科学与技术,计科2601班,TST901A',
+  '20269902,测试学生二,女,信息科学技术学院,软件工程,软件2601班,TST902B',
+].join('\n')
 
 const collegeMap = computed(() => {
   const m: Record<number, string> = {}
@@ -33,6 +48,22 @@ const collegeMap = computed(() => {
 function getMajorName(id: number) {
   return majors.value.find(m => m.id === id)?.name || ''
 }
+
+const existingRosterNos = computed(() => new Set((rosterRows.value || []).map(row => String(row.studentNo || '').toUpperCase())))
+
+const rosterSummaryCards = computed(() => {
+  const s = rosterSummary.value || {}
+  const total = s.totalRosters ?? rosterRows.value.length
+  const expected = s.expectedNewStudents ?? expectedInput.value ?? 0
+  return [
+    { label: '预计新生', value: expected },
+    { label: '已导入名册', value: total },
+    { label: '差额人数', value: Math.max(Number(expected || 0) - Number(total || 0), 0) },
+    { label: '未激活', value: s.pendingActivation ?? rosterRows.value.filter(r => r.activationStatus === 'PENDING').length },
+    { label: '已激活', value: s.activeStudents ?? rosterRows.value.filter(r => r.activationStatus === 'ACTIVE').length },
+    { label: '已分配', value: s.allocatedStudents ?? 0 },
+  ]
+})
 
 async function loadConfig() {
   try {
@@ -79,6 +110,152 @@ async function loadInviteCodes() {
     inviteCodes.value = res.data.data || []
   } catch (error: any) {
     ElMessage.warning(error?.message || '加载学生邀请码失败')
+  }
+}
+
+async function loadRosterImportData() {
+  try {
+    const [rosterRes, summaryRes] = await Promise.all([
+      adminApi.getStudentRosters(),
+      adminApi.getRosterImportSummary(),
+    ])
+    rosterRows.value = rosterRes.data.data || []
+    rosterSummary.value = summaryRes.data.data || {}
+    expectedInput.value = Number(rosterSummary.value.expectedNewStudents || 0)
+  } catch (error: any) {
+    const raw = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`
+    if (raw.includes('student_rosters') || raw.includes('admin_get_roster_import_summary') || raw.includes('schema cache') || raw.includes('Could not find')) {
+      rosterRows.value = []
+      rosterSummary.value = {}
+    } else {
+      ElMessage.warning(error?.message || '加载名册导入数据失败')
+    }
+  }
+}
+
+function genderToNumber(value: string) {
+  const text = String(value || '').trim()
+  if (text === '女' || text === '0' || /^female$/i.test(text)) return 0
+  return 1
+}
+
+function splitCsvLine(line: string) {
+  const cols: string[] = []
+  let current = ''
+  let quoted = false
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    const next = line[i + 1]
+    if (char === '"' && quoted && next === '"') {
+      current += '"'
+      i++
+    } else if (char === '"') {
+      quoted = !quoted
+    } else if (char === ',' && !quoted) {
+      cols.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  cols.push(current.trim())
+  return cols
+}
+
+function parseRosterImportText(text: string) {
+  rosterImportErrors.value = []
+  rosterImportWarnings.value = []
+  const rows: any[] = []
+  const seen = new Set<string>()
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean)
+  for (const [index, line] of lines.entries()) {
+    if (index === 0 && /学号|student/i.test(line)) continue
+    const cols = splitCsvLine(line)
+    const lineNo = index + 1
+    if (cols.length < 7 || cols.slice(0, 7).some(col => !col)) {
+      rosterImportErrors.value.push(`第 ${lineNo} 行缺少必填字段`)
+      continue
+    }
+    const studentNo = cols[0].toUpperCase()
+    if (seen.has(studentNo)) {
+      rosterImportErrors.value.push(`第 ${lineNo} 行学号 ${studentNo} 在本次文件中重复`)
+      continue
+    }
+    if (existingRosterNos.value.has(studentNo)) {
+      rosterImportWarnings.value.push(`学号 ${studentNo} 已在名册中，确认导入后会更新原记录`)
+    }
+    seen.add(studentNo)
+    rows.push({
+      studentNo,
+      name: cols[1],
+      gender: genderToNumber(cols[2]),
+      collegeName: cols[3],
+      majorName: cols[4],
+      className: cols[5],
+      initialCode: cols[6],
+    })
+  }
+  return rows
+}
+
+function openRosterImportDialog() {
+  rosterImportText.value = rosterTemplate
+  rosterPreviewRows.value = []
+  rosterImportErrors.value = []
+  rosterImportWarnings.value = []
+  rosterImportDialog.value = true
+}
+
+async function beforeRosterUpload(file: any) {
+  rosterImportText.value = await file.text()
+  rosterPreviewRows.value = []
+  rosterImportErrors.value = []
+  rosterImportWarnings.value = []
+  return false
+}
+
+function parseRosterPreview() {
+  rosterPreviewRows.value = parseRosterImportText(rosterImportText.value)
+  if (rosterImportErrors.value.length > 0) {
+    ElMessage.warning(rosterImportErrors.value.slice(0, 3).join('；'))
+    return
+  }
+  if (rosterPreviewRows.value.length === 0) {
+    ElMessage.warning('没有解析到有效名册行，请检查 CSV 内容')
+    return
+  }
+  ElMessage.success(`已解析 ${rosterPreviewRows.value.length} 行，请确认预览后导入`)
+}
+
+async function importRosterRows() {
+  const rows = rosterPreviewRows.value.length ? rosterPreviewRows.value : parseRosterImportText(rosterImportText.value)
+  if (rosterImportErrors.value.length > 0) {
+    ElMessage.warning(rosterImportErrors.value.slice(0, 3).join('；'))
+    return
+  }
+  if (rows.length === 0) {
+    ElMessage.warning('没有解析到有效名册行，请检查 CSV 内容')
+    return
+  }
+  try {
+    const res = await adminApi.importStudentRosters(rows)
+    const imported = res.data.data?.imported ?? rows.length
+    ElMessage.success(`已导入/更新 ${imported} 名学生`)
+    rosterImportDialog.value = false
+    await loadRosterImportData()
+  } catch (error: any) {
+    ElMessage.error(error?.message || '导入学生名册失败')
+  }
+}
+
+async function saveExpectedCount() {
+  try {
+    const res = await adminApi.setExpectedNewStudents(expectedInput.value)
+    rosterSummary.value = res.data.data || {}
+    expectedInput.value = Number(rosterSummary.value.expectedNewStudents || 0)
+    ElMessage.success('预计新生人数已保存')
+  } catch (error: any) {
+    ElMessage.error(error?.message || '保存预计新生人数失败')
   }
 }
 
@@ -211,6 +388,7 @@ async function selectMajor(row: any) {
 onMounted(async () => {
   await loadConfig()
   generateInviteCode()
+  await loadRosterImportData()
   await loadInviteCodes()
   await loadColleges()
 })
@@ -269,6 +447,31 @@ onMounted(async () => {
           <el-button type="primary" @click="saveConfig">保存学校信息</el-button>
         </el-col>
       </el-row>
+    </el-card>
+
+    <el-card style="margin-bottom:16px">
+      <template #header><span style="font-weight:600">新生名册导入</span></template>
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        title="正式学号来自学校教务/招生系统。学校将 Excel 另存为 CSV 后导入，系统会按当前管理员所属学校写入名册。"
+        style="margin-bottom:12px"
+      />
+      <div class="roster-import-head">
+        <div class="expected-control">
+          <span>预计新生人数</span>
+          <el-input-number v-model="expectedInput" :min="0" :step="1" controls-position="right" />
+          <el-button type="primary" @click="saveExpectedCount">保存</el-button>
+        </div>
+        <el-button type="primary" @click="openRosterImportDialog">导入新生名册</el-button>
+      </div>
+      <div class="roster-summary-grid">
+        <div v-for="item in rosterSummaryCards" :key="item.label" class="roster-summary-item">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+        </div>
+      </div>
     </el-card>
 
     <el-card style="margin-bottom:16px">
@@ -393,6 +596,58 @@ onMounted(async () => {
       </el-form>
       <template #footer><el-button @click="classDialog = false">取消</el-button><el-button type="primary" @click="saveClass">保存</el-button></template>
     </el-dialog>
+
+    <el-dialog v-model="rosterImportDialog" title="学校新生名册导入向导" width="980px">
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        title="CSV 列顺序固定为：学号、姓名、性别、学院、专业、班级、初始码。重复学号会更新原记录，不会创建重复学生。"
+        style="margin-bottom:12px"
+      />
+      <div class="import-actions">
+        <el-upload :auto-upload="false" :show-file-list="false" accept=".csv,.txt" :before-upload="beforeRosterUpload">
+          <el-button>选择 CSV 文件</el-button>
+        </el-upload>
+        <el-button @click="rosterImportText = rosterTemplate">填入模板</el-button>
+        <el-button type="primary" plain @click="parseRosterPreview">解析并预览</el-button>
+      </div>
+      <el-alert
+        v-if="rosterImportErrors.length"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="rosterImportErrors.join('；')"
+        style="margin-bottom:12px"
+      />
+      <el-alert
+        v-if="rosterImportWarnings.length"
+        type="warning"
+        :closable="false"
+        show-icon
+        :title="rosterImportWarnings.join('；')"
+        style="margin-bottom:12px"
+      />
+      <el-input v-model="rosterImportText" type="textarea" :rows="12" spellcheck="false" />
+      <div v-if="rosterPreviewRows.length" class="preview-block">
+        <div class="preview-title">预览 {{ rosterPreviewRows.length }} 名学生</div>
+        <el-table :data="rosterPreviewRows" height="260" stripe>
+          <el-table-column prop="studentNo" label="学号" width="130" />
+          <el-table-column prop="name" label="姓名" width="100" />
+          <el-table-column prop="gender" label="性别" width="70">
+            <template #default="{ row }">{{ row.gender === 0 ? '女' : '男' }}</template>
+          </el-table-column>
+          <el-table-column prop="collegeName" label="学院" min-width="150" />
+          <el-table-column prop="majorName" label="专业" min-width="150" />
+          <el-table-column prop="className" label="班级" min-width="120" />
+          <el-table-column prop="initialCode" label="初始码" width="120" />
+        </el-table>
+      </div>
+      <template #footer>
+        <el-button @click="rosterImportDialog = false">取消</el-button>
+        <el-button type="primary" :disabled="!rosterPreviewRows.length || rosterImportErrors.length > 0" @click="importRosterRows">确认导入/更新</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -405,5 +660,51 @@ onMounted(async () => {
   border: 1px solid #e5e6eb;
   border-radius: 6px;
   padding: 10px 12px;
+}
+.roster-import-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.expected-control,
+.import-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.roster-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.roster-summary-item {
+  border: 1px solid #eef0f3;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #fafafa;
+}
+.roster-summary-item span {
+  display: block;
+  color: #667085;
+  font-size: 12px;
+}
+.roster-summary-item strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+}
+.import-actions {
+  margin-bottom: 12px;
+}
+.preview-block {
+  margin-top: 14px;
+}
+.preview-title {
+  margin-bottom: 8px;
+  font-weight: 600;
 }
 </style>
