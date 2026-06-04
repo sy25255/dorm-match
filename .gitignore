@@ -22,6 +22,7 @@ push-to-github.bat
 *.ps1
 *.py
 !frontend/**/*.py
+frontend/scripts/test_*.py
 questions.json
 tmp.json
 tmp_sql.json
